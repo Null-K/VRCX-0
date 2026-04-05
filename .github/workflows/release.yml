@@ -104,13 +104,15 @@ jobs:
                       -t:Restore,Build \
                       -m --self-contained
 
-            - run: choco install nsis -y
+            - name: Install NSIS
+              run: choco install nsis -y
 
             - name: Create installer
-              uses: joncloud/makensis-action@v4
-              with:
-                  script-file: Installer/installer.nsi
-                  additional-plugin-paths: Installer/Plugins
+              shell: pwsh
+              run: |
+                  $nsis = "C:\Program Files (x86)\NSIS"
+                  Copy-Item -Recurse -Force "Installer\Plugins\*" "$nsis\Plugins\"
+                  & "$nsis\makensis.exe" /V1 "Installer\installer.nsi"
 
             - name: Rename installer
               run: mv Installer/VRCX-0_Setup.exe "VRCX-0_${{ steps.meta.outputs.version }}_Setup.exe"
