@@ -69,7 +69,23 @@ jobs:
                   cache: npm
 
             - name: Set installer version
-              run: echo "!define PRODUCT_VERSION_FROM_FILE \"${{ steps.meta.outputs.version }}.0\"" > Installer/version_define.nsh
+              run: |
+                  # Extract numeric X.X.X.X from version for NSIS VIFileVersion
+                  # e.g. "2026.04.05-beta.1" -> "2026.4.5.1", "2026.04.05" -> "2026.4.5.0"
+                  raw="${{ steps.meta.outputs.version }}"
+                  base=$(echo "$raw" | sed 's/-.*//')
+                  # Remove leading zeros from each segment
+                  IFS='.' read -r y m d <<< "$base"
+                  y=$((10#$y)); m=$((10#$m)); d=$((10#$d))
+                  # Extract trailing number after last dot in suffix (e.g. beta.1 -> 1), default 0
+                  suffix=$(echo "$raw" | sed -n 's/^[^-]*-//p')
+                  if [ -n "$suffix" ]; then
+                      build=$(echo "$suffix" | grep -oE '[0-9]+$')
+                      build=${build:-0}
+                  else
+                      build=0
+                  fi
+                  echo "!define PRODUCT_VERSION_FROM_FILE \"${y}.${m}.${d}.${build}\"" > Installer/version_define.nsh
 
             - uses: actions/cache@v5
               with:
