@@ -16,7 +16,7 @@ namespace VRCX_0
         private readonly Timer _timer;
         private bool _active;
         private string _discordAppId;
-        private const string VrcxUrl = "https://vrcx.app";
+        private const string VrcxUrl = "https://github.com/Map1en/VRCX-0";
 
         static Discord()
         {

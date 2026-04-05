@@ -104,7 +104,7 @@
                 <Button
                     size="sm"
                     variant="outline"
-                    @click="openExternalLink('https://github.com/vrcx-team/VRCX/wiki/Launch-parameters-&-VRCX.json')"
+                    @click="openExternalLink('https://github.com/Map1en/VRCX-0/wiki/Launch-parameters-&-VRCX.json')"
                     >{{ t('view.settings.advanced.advanced.launch_commands.docs') }}</Button
                 >
                 <Button

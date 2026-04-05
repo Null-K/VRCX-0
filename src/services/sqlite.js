@@ -16,9 +16,9 @@ class SQLiteService {
                     })
                     .then(({ ok }) => {
                         if (!ok) return;
-                        openExternalLink(
-                            'https://github.com/vrcx-team/VRCX/wiki#how-to-repair-vrcx-database'
-                        );
+                        // openExternalLink(
+                        // 'https://github.com/vrcx-team/VRCX/wiki#how-to-repair-vrcx-database'
+                        // );
                     })
                     .catch(() => {});
             }

@@ -280,7 +280,7 @@ export const useVRCXUpdaterStore = defineStore('VRCXUpdater', () => {
                 url,
                 method: 'GET',
                 headers: {
-                    'VRCX-ID': vrcxId.value
+                    Accept: 'application/vnd.github+json'
                 }
             });
             json = JSON.parse(response.data);
@@ -368,7 +368,7 @@ export const useVRCXUpdaterStore = defineStore('VRCXUpdater', () => {
                 url,
                 method: 'GET',
                 headers: {
-                    'VRCX-ID': vrcxId.value
+                    Accept: 'application/vnd.github+json'
                 }
             });
             json = JSON.parse(response.data);

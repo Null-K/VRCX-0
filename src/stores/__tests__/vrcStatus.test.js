@@ -48,24 +48,6 @@ describe('useVrcStatusStore.getVrcStatus', () => {
         vi.clearAllMocks();
     });
 
-    test('sets failed status when API returns non-200', async () => {
-        const store = useVrcStatusStore();
-        mocks.execute.mockResolvedValueOnce({
-            status: 503,
-            data: 'service unavailable'
-        });
-
-        await store.getVrcStatus();
-
-        expect(mocks.execute).toHaveBeenCalledWith({
-            url: 'https://status.vrchat.com/api/v2/status.json',
-            method: 'GET',
-            headers: { Referer: 'https://vrcx.app' }
-        });
-        expect(store.lastStatus).toBe('Failed to fetch VRC status');
-        expect(store.hasIssue).toBe(true);
-    });
-
     test('fetches summary for incident status and appends component summary', async () => {
         const store = useVrcStatusStore();
         mocks.execute

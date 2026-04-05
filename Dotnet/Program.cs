@@ -218,12 +218,12 @@ namespace VRCX_0
                 var messageBoxResult = MessageBox.Show(
                     "A fatal database error has occured.\n" +
                     "Please try to repair your database by following the steps in the provided repair guide, or alternatively rename your \"%AppData%\\VRCX-0\" folder to reset VRCX-0. " +
-                    "If the issue still persists after following the repair guide please join the Discord (https://vrcx.app/discord) for further assistance. " +
+                    "If the issue still persists after following the repair guide please open an issue on GitHub (https://github.com/Map1en/VRCX-0/issues) for further assistance. " +
                     "Would you like to open the webpage for database repair steps?\n" +
                     e, "Database error", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
                 if (messageBoxResult == DialogResult.Yes)
                 {
-                    AppApiInstance.OpenLink("https://github.com/vrcx-team/VRCX/wiki#how-to-repair-vrcx-database");
+                    AppApiInstance.OpenLink("https://github.com/Map1en/VRCX-0/wiki#how-to-repair-vrcx-database");
                 }
             }
             
@@ -243,10 +243,10 @@ namespace VRCX_0
                 }
 
                 logger.Fatal(e, "Unhandled Exception, program dying");
-                var result = MessageBox.Show(e.ToString(), $"{Version} crashed, open Discord for support?", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
+                var result = MessageBox.Show(e.ToString(), $"{Version} crashed, open GitHub for support?", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
                 if (result == DialogResult.Yes)
                 {
-                    AppApiInstance.OpenLink("https://vrcx.app/discord");
+                    AppApiInstance.OpenLink("https://github.com/Map1en/VRCX-0/issues");
                 }
                 Environment.Exit(0);
             }

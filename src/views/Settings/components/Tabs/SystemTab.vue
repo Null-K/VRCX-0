@@ -34,12 +34,12 @@
                 </div>
             </div>
 
-            <div class="flex flex-col gap-0.5 px-1 py-1 cursor-pointer" @click="openExternalLink(links.discord)">
+            <div class="flex flex-col gap-0.5 px-1 py-1 cursor-pointer" @click="openExternalLink(links.github + '/issues')">
                 <div class="flex-1">
                     <span class="block truncate font-medium text-sm leading-[18px]">{{
                         t('view.settings.general.general.support')
                     }}</span>
-                    <span v-once class="block truncate text-xs text-muted-foreground">{{ links.discord }}</span>
+                    <span v-once class="block truncate text-xs text-muted-foreground">{{ links.github + '/issues' }}</span>
                 </div>
             </div>
         </SettingsGroup>
@@ -108,10 +108,10 @@
         <SettingsGroup :title="t('view.settings.general.contributors.header')">
             <div>
                 <img
-                    src="https://contrib.rocks/image?repo=vrcx-team/VRCX"
+                    src="https://contrib.rocks/image?repo=Map1en/VRCX-0"
                     alt="Contributors"
                     class="cursor-pointer"
-                    @click="openExternalLink('https://github.com/vrcx-team/VRCX/graphs/contributors')" />
+                    @click="openExternalLink('https://github.com/Map1en/VRCX-0/graphs/contributors')" />
             </div>
         </SettingsGroup>
 

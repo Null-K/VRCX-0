@@ -19,7 +19,7 @@
     <Title>VRCX-0</Title>
     <Description>VRCX-0</Description>
     <PackageIcon>..\images\VRCX-0.png</PackageIcon>
-    <RepositoryUrl>https://github.com/vrcx-team/VRCX</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Map1en/VRCX-0</RepositoryUrl>
     <ResourceLanguages>en</ResourceLanguages>
     <SatelliteResourceLanguages>en-US;en</SatelliteResourceLanguages>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
