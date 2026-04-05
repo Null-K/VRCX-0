@@ -421,7 +421,7 @@ export const useFriendStore = defineStore('Friend', () => {
      */
     async function init() {
         const friendLogTableFiltersValue = JSON.parse(
-            await configRepository.getString('VRCX_friendLogTableFilters', '[]')
+            await configRepository.getString('VRCX-0_friendLogTableFilters', '[]')
         );
         friendLogTable.value.filters[0].value = friendLogTableFiltersValue;
     }
@@ -801,10 +801,6 @@ export const useFriendStore = defineStore('Friend', () => {
         const onlineFriendCounts =
             vipFriends.value.length + onlineFriends.value.length;
         if (onlineFriendCounts !== onlineFriendCount.value || forceUpdate) {
-            AppApi.ExecuteVrOverlayFunction(
-                'updateOnlineFriendCount',
-                `${onlineFriendCounts}`
-            );
             onlineFriendCount.value = onlineFriendCounts;
         }
     }
@@ -1008,7 +1004,7 @@ export const useFriendStore = defineStore('Friend', () => {
     async function getFriendLog(currentUser) {
         let friend;
         state.friendNumber = await configRepository.getInt(
-            `VRCX_friendNumber_${currentUser.id}`,
+            `VRCX-0_friendNumber_${currentUser.id}`,
             0
         );
         const maxFriendLogNumber = await database.getMaxFriendLogNumber();
@@ -1071,7 +1067,7 @@ export const useFriendStore = defineStore('Friend', () => {
      */
     async function tryApplyFriendOrder() {
         const lastUpdate = await configRepository.getString(
-            `VRCX_lastStoreTime_${userStore.currentUser.id}`
+            `VRCX-0_lastStoreTime_${userStore.currentUser.id}`
         );
         if (lastUpdate === '-5') {
             // this means we're done
@@ -1097,11 +1093,11 @@ export const useFriendStore = defineStore('Friend', () => {
         }
         console.log('Applied friend order from API', state.friendNumber);
         await configRepository.setInt(
-            `VRCX_friendNumber_${userStore.currentUser.id}`,
+            `VRCX-0_friendNumber_${userStore.currentUser.id}`,
             state.friendNumber
         );
         await configRepository.setString(
-            `VRCX_lastStoreTime_${userStore.currentUser.id}`,
+            `VRCX-0_lastStoreTime_${userStore.currentUser.id}`,
             '-5'
         );
     }
@@ -1111,7 +1107,7 @@ export const useFriendStore = defineStore('Friend', () => {
      */
     async function tryRestoreFriendNumber() {
         const lastUpdate = await configRepository.getString(
-            `VRCX_lastStoreTime_${userStore.currentUser.id}`
+            `VRCX-0_lastStoreTime_${userStore.currentUser.id}`
         );
         if (lastUpdate === '-4') {
             // this means the backup was already applied
@@ -1149,7 +1145,7 @@ export const useFriendStore = defineStore('Friend', () => {
         //     });
         // }
         await configRepository.setString(
-            `VRCX_lastStoreTime_${userStore.currentUser.id}`,
+            `VRCX-0_lastStoreTime_${userStore.currentUser.id}`,
             '-4'
         );
     }
@@ -1162,7 +1158,7 @@ export const useFriendStore = defineStore('Friend', () => {
         let storedData = null;
         try {
             const data = await configRepository.getString(
-                `VRCX_friendOrder_${userStore.currentUser.id}`
+                `VRCX-0_friendOrder_${userStore.currentUser.id}`
             );
             if (data) {
                 storedData = JSON.parse(data);
@@ -1202,7 +1198,7 @@ export const useFriendStore = defineStore('Friend', () => {
         applyFriendOrderBackup(bestBackup.table);
         applyFriendLogFriendOrder();
         await configRepository.setInt(
-            `VRCX_friendNumber_${userStore.currentUser.id}`,
+            `VRCX-0_friendNumber_${userStore.currentUser.id}`,
             state.friendNumber
         );
         return true;

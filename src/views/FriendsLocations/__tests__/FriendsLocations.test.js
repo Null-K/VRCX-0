@@ -315,11 +315,11 @@ describe('FriendsLocations.vue', () => {
         vi.advanceTimersByTime(200);
 
         expect(mocks.configSetString).toHaveBeenCalledWith(
-            'VRCX_FriendLocationCardScale',
+            'VRCX-0_FriendLocationCardScale',
             '0.8'
         );
         expect(mocks.configSetBool).toHaveBeenCalledWith(
-            'VRCX_FriendLocationShowSameInstance',
+            'VRCX-0_FriendLocationShowSameInstance',
             true
         );
         vi.useRealTimers();

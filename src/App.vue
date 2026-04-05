@@ -21,7 +21,8 @@
     import { computed, onBeforeMount, onMounted } from 'vue';
 
     import { addGameLogEvent, getGameLogTable } from './coordinators/gameLogCoordinator';
-    import { runCheckVRChatDebugLoggingFlow, runUpdateIsGameRunningFlow, runUpdateIsHmdAfkFlow } from './coordinators/gameCoordinator';
+    import { runCheckVRChatDebugLoggingFlow, runUpdateIsGameRunningFlow } from './coordinators/gameCoordinator';
+    import { onBackendEvent } from './plugins/interopApi';
     import { Toaster } from './components/ui/sonner';
     import { TooltipProvider } from './components/ui/tooltip';
     import { createGlobalStores } from './stores';
@@ -45,10 +46,13 @@
 
     if (typeof window !== 'undefined') {
         window.$pinia = store;
-        // Bridge: attach coordinator functions to store for C# IPC callbacks
-        store.game.updateIsGameRunning = runUpdateIsGameRunningFlow;
-        store.game.updateIsHmdAfk = runUpdateIsHmdAfkFlow;
-        store.gameLog.addGameLogEvent = addGameLogEvent;
+        // Register C# backend push event handlers
+        onBackendEvent('addGameLogEvent', (json) => addGameLogEvent(json));
+        onBackendEvent('updateIsGameRunning', (data) =>
+            runUpdateIsGameRunningFlow(data.isGameRunning, data.isSteamVRRunning)
+        );
+        onBackendEvent('ipcEvent', (json) => store.vrcx.ipcEvent(json));
+        onBackendEvent('browserFocus', () => store.vrcStatus.onBrowserFocus());
     }
 
     onBeforeMount(() => {

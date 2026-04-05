@@ -9,7 +9,7 @@ using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace VRCX
+namespace VRCX_0
 {
     public static class PNGHelper
     {

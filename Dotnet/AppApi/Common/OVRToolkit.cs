@@ -6,7 +6,7 @@ using System.Net.WebSockets;
 using System.Text.Json;
 using Websocket.Client;
 
-namespace VRCX
+namespace VRCX_0
 {
     public partial class AppApi
     {

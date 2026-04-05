@@ -140,14 +140,14 @@
     const groupNamesCache = new Map();
 
     onMounted(async () => {
-        showFeaturedEvents.value = await configRepository.getBool('VRCX_groupCalendarShowFeaturedEvents', false);
+        showFeaturedEvents.value = await configRepository.getBool('VRCX-0_groupCalendarShowFeaturedEvents', false);
     });
 
     /**
      *
      */
     function toggleFeaturedEvents() {
-        configRepository.setBool('VRCX_groupCalendarShowFeaturedEvents', showFeaturedEvents.value);
+        configRepository.setBool('VRCX-0_groupCalendarShowFeaturedEvents', showFeaturedEvents.value);
         updateCalenderData();
     }
 

@@ -1,7 +1,7 @@
 using System.IO;
 using System.Text.RegularExpressions;
 
-namespace VRCX;
+namespace VRCX_0;
 
 public partial class AppApi
 {

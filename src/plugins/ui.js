@@ -18,7 +18,7 @@ import configRepository from '../services/config';
 export async function initUi() {
     try {
         const language = await configRepository.getString(
-            'VRCX_appLanguage',
+            'VRCX-0_appLanguage',
             'en'
         );
         // @ts-ignore
@@ -34,31 +34,4 @@ export async function initUi() {
     }
 
     refreshCustomCss();
-}
-
-export async function initUiForVrOverlay() {
-    try {
-        const [language, fontFamily, customFontFamily, cjkFontPack] =
-            await Promise.all([
-                configRepository.getString('VRCX_appLanguage', 'en'),
-                configRepository.getString(
-                    'VRCX_fontFamily',
-                    APP_FONT_DEFAULT_KEY
-                ),
-                configRepository.getString('VRCX_customFontFamily', ''),
-                configRepository.getString(
-                    'VRCX_cjkFontPack',
-                    APP_CJK_FONT_PACK_DEFAULT_KEY
-                )
-            ]);
-
-        // @ts-ignore
-        i18n.locale = language;
-        await loadLocalizedStrings(language);
-        changeHtmlLangAttribute(language);
-        applyAppFontFamily(fontFamily, customFontFamily);
-        applyAppCjkFontPack(cjkFontPack);
-    } catch (error) {
-        console.error('Error initializing VR locale and fonts:', error);
-    }
 }

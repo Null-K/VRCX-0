@@ -100,7 +100,7 @@
         <SettingsGroup :title="t('view.settings.advanced.advanced.translation_api.header')">
             <SettingsItem :label="t('view.settings.advanced.advanced.translation_api.enable')"
                 :description="t('view.settings.advanced.advanced.translation_api.enable_tooltip')">
-                <Switch :model-value="translationApi" @update:modelValue="changeTranslationAPI('VRCX_translationAPI')" />
+                <Switch :model-value="translationApi" @update:modelValue="changeTranslationAPI('VRCX-0_translationAPI')" />
             </SettingsItem>
 
             <SettingsItem :label="t('view.settings.advanced.advanced.translation_api.translation_api_key')">
@@ -115,7 +115,7 @@
         <SettingsGroup :title="t('view.settings.advanced.advanced.youtube_api.header')">
             <SettingsItem :label="t('view.settings.advanced.advanced.youtube_api.enable')"
                 :description="t('view.settings.advanced.advanced.youtube_api.enable_tooltip')">
-                <Switch :model-value="youTubeApi" @update:modelValue="changeYouTubeApi('VRCX_youtubeAPI')" />
+                <Switch :model-value="youTubeApi" @update:modelValue="changeYouTubeApi('VRCX-0_youtubeAPI')" />
             </SettingsItem>
 
             <SettingsItem :label="t('view.settings.advanced.advanced.youtube_api.youtube_api_key')">
@@ -234,7 +234,7 @@
      * @param configKey
      */
     async function changeYouTubeApi(configKey = '') {
-        if (configKey === 'VRCX_youtubeAPI') {
+        if (configKey === 'VRCX-0_youtubeAPI') {
             advancedSettingsStore.setYouTubeApi();
         }
         updateVRLastLocation();
@@ -246,7 +246,7 @@
      * @param configKey
      */
     async function changeTranslationAPI(configKey = '') {
-        if (configKey === 'VRCX_translationAPI') {
+        if (configKey === 'VRCX-0_translationAPI') {
             advancedSettingsStore.setTranslationApi();
         }
     }

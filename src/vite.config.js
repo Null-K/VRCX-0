@@ -164,8 +164,7 @@ export default defineConfig(({ mode }) => {
             rolldownOptions: {
                 preserveEntrySignatures: false,
                 input: {
-                    index: resolve(import.meta.dirname, './index.html'),
-                    vr: resolve(import.meta.dirname, './vr.html')
+                    index: resolve(import.meta.dirname, './index.html')
                 },
                 output: {
                     assetFileNames: getAssetFilename,

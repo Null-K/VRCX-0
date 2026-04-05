@@ -2,7 +2,7 @@ using Newtonsoft.Json;
 using System.IO;
 using System.Text;
 
-namespace VRCX
+namespace VRCX_0
 {
     public static class JsonFileSerializer
     {

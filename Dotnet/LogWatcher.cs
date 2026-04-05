@@ -9,9 +9,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using NLog;
 
-using CefSharp;
-
-namespace VRCX
+namespace VRCX_0
 {
     /// <summary>
     /// Monitors the VRChat log files for changes and provides access to the log data.
@@ -287,8 +285,7 @@ namespace VRCX
                 if (!m_FirstRun)
                 {
                     var logLine = JsonSerializer.Serialize(item);
-                    if (MainForm.Instance != null && MainForm.Instance.Browser != null)
-                        MainForm.Instance.Browser.ExecuteScriptAsync("window?.$pinia?.gameLog.addGameLogEvent", logLine);
+                    MainForm.Instance?.Router?.SendEvent("addGameLogEvent", logLine);
                 }
 
                 m_LogList.Add(item);

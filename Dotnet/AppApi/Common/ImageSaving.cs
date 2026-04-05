@@ -15,7 +15,7 @@ using Point = SixLabors.ImageSharp.Point;
 using Rectangle = SixLabors.ImageSharp.Rectangle;
 using Size = SixLabors.ImageSharp.Size;
 
-namespace VRCX
+namespace VRCX_0
 {
     public partial class AppApi
     {

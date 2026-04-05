@@ -8,7 +8,7 @@
             @interact-outside.prevent>
             <div class="pt-2 text-center">
                 <div class="mb-2 flex justify-center">
-                    <img :src="vrcxLogo" alt="VRCX" class="size-12 rounded-xl" />
+                    <img :src="vrcxLogo" alt="VRCX-0" class="size-12 rounded-xl" />
                 </div>
                 <h2 class="m-0 text-[22px] font-bold tracking-tight">{{ t('onboarding.welcome.title') }}</h2>
                 <p class="mt-1.5 text-sm text-muted-foreground">{{ t('onboarding.welcome.subtitle') }}</p>
@@ -54,7 +54,7 @@
     import { Dialog, DialogContent } from '@/components/ui/dialog';
     import { Button } from '@/components/ui/button';
     import configRepository from '../../services/config';
-    import vrcxLogo from '../../../images/VRCX.png';
+    import vrcxLogo from '../../../images/VRCX-0.png';
 
     const { t } = useI18n();
 
@@ -68,7 +68,7 @@
     ];
 
     onMounted(async () => {
-        const seen = await configRepository.getBool('VRCX_onboarding_welcome_seen', false);
+        const seen = await configRepository.getBool('VRCX-0_onboarding_welcome_seen', false);
         if (!seen) {
             setTimeout(() => {
                 isOpen.value = true;
@@ -81,7 +81,7 @@
      */
     async function handleDismiss() {
         isOpen.value = false;
-        await configRepository.setBool('VRCX_onboarding_welcome_seen', true);
+        await configRepository.setBool('VRCX-0_onboarding_welcome_seen', true);
     }
 </script>
 

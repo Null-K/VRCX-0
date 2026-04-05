@@ -7,7 +7,7 @@ import { useGeneralSettingsStore } from '../stores/settings/general';
  * Key: `${userId}:${actionType}`, Value: timestamp (ms).
  * Stored in localStorage via @vueuse/core.
  */
-const recentActions = useLocalStorage('VRCX_recentActions', {});
+const recentActions = useLocalStorage('VRCX-0_recentActions', {});
 
 const TRACKED_ACTIONS = new Set([
     'Send Friend Request',

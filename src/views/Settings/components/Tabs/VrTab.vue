@@ -1,73 +1,5 @@
 <template>
     <div class="flex flex-col gap-10 py-2">
-        <!-- VR Core -->
-        <SettingsGroup :title="t('view.settings.vr.vr_core.header')">
-            <SettingsItem :label="t('view.settings.notifications.notifications.steamvr_notifications.steamvr_overlay')">
-                <Switch
-                    :model-value="openVR"
-                    @update:modelValue="
-                        setOpenVR();
-                        saveOpenVROption();
-                    " />
-            </SettingsItem>
-
-            <SettingsItem :label="t('view.settings.wrist_overlay.steamvr_wrist_overlay.start_overlay_with')">
-                <Select
-                    :model-value="openVRAlways ? 'true' : 'false'"
-                    :disabled="!openVR"
-                    @update:modelValue="handleOpenVRAlwaysRadio">
-                    <SelectTrigger size="sm">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="false">{{ 'VRChat' }}</SelectItem>
-                        <SelectItem value="true">{{ 'SteamVR' }}</SelectItem>
-                    </SelectContent>
-                </Select>
-            </SettingsItem>
-
-            <SettingsItem
-                :label="
-                    t('view.settings.notifications.notifications.steamvr_notifications.xsoverlay_notifications')
-                ">
-                <Switch
-                    :model-value="xsNotifications"
-                    @update:modelValue="
-                        setXsNotifications();
-                        saveOpenVROption();
-                    " />
-            </SettingsItem>
-
-            <SettingsItem
-                :label="
-                    t(
-                        'view.settings.notifications.notifications.steamvr_notifications.ovrtoolkit_hud_notifications'
-                    )
-                ">
-                <Switch
-                    :model-value="ovrtHudNotifications"
-                    @update:modelValue="
-                        setOvrtHudNotifications();
-                        saveOpenVROption();
-                    " />
-            </SettingsItem>
-
-            <SettingsItem
-                :label="
-                    t(
-                        'view.settings.notifications.notifications.steamvr_notifications.ovrtoolkit_wrist_notifications'
-                    )
-                ">
-                <Switch
-                    :model-value="ovrtWristNotifications"
-                    @update:modelValue="
-                        setOvrtWristNotifications();
-                        saveOpenVROption();
-                    " />
-            </SettingsItem>
-        </SettingsGroup>
-
-        <!-- VR Notifications -->
         <SettingsGroup :title="t('view.settings.vr.vr_notifications.header')">
             <SettingsItem :label="t('view.settings.notifications.notifications.desktop_notifications.when_to_display_vr')">
                 <ToggleGroup
@@ -76,16 +8,7 @@
                     variant="outline"
                     size="sm"
                     :model-value="overlayToast"
-                    :disabled="
-                        (!overlayNotifications || !openVR) &&
-                        !xsNotifications &&
-                        !ovrtHudNotifications &&
-                        !ovrtWristNotifications
-                    "
-                    @update:model-value="
-                        setOverlayToast($event);
-                        saveOpenVROption();
-                    ">
+                    @update:model-value="setOverlayToast">
                     <ToggleGroupItem value="Never">{{
                         t('view.settings.notifications.notifications.conditions.never')
                     }}</ToggleGroupItem>
@@ -102,34 +25,32 @@
             </SettingsItem>
 
             <SettingsItem
-                :label="t('view.settings.notifications.notifications.steamvr_notifications.overlay_notifications')">
+                :label="
+                    t('view.settings.notifications.notifications.steamvr_notifications.xsoverlay_notifications')
+                ">
+                <Switch :model-value="xsNotifications" @update:modelValue="setXsNotifications" />
+            </SettingsItem>
+
+            <SettingsItem
+                :label="
+                    t(
+                        'view.settings.notifications.notifications.steamvr_notifications.ovrtoolkit_hud_notifications'
+                    )
+                ">
                 <Switch
-                    :model-value="overlayNotifications"
-                    :disabled="!openVR"
-                    @update:modelValue="
-                        setOverlayNotifications();
-                        saveOpenVROption();
-                    " />
+                    :model-value="ovrtHudNotifications"
+                    @update:modelValue="setOvrtHudNotifications" />
             </SettingsItem>
 
             <SettingsItem
-                :label="t('view.settings.notifications.notifications.steamvr_notifications.notification_position')">
-                <Button
-                    size="sm"
-                    variant="outline"
-                    :disabled="!overlayNotifications || !openVR"
-                    @click="showNotificationPositionDialog"
-                    >{{
-                        t('view.settings.notifications.notifications.steamvr_notifications.notification_position')
-                    }}</Button
-                >
-            </SettingsItem>
-
-            <SettingsItem
-                :label="t('view.settings.notifications.notifications.steamvr_notifications.notification_opacity')">
-                <div class="w-75 max-w-full pt-1">
-                    <Slider v-model="notificationOpacityValue" :min="0" :max="100" />
-                </div>
+                :label="
+                    t(
+                        'view.settings.notifications.notifications.steamvr_notifications.ovrtoolkit_wrist_notifications'
+                    )
+                ">
+                <Switch
+                    :model-value="ovrtWristNotifications"
+                    @update:modelValue="setOvrtWristNotifications" />
             </SettingsItem>
 
             <SettingsItem
@@ -139,7 +60,6 @@
                     :min="0"
                     :step="1"
                     :format-options="{ maximumFractionDigits: 0 }"
-                    :disabled="(!overlayNotifications || !openVR) && !xsNotifications"
                     class="w-32"
                     @update:modelValue="setNotificationTimeout">
                     <NumberFieldContent>
@@ -151,71 +71,32 @@
             </SettingsItem>
 
             <SettingsItem
+                :label="t('view.settings.notifications.notifications.steamvr_notifications.notification_opacity')">
+                <div class="w-75 max-w-full pt-1">
+                    <Slider v-model="notificationOpacityValue" :min="0" :max="100" />
+                </div>
+            </SettingsItem>
+
+            <SettingsItem
                 :label="t('view.settings.notifications.notifications.steamvr_notifications.user_images')"
                 :description="t('view.settings.notifications.notifications.steamvr_notifications.user_images_description')">
-                <Switch
-                    :model-value="imageNotifications"
-                    @update:modelValue="
-                        setImageNotifications();
-                        saveOpenVROption();
-                    " />
+                <Switch :model-value="imageNotifications" @update:modelValue="setImageNotifications" />
             </SettingsItem>
         </SettingsGroup>
-
-        <!-- Wrist Overlay -->
-        <WristOverlaySettings @open-feed-filters="showWristFeedFiltersDialog" />
-
-        <!-- VR Extras -->
-        <SettingsGroup :title="t('view.settings.vr.vr_extras.header')">
-            <SettingsItem
-                :label="t('view.settings.advanced.advanced.video_progress_pie.header')"
-                :description="t('view.settings.advanced.advanced.video_progress_pie.enable_tooltip')">
-                <Switch
-                    :model-value="progressPie"
-                    :disabled="!openVR"
-                    @update:modelValue="changeYouTubeApi('VRCX_progressPie')" />
-            </SettingsItem>
-
-            <SettingsItem :label="t('view.settings.advanced.advanced.video_progress_pie.dance_world_only')">
-                <Switch
-                    :model-value="progressPieFilter"
-                    :disabled="!openVR"
-                    @update:modelValue="changeYouTubeApi('VRCX_progressPieFilter')" />
-            </SettingsItem>
-        </SettingsGroup>
-
-        <NotificationPositionDialog v-model:isNotificationPositionDialogVisible="isNotificationPositionDialogVisible" />
-        <FeedFiltersDialog v-model:feedFiltersDialogMode="feedFiltersDialogMode" />
     </div>
 </template>
 
 <script setup>
-    import { computed, ref } from 'vue';
-    import {
-        NumberField,
-        NumberFieldContent,
-        NumberFieldDecrement,
-        NumberFieldIncrement,
-        NumberFieldInput
-    } from '@/components/ui/number-field';
-    import { Button } from '@/components/ui/button';
+    import { computed } from 'vue';
+    import { NumberField, NumberFieldContent, NumberFieldDecrement, NumberFieldIncrement, NumberFieldInput } from '@/components/ui/number-field';
     import { Switch } from '@/components/ui/switch';
     import { Slider } from '@/components/ui/slider';
-    import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
     import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
     import { storeToRefs } from 'pinia';
     import { useI18n } from 'vue-i18n';
 
-    import {
-        useAdvancedSettingsStore,
-        useNotificationsSettingsStore,
-        useVrStore,
-        useWristOverlaySettingsStore
-    } from '@/stores';
+    import { useAdvancedSettingsStore, useNotificationsSettingsStore } from '@/stores';
 
-    import FeedFiltersDialog from '../../dialogs/FeedFiltersDialog.vue';
-    import NotificationPositionDialog from '../../dialogs/NotificationPositionDialog.vue';
-    import WristOverlaySettings from '../WristOverlaySettings.vue';
     import SettingsGroup from '../SettingsGroup.vue';
     import SettingsItem from '../SettingsItem.vue';
 
@@ -223,14 +104,9 @@
 
     const notificationsSettingsStore = useNotificationsSettingsStore();
     const advancedSettingsStore = useAdvancedSettingsStore();
-    const wristOverlaySettingsStore = useWristOverlaySettingsStore();
-    const { saveOpenVROption } = useVrStore();
-    const { updateVRLastLocation, updateOpenVR } = useVrStore();
 
     const {
         overlayToast,
-        openVR,
-        overlayNotifications,
         xsNotifications,
         ovrtHudNotifications,
         ovrtWristNotifications,
@@ -240,15 +116,8 @@
 
     const { notificationOpacity } = storeToRefs(advancedSettingsStore);
 
-    const { openVRAlways } = storeToRefs(wristOverlaySettingsStore);
-    const { setOpenVRAlways } = wristOverlaySettingsStore;
-
-    const { progressPie, progressPieFilter } = storeToRefs(advancedSettingsStore);
-
     const {
         setOverlayToast,
-        setOpenVR,
-        setOverlayNotifications,
         setXsNotifications,
         setOvrtHudNotifications,
         setOvrtWristNotifications,
@@ -256,13 +125,9 @@
         setNotificationTimeout
     } = notificationsSettingsStore;
 
-    const notificationTimeoutSeconds = computed(() => notificationTimeout.value / 1000);
-
     const { setNotificationOpacity } = advancedSettingsStore;
 
-    const isNotificationPositionDialogVisible = ref(false);
-    const feedFiltersDialogMode = ref('');
-
+    const notificationTimeoutSeconds = computed(() => notificationTimeout.value / 1000);
 
     const notificationOpacityValue = computed({
         get: () => [notificationOpacity.value],
@@ -273,44 +138,4 @@
             }
         }
     });
-
-    /**
-     *
-     */
-    function showNotificationPositionDialog() {
-        isNotificationPositionDialogVisible.value = true;
-    }
-
-    /**
-     *
-     */
-    function showWristFeedFiltersDialog() {
-        feedFiltersDialogMode.value = 'wrist';
-    }
-
-    /**
-     *
-     * @param value
-     */
-    function handleOpenVRAlwaysRadio(value) {
-        const nextValue = value === 'true';
-        if (nextValue !== openVRAlways.value) {
-            setOpenVRAlways();
-            saveOpenVROption();
-        }
-    }
-
-    /**
-     *
-     * @param configKey
-     */
-    async function changeYouTubeApi(configKey = '') {
-        if (configKey === 'VRCX_progressPie') {
-            advancedSettingsStore.setProgressPie();
-        } else if (configKey === 'VRCX_progressPieFilter') {
-            advancedSettingsStore.setProgressPieFilter();
-        }
-        updateVRLastLocation();
-        updateOpenVR();
-    }
 </script>

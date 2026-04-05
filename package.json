@@ -11,9 +11,8 @@
         "type": "git",
         "url": "git+https://github.com/Map1en/VRCX-0"
     },
-
     "scripts": {
-        "dev": "cross-env PLATFORM=windows vite serve src",
+        "dev": "vite serve src",
         "localization": "node ./src/shared/utils/localizationHelperCLI.js",
         "lint": "npm run lint:oxlint && npm run lint:eslint",
         "lint:eslint": "eslint .",
@@ -22,9 +21,8 @@
         "test": "vitest run",
         "test:coverage": "vitest run --coverage",
         "build:licenses": "node ./build-scripts/generate-third-party-licenses.js",
-        "prod": "cross-env PLATFORM=windows vite build src && npm run build:licenses"
+        "prod": "vite build src && npm run build:licenses"
     },
-    "dependencies": {},
     "devDependencies": {
         "@dnd-kit/vue": "^0.3.2",
         "@eslint/js": "^9.39.4",
@@ -50,10 +48,8 @@
         "@vueuse/core": "^14.2.1",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
-        "cross-env": "^10.1.0",
         "dayjs": "^1.11.20",
         "echarts": "^6.0.0",
-
         "embla-carousel-vue": "^8.6.0",
         "eslint": "^9.39.4",
         "eslint-plugin-jsdoc": "^62.8.1",

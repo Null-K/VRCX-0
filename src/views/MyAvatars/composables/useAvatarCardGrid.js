@@ -38,9 +38,9 @@ export function useAvatarCardGrid(options = {}) {
     const baseCardWidth = options.baseCardWidth ?? 200;
     const baseGap = options.baseGap ?? 12;
     const baseCardHeight = options.baseCardHeight ?? 200;
-    const scaleConfigKey = options.scaleConfigKey ?? 'VRCX_MyAvatarsCardScale';
+    const scaleConfigKey = options.scaleConfigKey ?? 'VRCX-0_MyAvatarsCardScale';
     const spacingConfigKey =
-        options.spacingConfigKey ?? 'VRCX_MyAvatarsCardSpacing';
+        options.spacingConfigKey ?? 'VRCX-0_MyAvatarsCardSpacing';
 
     const cardScaleBase = ref(0.6);
     const cardSpacingBase = ref(1);

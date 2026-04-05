@@ -95,7 +95,7 @@ export const useVrcStatusStore = defineStore('VrcStatus', () => {
         lastStatusSummary.value = summary;
     }
 
-    // ran from Cef and Electron when browser is focused
+    // ran from host when browser is focused
     /**
      * @returns {void}
      */

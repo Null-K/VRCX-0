@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using NLog;
 
-namespace VRCX
+namespace VRCX_0
 {
     public abstract partial class AppApi
     {

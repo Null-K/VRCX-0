@@ -9,9 +9,8 @@ using System.Text.Json;
 using System.Threading;
 
 using System.Windows.Forms;
-using CefSharp.Internals;
 
-namespace VRCX
+namespace VRCX_0
 {
     internal class StartupArgs
     {
@@ -34,7 +33,7 @@ namespace VRCX
                 if (File.Exists(LaunchArguments.ConfigDirectory))
                 {
                     var message =
-                        "Move your \"VRCX.sqlite3\" into a folder then specify the folder in the launch parameter e.g.\n--config=\"C:\\VRCX\\\"";
+                        "Move your \"VRCX.sqlite3\" into a folder then specify the folder in the launch parameter e.g.\n--config=\"C:\\VRCX-0\\\"";
                     MessageBox.Show(message, "--config is now a directory", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     Console.WriteLine(message);
                     Environment.Exit(0);
@@ -43,8 +42,7 @@ namespace VRCX
                 Program.AppDataDirectory = LaunchArguments.ConfigDirectory;
             }
 
-            var disableClosing = LaunchArguments.IsUpgrade || // we're upgrading, allow it
-                                        !string.IsNullOrEmpty(CommandLineArgsParser.GetArgumentValue(args, CefSharpArguments.SubProcessTypeArgument)); // we're launching a subprocess, allow it
+            var disableClosing = LaunchArguments.IsUpgrade;
 
             // if we're launching a second instance with same config directory, focus the first instance then exit
             if (!disableClosing && IsDuplicateProcessRunning(LaunchArguments))
@@ -68,15 +66,6 @@ namespace VRCX
 
                 if (arg.StartsWith(VrcxLaunchArguments.IsDebugPrefix))
                     arguments.IsDebug = true;
-                
-                if (arg == VrcxLaunchArguments.Overlay)
-                    arguments.IsOverlay = true;
-
-                if (arg.StartsWith(VrcxLaunchArguments.LaunchCommandPrefix) && arg.Length > VrcxLaunchArguments.LaunchCommandPrefix.Length)
-                    arguments.LaunchCommand = arg.Substring(VrcxLaunchArguments.LaunchCommandPrefix.Length);
-
-                if (arg.StartsWith(VrcxLaunchArguments.ProtocolLaunchCommandPrefix) && arg.Length > VrcxLaunchArguments.ProtocolLaunchCommandPrefix.Length)
-                    arguments.LaunchCommand = arg.Substring(VrcxLaunchArguments.ProtocolLaunchCommandPrefix.Length);
 
                 if (arg.StartsWith(VrcxLaunchArguments.ConfigDirectoryPrefix) && arg.Length > VrcxLaunchArguments.ConfigDirectoryPrefix.Length)
                     arguments.ConfigDirectory = arg.Substring(VrcxLaunchArguments.ConfigDirectoryPrefix.Length + 1);
@@ -97,12 +86,7 @@ namespace VRCX
 
             public const string IsDebugPrefix = "--debug";
             public bool IsDebug { get; set; } = false;
-            
-            public const string Overlay = "--overlay";
-            public bool IsOverlay { get; set; } = false;
 
-            public const string LaunchCommandPrefix = "/uri=vrcx://";
-            public const string ProtocolLaunchCommandPrefix = "vrcx://";
             public string LaunchCommand { get; set; } = null;
 
             public const string ConfigDirectoryPrefix = "--config";
@@ -114,7 +98,7 @@ namespace VRCX
 
         private static bool IsDuplicateProcessRunning(VrcxLaunchArguments launchArguments)
         {
-            var processes = Process.GetProcessesByName("VRCX");
+            var processes = Process.GetProcessesByName("VRCX-0");
             var isDuplicateProcessRunning = false;
             foreach (var process in processes)
             {
@@ -137,19 +121,6 @@ namespace VRCX
 
                 if (commandLine.Contains(SubProcessTypeArgument)) // ignore subprocesses
                     continue;
-
-                if (launchArguments.IsOverlay)
-                {
-                    if (commandLine.Contains(VrcxLaunchArguments.Overlay))
-                    {
-                        Console.WriteLine(@"Another overlay instance is already running. Exiting this instance.");
-                        Environment.Exit(0);
-                    }
-                    continue; // we are an overlay, ignore non-overlay instances
-                }
-
-                if (commandLine.Contains(VrcxLaunchArguments.Overlay))
-                    continue; // we aren't an overlay, ignore overlay instances
 
                 var processArguments = ParseArgs(commandLine.Split(' '));
                 if (processArguments.ConfigDirectory == launchArguments.ConfigDirectory)

@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 using Newtonsoft.Json;
 using NLog;
 
-namespace VRCX
+namespace VRCX_0
 {
     public partial class AppApi
     {

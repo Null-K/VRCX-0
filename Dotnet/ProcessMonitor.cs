@@ -6,7 +6,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Timers;
 
-namespace VRCX
+namespace VRCX_0
 {
     // I don't think this applies to our use case, but I'm leaving it here for reference.
     // https://stackoverflow.com/questions/2519673/process-hasexited-returns-true-even-though-process-is-running

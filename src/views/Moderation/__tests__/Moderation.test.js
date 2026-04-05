@@ -198,7 +198,7 @@ describe('Moderation.vue', () => {
         await flushAsync();
 
         expect(mocks.configGetString).toHaveBeenCalledWith(
-            'VRCX_playerModerationTableFilters',
+            'VRCX-0_playerModerationTableFilters',
             '[]'
         );
         expect(mocks.playerModerationTable.value.filters[0].value).toEqual([
@@ -217,7 +217,7 @@ describe('Moderation.vue', () => {
             'mute'
         ]);
         expect(mocks.configSetString).toHaveBeenCalledWith(
-            'VRCX_playerModerationTableFilters',
+            'VRCX-0_playerModerationTableFilters',
             JSON.stringify(['mute'])
         );
     });

@@ -125,7 +125,7 @@
         unpinToolFromNav
     } =
         useToolNavPinning();
-    const toolsCategoryCollapsedConfigKey = 'VRCX_toolsCategoryCollapsed';
+    const toolsCategoryCollapsedConfigKey = 'VRCX-0_toolsCategoryCollapsed';
 
     const categories = toolCategories.map((category) => ({
         ...category,

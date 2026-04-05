@@ -5,14 +5,14 @@ using System.IO;
 using System.Text.Json;
 using System.Threading;
 
-namespace VRCX
+namespace VRCX_0
 {
     public class VRCXStorage
     {
         public static readonly VRCXStorage Instance;
 
         private static ConcurrentDictionary<string, string> _storage = new ConcurrentDictionary<string, string>();
-        private static readonly string JsonPath = Path.Join(Program.AppDataDirectory, "VRCX.json");
+        private static readonly string JsonPath = Path.Join(Program.AppDataDirectory, "VRCX-0.json");
 
         private static readonly TimeSpan SaveDebounce = TimeSpan.FromMilliseconds(500);
         private static readonly Timer SaveTimer;

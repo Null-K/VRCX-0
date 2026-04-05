@@ -404,10 +404,7 @@ export const useSharedFeedStore = defineStore('SharedFeed', () => {
     }
 
     async function sendSharedFeed() {
-        await AppApi.ExecuteVrOverlayFunction(
-            'wristFeedUpdate',
-            JSON.stringify(sharedFeedData.value)
-        );
+        // VR overlay removed.
     }
 
     return {

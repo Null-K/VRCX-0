@@ -1,6 +1,6 @@
 using System.Threading.Tasks;
 
-namespace VRCX;
+namespace VRCX_0;
 
 public partial class AppApi
 {

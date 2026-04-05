@@ -741,7 +741,7 @@
     function handleViewModeChange(value) {
         if (value) {
             viewMode.value = value;
-            configRepository.setString('VRCX_MyAvatarsViewMode', value);
+            configRepository.setString('VRCX-0_MyAvatarsViewMode', value);
             if (value === 'grid') {
                 nextTick(() => {
                     updateContainerWidth();
@@ -850,7 +850,7 @@
 
     onBeforeMount(async () => {
         try {
-            const storedMode = await configRepository.getString('VRCX_MyAvatarsViewMode', 'grid');
+            const storedMode = await configRepository.getString('VRCX-0_MyAvatarsViewMode', 'grid');
             if (storedMode === 'grid' || storedMode === 'table') {
                 viewMode.value = storedMode;
             }

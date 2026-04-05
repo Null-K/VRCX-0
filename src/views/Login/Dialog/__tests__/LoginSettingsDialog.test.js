@@ -176,7 +176,7 @@ describe('LoginSettingsDialog.vue', () => {
             'http://127.0.0.1:8080'
         );
         expect(globalThis.VRCXStorage.Set).toHaveBeenCalledWith(
-            'VRCX_ProxyServer',
+            'VRCX-0_ProxyServer',
             'http://127.0.0.1:8080'
         );
         expect(globalThis.VRCXStorage.Save).toHaveBeenCalledTimes(1);

@@ -386,7 +386,7 @@
         maxSize: splitterMaxSize,
         handleLayout,
         setDragging: splitterSetDragging
-    } = useFavoritesSplitter({ configKey: 'VRCX_FavoritesFriendSplitter' });
+    } = useFavoritesSplitter({ configKey: 'VRCX-0_FavoritesFriendSplitter' });
 
     const { sortFavorites } = storeToRefs(useAppearanceSettingsStore());
     const { setSortFavorites } = useAppearanceSettingsStore();
@@ -417,8 +417,8 @@
         containerRef: friendFavoritesContainerRef,
         gridStyle: friendFavoritesGridStyle
     } = useFavoritesCardScaling({
-        configKey: 'VRCX_FavoritesFriendCardScale',
-        spacingConfigKey: 'VRCX_FavoritesFriendCardSpacing',
+        configKey: 'VRCX-0_FavoritesFriendCardScale',
+        spacingConfigKey: 'VRCX-0_FavoritesFriendCardSpacing',
         min: 0.6,
         max: 1,
         step: 0.01,

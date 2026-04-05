@@ -148,8 +148,8 @@ describe('runGameRunningChangedFlow', () => {
         await runGameRunningChangedFlow(false);
 
         expect(mocks.gameStore.setLastSession).toHaveBeenCalledWith(4000, 5000);
-        expect(mocks.configRepository.setString).toHaveBeenCalledWith('VRCX_lastGameSessionMs', '4000');
-        expect(mocks.configRepository.setString).toHaveBeenCalledWith('VRCX_lastGameOfflineAt', '5000');
+        expect(mocks.configRepository.setString).toHaveBeenCalledWith('VRCX-0_lastGameSessionMs', '4000');
+        expect(mocks.configRepository.setString).toHaveBeenCalledWith('VRCX-0_lastGameOfflineAt', '5000');
         expect(mocks.userStore.markCurrentUserGameStopped).toHaveBeenCalled();
     });
 
@@ -159,7 +159,7 @@ describe('runGameRunningChangedFlow', () => {
         await runGameRunningChangedFlow(false);
 
         expect(mocks.gameStore.setLastSession).not.toHaveBeenCalled();
-        expect(mocks.configRepository.setString).not.toHaveBeenCalledWith('VRCX_lastGameSessionMs', expect.any(String));
-        expect(mocks.configRepository.setString).not.toHaveBeenCalledWith('VRCX_lastGameOfflineAt', expect.any(String));
+        expect(mocks.configRepository.setString).not.toHaveBeenCalledWith('VRCX-0_lastGameSessionMs', expect.any(String));
+        expect(mocks.configRepository.setString).not.toHaveBeenCalledWith('VRCX-0_lastGameOfflineAt', expect.any(String));
     });
 });

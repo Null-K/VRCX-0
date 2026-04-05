@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using Newtonsoft.Json;
 
-namespace VRCX
+namespace VRCX_0
 {
     public partial class AppApi
     {

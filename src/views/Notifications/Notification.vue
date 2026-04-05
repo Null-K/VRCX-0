@@ -269,7 +269,7 @@
      */
     function saveTableFilters() {
         configRepository.setString(
-            'VRCX_notificationTableFilters',
+            'VRCX-0_notificationTableFilters',
             JSON.stringify(notificationTable.value.filters[0].value)
         );
     }

@@ -32,8 +32,8 @@ export const useGameStore = defineStore('Game', () => {
     async function init() {
         isGameNoVR.value = await configRepository.getBool('isGameNoVR');
         const [savedMs, savedAt] = await Promise.all([
-            configRepository.getString('VRCX_lastGameSessionMs', null),
-            configRepository.getString('VRCX_lastGameOfflineAt', null)
+            configRepository.getString('VRCX-0_lastGameSessionMs', null),
+            configRepository.getString('VRCX-0_lastGameOfflineAt', null)
         ]);
         if (savedMs) lastSessionDurationMs.value = Number(savedMs) || 0;
         if (savedAt) lastOfflineAt.value = Number(savedAt) || 0;

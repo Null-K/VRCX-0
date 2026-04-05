@@ -5,12 +5,12 @@ using System.Linq;
 using System.Numerics;
 using Newtonsoft.Json;
 
-namespace VRCX
+namespace VRCX_0
 {
     public class ScreenshotMetadata
     {
         /// <summary>
-        /// Name of the application writing to the screenshot. Should be VRCX.
+        /// Name of the application writing to the screenshot. Should be VRCX-0.
         /// </summary>
         public string Application { get; set; }
 
@@ -41,7 +41,7 @@ namespace VRCX
         internal string SourceFile;
 
         /// <summary>
-        /// The position of the player that took the picture when the shot was taken. Not written by VRCX, this is legacy support for reading LFS files.
+        /// The position of the player that took the picture when the shot was taken. Not written by VRCX-0, this is legacy support for reading LFS files.
         /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
         public Vector3? Pos { get; set; }
@@ -64,7 +64,7 @@ namespace VRCX
 
         public ScreenshotMetadata()
         {
-            Application = "VRCX";
+            Application = "VRCX-0";
             Version = 1;
             Author = new AuthorDetail();
             World = new WorldDetail();
@@ -141,7 +141,7 @@ namespace VRCX
             public string DisplayName { get; set; }
 
             /// <summary>
-            /// The position of the player in the world. Not written by VRCX, this is legacy support for reading LFS files.
+            /// The position of the player in the world. Not written by VRCX-0, this is legacy support for reading LFS files.
             /// </summary>
             [JsonProperty(NullValueHandling = NullValueHandling.Ignore)]
             public Vector3? Pos { get; set; } = null;

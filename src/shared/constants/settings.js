@@ -24,12 +24,6 @@ const branches = {
         urlReleases: 'https://api0.vrcx.app/releases/nightly',
         urlLatest: 'https://api0.vrcx.app/releases/nightly/latest'
     }
-    // LinuxTest: {
-    //     name: 'LinuxTest',
-    //     urlReleases: 'https://api.github.com/repos/rs189/VRCX/releases',
-    //     urlLatest:
-    //         'https://api.github.com/repos/rs189/VRCX/releases/latest'
-    // }
 };
 
 const TABLE_MAX_SIZE_MIN = 100;

@@ -287,7 +287,7 @@ describe('MyAvatars.vue', () => {
         };
         mocks.modalConfirm.mockResolvedValue({ ok: true });
         mocks.configGetString.mockImplementation((key, defaultValue) => {
-            if (key === 'VRCX_MyAvatarsViewMode') {
+            if (key === 'VRCX-0_MyAvatarsViewMode') {
                 return Promise.resolve('grid');
             }
             return Promise.resolve(defaultValue ?? '');
@@ -315,7 +315,7 @@ describe('MyAvatars.vue', () => {
 
     test('loads table view mode from config', async () => {
         mocks.configGetString.mockImplementation((key, defaultValue) => {
-            if (key === 'VRCX_MyAvatarsViewMode') {
+            if (key === 'VRCX-0_MyAvatarsViewMode') {
                 return Promise.resolve('table');
             }
             return Promise.resolve(defaultValue ?? '');
@@ -336,7 +336,7 @@ describe('MyAvatars.vue', () => {
         await wrapper.get('[data-testid="set-table"]').trigger('click');
 
         expect(mocks.configSetString).toHaveBeenCalledWith(
-            'VRCX_MyAvatarsViewMode',
+            'VRCX-0_MyAvatarsViewMode',
             'table'
         );
     });

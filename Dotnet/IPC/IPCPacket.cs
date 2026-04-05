@@ -1,4 +1,4 @@
-namespace VRCX
+namespace VRCX_0
 {
     public class IPCPacket
     {

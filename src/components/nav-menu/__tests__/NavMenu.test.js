@@ -330,7 +330,7 @@ describe('NavMenu.vue', () => {
             expect(mocks.initThemeColor).toHaveBeenCalled();
             expect(mocks.loadDashboards).toHaveBeenCalled();
             expect(mocks.getString).toHaveBeenCalledWith(
-                'VRCX_customNavMenuLayoutList'
+                'VRCX-0_customNavMenuLayoutList'
             );
         });
 

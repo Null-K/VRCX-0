@@ -165,7 +165,7 @@ describe('loadVisibility', () => {
 
     test('merges saved values with defaults', () => {
         storage.setItem(
-            'VRCX_statusBarVisibility',
+            'VRCX-0_statusBarVisibility',
             JSON.stringify({ vrchat: false, ws: false })
         );
         const result = loadVisibility(storage);
@@ -177,7 +177,7 @@ describe('loadVisibility', () => {
     });
 
     test('returns defaults on corrupt JSON', () => {
-        storage.setItem('VRCX_statusBarVisibility', '{bad-json');
+        storage.setItem('VRCX-0_statusBarVisibility', '{bad-json');
         expect(loadVisibility(storage)).toEqual(defaultVisibility);
     });
 
@@ -206,7 +206,7 @@ describe('loadClocks', () => {
 
     test('loads valid saved clocks', () => {
         storage.setItem(
-            'VRCX_statusBarClocks',
+            'VRCX-0_statusBarClocks',
             JSON.stringify([{ offset: 1 }, { offset: 2 }, { offset: 3 }])
         );
         expect(loadClocks(storage, defaults)).toEqual([
@@ -218,25 +218,25 @@ describe('loadClocks', () => {
 
     test('returns defaults for wrong array length', () => {
         storage.setItem(
-            'VRCX_statusBarClocks',
+            'VRCX-0_statusBarClocks',
             JSON.stringify([{ offset: 1 }])
         );
         expect(loadClocks(storage, defaults)).toEqual(defaults);
     });
 
     test('returns defaults for non-array JSON', () => {
-        storage.setItem('VRCX_statusBarClocks', JSON.stringify({ offset: 1 }));
+        storage.setItem('VRCX-0_statusBarClocks', JSON.stringify({ offset: 1 }));
         expect(loadClocks(storage, defaults)).toEqual(defaults);
     });
 
     test('returns defaults on corrupt JSON', () => {
-        storage.setItem('VRCX_statusBarClocks', 'not-json');
+        storage.setItem('VRCX-0_statusBarClocks', 'not-json');
         expect(loadClocks(storage, defaults)).toEqual(defaults);
     });
 
     test('normalises clock entries from storage', () => {
         storage.setItem(
-            'VRCX_statusBarClocks',
+            'VRCX-0_statusBarClocks',
             JSON.stringify([
                 { offset: '5' },
                 { timezone: 'UTC+3' },
@@ -273,20 +273,20 @@ describe('loadClockCount', () => {
     });
 
     test.each([0, 1, 2, 3])('returns valid stored count %i', (n) => {
-        storage.setItem('VRCX_statusBarClockCount', String(n));
+        storage.setItem('VRCX-0_statusBarClockCount', String(n));
         expect(loadClockCount(storage)).toBe(n);
     });
 
     test('returns 2 for out-of-range values', () => {
-        storage.setItem('VRCX_statusBarClockCount', '4');
+        storage.setItem('VRCX-0_statusBarClockCount', '4');
         expect(loadClockCount(storage)).toBe(2);
 
-        storage.setItem('VRCX_statusBarClockCount', '-1');
+        storage.setItem('VRCX-0_statusBarClockCount', '-1');
         expect(loadClockCount(storage)).toBe(2);
     });
 
     test('returns 2 for non-numeric values', () => {
-        storage.setItem('VRCX_statusBarClockCount', 'abc');
+        storage.setItem('VRCX-0_statusBarClockCount', 'abc');
         expect(loadClockCount(storage)).toBe(2);
     });
 });

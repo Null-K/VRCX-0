@@ -957,10 +957,6 @@ export function addCustomTag(data) {
         userId: data.UserId,
         colour: data.TagColour
     };
-    AppApi.ExecuteVrOverlayFunction(
-        'updateHudFeedTag',
-        JSON.stringify(feedUpdate)
-    );
     const ref = userStore.cachedUsers.get(data.UserId);
     if (typeof ref !== 'undefined') {
         ref.$customTag = data.Tag;

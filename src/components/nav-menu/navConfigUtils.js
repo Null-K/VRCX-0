@@ -3,7 +3,7 @@ import dayjs from 'dayjs';
 import { isToolNavKey } from '../../shared/constants';
 import { collectLayoutKeys } from './navLayoutHelpers';
 
-export const NAV_CONFIG_KEY = 'VRCX_customNavMenuLayoutList';
+export const NAV_CONFIG_KEY = 'VRCX-0_customNavMenuLayoutList';
 
 export function generateNavFolderId() {
     if (

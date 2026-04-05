@@ -36,17 +36,17 @@ export const useWristOverlaySettingsStore = defineStore(
                 hideUptimeFromFeedConfig,
                 pcUptimeOnFeedConfig
             ] = await Promise.all([
-                configRepository.getBool('VRCX_overlayWrist', false),
-                configRepository.getBool('VRCX_hidePrivateFromFeed', false),
+                configRepository.getBool('VRCX-0_overlayWrist', false),
+                configRepository.getBool('VRCX-0_hidePrivateFromFeed', false),
                 configRepository.getBool('openVRAlways', false),
-                configRepository.getBool('VRCX_overlaybutton', false),
-                configRepository.getInt('VRCX_overlayHand', 0),
-                configRepository.getBool('VRCX_vrBackgroundEnabled', false),
-                configRepository.getBool('VRCX_minimalFeed', true),
-                configRepository.getBool('VRCX_hideDevicesFromFeed', false),
-                configRepository.getBool('VRCX_vrOverlayCpuUsage', false),
-                configRepository.getBool('VRCX_hideUptimeFromFeed', false),
-                configRepository.getBool('VRCX_pcUptimeOnFeed', false)
+                configRepository.getBool('VRCX-0_overlaybutton', false),
+                configRepository.getInt('VRCX-0_overlayHand', 0),
+                configRepository.getBool('VRCX-0_vrBackgroundEnabled', false),
+                configRepository.getBool('VRCX-0_minimalFeed', true),
+                configRepository.getBool('VRCX-0_hideDevicesFromFeed', false),
+                configRepository.getBool('VRCX-0_vrOverlayCpuUsage', false),
+                configRepository.getBool('VRCX-0_hideUptimeFromFeed', false),
+                configRepository.getBool('VRCX-0_pcUptimeOnFeed', false)
             ]);
 
             overlayWrist.value = overlayWristConfig;
@@ -64,12 +64,12 @@ export const useWristOverlaySettingsStore = defineStore(
 
         function setOverlayWrist() {
             overlayWrist.value = !overlayWrist.value;
-            configRepository.setBool('VRCX_overlayWrist', overlayWrist.value);
+            configRepository.setBool('VRCX-0_overlayWrist', overlayWrist.value);
         }
         function setHidePrivateFromFeed() {
             hidePrivateFromFeed.value = !hidePrivateFromFeed.value;
             configRepository.setBool(
-                'VRCX_hidePrivateFromFeed',
+                'VRCX-0_hidePrivateFromFeed',
                 hidePrivateFromFeed.value
             );
             sharedFeed.loadSharedFeed();
@@ -80,7 +80,7 @@ export const useWristOverlaySettingsStore = defineStore(
         }
         function setOverlaybutton() {
             overlaybutton.value = !overlaybutton.value;
-            configRepository.setBool('VRCX_overlaybutton', overlaybutton.value);
+            configRepository.setBool('VRCX-0_overlaybutton', overlaybutton.value);
         }
         /**
          * @param {string} value
@@ -91,44 +91,44 @@ export const useWristOverlaySettingsStore = defineStore(
             if (isNaN(overlayHandInt)) {
                 overlayHandInt = 0;
             }
-            configRepository.setInt('VRCX_overlayHand', overlayHandInt);
+            configRepository.setInt('VRCX-0_overlayHand', overlayHandInt);
         }
         function setVrBackgroundEnabled() {
             vrBackgroundEnabled.value = !vrBackgroundEnabled.value;
             configRepository.setBool(
-                'VRCX_vrBackgroundEnabled',
+                'VRCX-0_vrBackgroundEnabled',
                 vrBackgroundEnabled.value
             );
         }
         function setMinimalFeed() {
             minimalFeed.value = !minimalFeed.value;
-            configRepository.setBool('VRCX_minimalFeed', minimalFeed.value);
+            configRepository.setBool('VRCX-0_minimalFeed', minimalFeed.value);
         }
         function setHideDevicesFromFeed() {
             hideDevicesFromFeed.value = !hideDevicesFromFeed.value;
             configRepository.setBool(
-                'VRCX_hideDevicesFromFeed',
+                'VRCX-0_hideDevicesFromFeed',
                 hideDevicesFromFeed.value
             );
         }
         function setVrOverlayCpuUsage() {
             vrOverlayCpuUsage.value = !vrOverlayCpuUsage.value;
             configRepository.setBool(
-                'VRCX_vrOverlayCpuUsage',
+                'VRCX-0_vrOverlayCpuUsage',
                 vrOverlayCpuUsage.value
             );
         }
         function setHideUptimeFromFeed() {
             hideUptimeFromFeed.value = !hideUptimeFromFeed.value;
             configRepository.setBool(
-                'VRCX_hideUptimeFromFeed',
+                'VRCX-0_hideUptimeFromFeed',
                 hideUptimeFromFeed.value
             );
         }
         function setPcUptimeOnFeed() {
             pcUptimeOnFeed.value = !pcUptimeOnFeed.value;
             configRepository.setBool(
-                'VRCX_pcUptimeOnFeed',
+                'VRCX-0_pcUptimeOnFeed',
                 pcUptimeOnFeed.value
             );
         }

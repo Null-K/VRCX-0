@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Data.SQLite;
 
-namespace VRCX
+namespace VRCX_0
 {
     public class MetadataCache
     {

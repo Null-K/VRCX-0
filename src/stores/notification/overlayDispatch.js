@@ -68,23 +68,6 @@ export function createOverlayDispatch({
 
     /**
      *
-     * @param {string} noty
-     * @param {string} message
-     * @param {string} imageFile
-     */
-    function displayOverlayNotification(noty, message, imageFile) {
-        let image = '';
-        if (imageFile) {
-            image = `file:///${imageFile}`;
-        }
-        AppApi.ExecuteVrOverlayFunction(
-            'playNoty',
-            JSON.stringify({ noty, message, image })
-        );
-    }
-
-    /**
-     *
      * @param {any} noty
      * @param {string} message
      * @param {string} image
@@ -199,7 +182,6 @@ export function createOverlayDispatch({
     return {
         notySaveImage,
         displayDesktopToast,
-        displayOverlayNotification,
         displayXSNotification,
         displayOvrtNotification,
         notyGetImage,

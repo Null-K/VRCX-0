@@ -7,10 +7,8 @@ declare global {
 
     interface Window {
         $pinia: any;
-        $vr: any;
         $debug: AppDebug;
         AppApi: AppApi;
-        AppApiVr: AppApiVr;
         WebApi: WebApi;
         VRCXStorage: VRCXStorage;
         SQLite: SQLite;
@@ -26,13 +24,6 @@ declare global {
         gameLogService: any;
         crypto: any;
         sqliteService: any;
-        interopApi: {
-            callDotNetMethod: (
-                className: any,
-                methodName: any,
-                args: any
-            ) => Promise<any>;
-        };
     }
 
     interface AppDebug {
@@ -52,16 +43,6 @@ declare global {
         websocketDomain: string;
         websocketDomainVrchat: string;
     }
-
-    const CefSharp: {
-        PostMessage: (message: any) => void;
-        BindObjectAsync: (...args: string[]) => Promise<any>;
-        BindObject: (name: string) => any;
-        ExecuteScriptAsync: (script: string) => Promise<any>;
-        ExecuteScript: (script: string) => any;
-        RemoveObjectFromCache?: (name: string) => void;
-        DeleteBoundObject?: (name: string) => void;
-    };
 
     const VRCXStorage: {
         Get(key: string): Promise<string>;
@@ -114,13 +95,6 @@ declare global {
     const AppApi: {
         // Basic App Functions
         ShowDevTools(): Promise<void>;
-        SetVR(
-            active: boolean,
-            hmdOverlay: boolean,
-            wristOverlay: boolean,
-            menuButton: boolean,
-            overlayHand: number
-        ): Promise<void>;
         SetZoom(zoomLevel: number): Promise<void>;
         GetZoom(): Promise<number>;
         DesktopNotification(
@@ -130,7 +104,6 @@ declare global {
         ): Promise<void>;
         RestartApplication(isUpgrade: boolean): Promise<void>;
         CheckForUpdateExe(): Promise<boolean>;
-        ExecuteVrOverlayFunction(key: string, json: string): Promise<void>;
         FocusWindow(): Promise<void>;
         ChangeTheme(value: number): Promise<void>;
         DoFunny(): Promise<void>;
@@ -164,7 +137,7 @@ declare global {
         GetFileBase64(path: string): Promise<string | null>;
         TryOpenInstanceInVrc(launchUrl: string): Promise<boolean>;
 
-        // Image Upload (Cef Only)
+        // Image Upload
         MD5File(blob: string): Promise<string>;
         SignFile(blob: string): Promise<string>;
         FileLength(blob: string): Promise<string>;
@@ -306,18 +279,6 @@ declare global {
             opacity: number,
             image?: string
         ): Promise<void>;
-    };
-
-    const AppApiVr: {
-        Init(): Promise<void>;
-        VrInit(): Promise<void>;
-        ToggleSystemMonitor(enabled: boolean): Promise<void>;
-        CpuUsage(): Promise<number>;
-        GetVRDevices(): Promise<string[][]>;
-        GetUptime(): Promise<number>;
-        CurrentCulture(): Promise<string>;
-        CustomVrScript(): Promise<string>;
-        GetExecuteVrOverlayFunctionQueue(): Promise<Map<string, string>>;
     };
 
     const WebApi: {

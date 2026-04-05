@@ -7,7 +7,7 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Newtonsoft.Json.Serialization;
 
-namespace VRCX;
+namespace VRCX_0;
 
 public partial class AppApi
 {

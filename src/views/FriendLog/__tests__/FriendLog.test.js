@@ -190,7 +190,7 @@ describe('FriendLog.vue', () => {
 
         expect(mocks.friendLogTable.value.filters[0].value).toEqual(['Friend']);
         expect(mocks.configSetString).toHaveBeenCalledWith(
-            'VRCX_friendLogTableFilters',
+            'VRCX-0_friendLogTableFilters',
             JSON.stringify(['Friend'])
         );
     });

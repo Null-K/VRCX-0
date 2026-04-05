@@ -4,21 +4,17 @@ import { useI18n } from 'vue-i18n';
 
 import { sharedFeedFiltersDefaults } from '../../shared/constants';
 import { useModalStore } from '../modal';
-import { useVrStore } from '../vr';
 
 import configRepository from '../../services/config';
 
 export const useNotificationsSettingsStore = defineStore(
     'NotificationsSettings',
     () => {
-        const vrStore = useVrStore();
         const modalStore = useModalStore();
 
         const { t } = useI18n();
 
         const overlayToast = ref('Game Running');
-        const openVR = ref(false);
-        const overlayNotifications = ref(true);
         const xsNotifications = ref(true);
         const ovrtHudNotifications = ref(true);
         const ovrtWristNotifications = ref(false);
@@ -117,15 +113,12 @@ export const useNotificationsSettingsStore = defineStore(
         const notificationTTSVoice = ref(0);
         const TTSvoices = ref([]);
         const notificationTTSTest = ref('');
-        const notificationPosition = ref('topCenter');
         const notificationTimeout = ref(3000);
         const notificationLayout = ref('notification-center');
 
         async function initNotificationsSettings() {
             const [
                 overlayToastConfig,
-                overlayNotificationsConfig,
-                openVRConfig,
                 xsNotificationsConfig,
                 ovrtHudNotificationsConfig,
                 ovrtWristNotificationsConfig,
@@ -136,40 +129,31 @@ export const useNotificationsSettingsStore = defineStore(
                 notificationTTSNickNameConfig,
                 sharedFeedFiltersConfig,
                 notificationTTSVoiceConfig,
-                notificationPositionConfig,
                 notificationTimeoutConfig,
                 notificationLayoutConfig
             ] = await Promise.all([
-                configRepository.getString('VRCX_overlayToast', 'Game Running'),
-                configRepository.getBool('VRCX_overlayNotifications', true),
-                configRepository.getBool('openVR'),
-                configRepository.getBool('VRCX_xsNotifications', true),
-                configRepository.getBool('VRCX_ovrtHudNotifications', true),
-                configRepository.getBool('VRCX_ovrtWristNotifications', false),
-                configRepository.getBool('VRCX_imageNotifications', true),
-                configRepository.getString('VRCX_desktopToast', 'Never'),
-                configRepository.getBool('VRCX_afkDesktopToast', false),
-                configRepository.getString('VRCX_notificationTTS', 'Never'),
-                configRepository.getBool('VRCX_notificationTTSNickName', false),
+                configRepository.getString('VRCX-0_overlayToast', 'Game Running'),
+                configRepository.getBool('VRCX-0_xsNotifications', true),
+                configRepository.getBool('VRCX-0_ovrtHudNotifications', true),
+                configRepository.getBool('VRCX-0_ovrtWristNotifications', false),
+                configRepository.getBool('VRCX-0_imageNotifications', true),
+                configRepository.getString('VRCX-0_desktopToast', 'Never'),
+                configRepository.getBool('VRCX-0_afkDesktopToast', false),
+                configRepository.getString('VRCX-0_notificationTTS', 'Never'),
+                configRepository.getBool('VRCX-0_notificationTTSNickName', false),
                 configRepository.getString(
                     'sharedFeedFilters',
                     JSON.stringify(sharedFeedFiltersDefaults)
                 ),
-                configRepository.getString('VRCX_notificationTTSVoice', '0'),
+                configRepository.getString('VRCX-0_notificationTTSVoice', '0'),
+                configRepository.getString('VRCX-0_notificationTimeout', '3000'),
                 configRepository.getString(
-                    'VRCX_notificationPosition',
-                    'topCenter'
-                ),
-                configRepository.getString('VRCX_notificationTimeout', '3000'),
-                configRepository.getString(
-                    'VRCX_notificationLayout',
+                    'VRCX-0_notificationLayout',
                     'notification-center'
                 )
             ]);
 
             overlayToast.value = overlayToastConfig;
-            openVR.value = openVRConfig;
-            overlayNotifications.value = overlayNotificationsConfig;
             xsNotifications.value = xsNotificationsConfig;
             ovrtHudNotifications.value = ovrtHudNotificationsConfig;
             ovrtWristNotifications.value = ovrtWristNotificationsConfig;
@@ -181,7 +165,6 @@ export const useNotificationsSettingsStore = defineStore(
             sharedFeedFilters.value = JSON.parse(sharedFeedFiltersConfig);
             notificationTTSVoice.value = Number(notificationTTSVoiceConfig);
             TTSvoices.value = speechSynthesis.getVoices();
-            notificationPosition.value = notificationPositionConfig;
             notificationTimeout.value = Number(notificationTimeoutConfig);
             notificationLayout.value = notificationLayoutConfig;
 
@@ -197,67 +180,48 @@ export const useNotificationsSettingsStore = defineStore(
 
         function setOverlayToast(value) {
             overlayToast.value = value;
-            configRepository.setString('VRCX_overlayToast', value);
-        }
-        function setOverlayNotifications() {
-            overlayNotifications.value = !overlayNotifications.value;
-            configRepository.setBool(
-                'VRCX_overlayNotifications',
-                overlayNotifications.value
-            );
-        }
-        function setOpenVR() {
-            openVR.value = !openVR.value;
-            configRepository.setBool('openVR', openVR.value);
+            configRepository.setString('VRCX-0_overlayToast', value);
         }
         function setXsNotifications() {
             xsNotifications.value = !xsNotifications.value;
             configRepository.setBool(
-                'VRCX_xsNotifications',
+                'VRCX-0_xsNotifications',
                 xsNotifications.value
             );
         }
         function setOvrtHudNotifications() {
             ovrtHudNotifications.value = !ovrtHudNotifications.value;
             configRepository.setBool(
-                'VRCX_ovrtHudNotifications',
+                'VRCX-0_ovrtHudNotifications',
                 ovrtHudNotifications.value
             );
         }
         function setOvrtWristNotifications() {
             ovrtWristNotifications.value = !ovrtWristNotifications.value;
             configRepository.setBool(
-                'VRCX_ovrtWristNotifications',
+                'VRCX-0_ovrtWristNotifications',
                 ovrtWristNotifications.value
             );
         }
         function setImageNotifications() {
             imageNotifications.value = !imageNotifications.value;
             configRepository.setBool(
-                'VRCX_imageNotifications',
+                'VRCX-0_imageNotifications',
                 imageNotifications.value
             );
         }
 
-        function changeNotificationPosition(value) {
-            notificationPosition.value = value;
-            configRepository.setString(
-                'VRCX_notificationPosition',
-                notificationPosition.value
-            );
-            vrStore.updateVRConfigVars();
-        }
         /**
          * @param {string} value
          */
         function setDesktopToast(value) {
             desktopToast.value = value;
-            configRepository.setString('VRCX_desktopToast', value);
+            configRepository.setString('VRCX-0_desktopToast', value);
         }
         function setAfkDesktopToast() {
             afkDesktopToast.value = !afkDesktopToast.value;
             configRepository.setBool(
-                'VRCX_afkDesktopToast',
+                'VRCX-0_afkDesktopToast',
                 afkDesktopToast.value
             );
         }
@@ -266,12 +230,12 @@ export const useNotificationsSettingsStore = defineStore(
          */
         function setNotificationTTS(value) {
             notificationTTS.value = value;
-            configRepository.setString('VRCX_notificationTTS', value);
+            configRepository.setString('VRCX-0_notificationTTS', value);
         }
         function setNotificationTTSNickName() {
             notificationTTSNickName.value = !notificationTTSNickName.value;
             configRepository.setBool(
-                'VRCX_notificationTTSNickName',
+                'VRCX-0_notificationTTSNickName',
                 notificationTTSNickName.value
             );
         }
@@ -332,7 +296,7 @@ export const useNotificationsSettingsStore = defineStore(
         function setNotificationTTSVoice(index) {
             notificationTTSVoice.value = index;
             configRepository.setString(
-                'VRCX_notificationTTSVoice',
+                'VRCX-0_notificationTTSVoice',
                 notificationTTSVoice.value.toString()
             );
         }
@@ -365,7 +329,7 @@ export const useNotificationsSettingsStore = defineStore(
         async function saveNotificationTTS(value) {
             speechSynthesis.cancel();
             if (
-                (await configRepository.getString('VRCX_notificationTTS')) ===
+                (await configRepository.getString('VRCX-0_notificationTTS')) ===
                     'Never' &&
                 value !== 'Never'
             ) {
@@ -402,10 +366,9 @@ export const useNotificationsSettingsStore = defineStore(
             if (isNaN(ms) || ms < 0) return;
             notificationTimeout.value = ms;
             configRepository.setString(
-                'VRCX_notificationTimeout',
+                'VRCX-0_notificationTimeout',
                 ms.toString()
             );
-            vrStore.updateVRConfigVars();
         }
 
         /**
@@ -413,7 +376,7 @@ export const useNotificationsSettingsStore = defineStore(
          */
         function setNotificationLayout(value) {
             notificationLayout.value = value;
-            configRepository.setString('VRCX_notificationLayout', value);
+            configRepository.setString('VRCX-0_notificationLayout', value);
         }
 
         function promptNotificationTimeout() {
@@ -434,10 +397,9 @@ export const useNotificationsSettingsStore = defineStore(
                             Number(value) * 1000
                         );
                         await configRepository.setString(
-                            'VRCX_notificationTimeout',
+                            'VRCX-0_notificationTimeout',
                             notificationTimeout.value.toString()
                         );
-                        vrStore.updateVRConfigVars();
                     }
                 })
                 .catch(() => {});
@@ -445,8 +407,6 @@ export const useNotificationsSettingsStore = defineStore(
 
         return {
             overlayToast,
-            openVR,
-            overlayNotifications,
             xsNotifications,
             ovrtHudNotifications,
             ovrtWristNotifications,
@@ -460,13 +420,10 @@ export const useNotificationsSettingsStore = defineStore(
             notificationTTSVoice,
             TTSvoices,
             notificationTTSTest,
-            notificationPosition,
             notificationTimeout,
             notificationLayout,
 
             setOverlayToast,
-            setOpenVR,
-            setOverlayNotifications,
             setXsNotifications,
             setOvrtHudNotifications,
             setOvrtWristNotifications,
@@ -480,7 +437,6 @@ export const useNotificationsSettingsStore = defineStore(
             saveNotificationTTS,
             testNotificationTTS,
             speak,
-            changeNotificationPosition,
             setNotificationLayout,
             setNotificationTimeout,
             promptNotificationTimeout

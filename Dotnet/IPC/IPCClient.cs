@@ -5,10 +5,8 @@ using System.IO.Pipes;
 using System.Text;
 using Newtonsoft.Json;
 
-using CefSharp;
 
-
-namespace VRCX
+namespace VRCX_0
 {
     public class IPCClient
     {
@@ -80,8 +78,7 @@ namespace VRCX
                         if (string.IsNullOrEmpty(packet))
                             continue;
 
-                        if (MainForm.Instance?.Browser != null && !MainForm.Instance.Browser.IsLoading && MainForm.Instance.Browser.CanExecuteJavascriptInMainFrame)
-                            MainForm.Instance.Browser.ExecuteScriptAsync("window?.$pinia?.vrcx.ipcEvent", packet);
+                        MainForm.Instance?.Router?.SendEvent("ipcEvent", packet);
                     }
 
                     _currentPacket = string.Empty;

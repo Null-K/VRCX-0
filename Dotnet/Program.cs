@@ -7,9 +7,9 @@ using System.IO;
 using System.Text.Json;
 using System.Threading;
 using System.Windows.Forms;
-using VRCX.Overlay;
+using Microsoft.Win32;
 
-namespace VRCX
+namespace VRCX_0
 {
     public static class Program
     {
@@ -25,29 +25,32 @@ namespace VRCX
         {
             if (string.IsNullOrEmpty(AppDataDirectory))
                 AppDataDirectory = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "VRCX");
+                    "VRCX-0");
 
             BaseDirectory = AppDomain.CurrentDomain.BaseDirectory;
-            ConfigLocation = Path.Join(AppDataDirectory, "VRCX.sqlite3");
+            ConfigLocation = Path.Join(AppDataDirectory, "VRCX-0.sqlite3");
+
+            // One-time migration from old VRCX data directory
+            MigrateFromOldVrcx();
 
             if (!Directory.Exists(AppDataDirectory))
             {
                 Directory.CreateDirectory(AppDataDirectory);
 
                 // Migrate config to AppData
-                if (File.Exists(Path.Join(BaseDirectory, "VRCX.json")))
+                if (File.Exists(Path.Join(BaseDirectory, "VRCX-0.json")))
                 {
-                    File.Move(Path.Join(BaseDirectory, "VRCX.json"), Path.Join(AppDataDirectory, "VRCX.json"));
-                    File.Copy(Path.Join(AppDataDirectory, "VRCX.json"),
-                        Path.Join(AppDataDirectory, "VRCX-backup.json"));
+                    File.Move(Path.Join(BaseDirectory, "VRCX-0.json"), Path.Join(AppDataDirectory, "VRCX-0.json"));
+                    File.Copy(Path.Join(AppDataDirectory, "VRCX-0.json"),
+                        Path.Join(AppDataDirectory, "VRCX-0-backup.json"));
                 }
 
-                if (File.Exists(Path.Join(BaseDirectory, "VRCX.sqlite3")))
+                if (File.Exists(Path.Join(BaseDirectory, "VRCX-0.sqlite3")))
                 {
-                    File.Move(Path.Join(BaseDirectory, "VRCX.sqlite3"),
-                        Path.Join(AppDataDirectory, "VRCX.sqlite3"));
-                    File.Copy(Path.Join(AppDataDirectory, "VRCX.sqlite3"),
-                        Path.Join(AppDataDirectory, "VRCX-backup.sqlite3"));
+                    File.Move(Path.Join(BaseDirectory, "VRCX-0.sqlite3"),
+                        Path.Join(AppDataDirectory, "VRCX-0.sqlite3"));
+                    File.Copy(Path.Join(AppDataDirectory, "VRCX-0.sqlite3"),
+                        Path.Join(AppDataDirectory, "VRCX-0-backup.sqlite3"));
                 }
             }
 
@@ -61,6 +64,64 @@ namespace VRCX
             }
         }
 
+        private static void MigrateFromOldVrcx()
+        {
+            if (Directory.Exists(AppDataDirectory))
+                return;
+
+            var oldAppData = Path.Join(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "VRCX");
+            if (!Directory.Exists(oldAppData))
+                return;
+
+            var marker = Path.Join(oldAppData, ".migrated-to-vrcx-0");
+            if (File.Exists(marker))
+                return;
+
+            try
+            {
+                Directory.CreateDirectory(AppDataDirectory);
+
+                // Copy key data files with new names
+                CopyIfExists(Path.Join(oldAppData, "VRCX.sqlite3"), Path.Join(AppDataDirectory, "VRCX-0.sqlite3"));
+                CopyIfExists(Path.Join(oldAppData, "VRCX.json"), Path.Join(AppDataDirectory, "VRCX-0.json"));
+
+                // Copy directories
+                CopyDirectoryIfExists(Path.Join(oldAppData, "userdata"), Path.Join(AppDataDirectory, "userdata"));
+                CopyDirectoryIfExists(Path.Join(oldAppData, "cache"), Path.Join(AppDataDirectory, "cache"));
+                CopyDirectoryIfExists(Path.Join(oldAppData, "logs"), Path.Join(AppDataDirectory, "logs"));
+
+                // Mark old directory as migrated
+                File.WriteAllText(marker, $"Migrated to VRCX-0 on {DateTime.UtcNow:O}");
+            }
+            catch
+            {
+                // Migration is best-effort; don't block startup
+            }
+        }
+
+        private static void CopyIfExists(string source, string destination)
+        {
+            if (File.Exists(source))
+                File.Copy(source, destination, false);
+        }
+
+        private static void CopyDirectoryIfExists(string source, string destination)
+        {
+            if (!Directory.Exists(source))
+                return;
+
+            Directory.CreateDirectory(destination);
+            foreach (var file in Directory.GetFiles(source))
+            {
+                File.Copy(file, Path.Join(destination, Path.GetFileName(file)), false);
+            }
+
+            foreach (var dir in Directory.GetDirectories(source))
+            {
+                CopyDirectoryIfExists(dir, Path.Join(destination, Path.GetFileName(dir)));
+            }
+        }
+
         private static void GetVersion()
         {
             try
@@ -70,22 +131,45 @@ namespace VRCX
                 // look for trailing git hash "-22bcd96" to indicate nightly build
                 var version = versionFile.Split('-');
                 if (version.Length > 0 && version[^1].Length == 7)
-                    Version = $"VRCX Nightly {versionFile}";
+                    Version = $"VRCX-0 Nightly {versionFile}";
                 else
-                    Version = $"VRCX {versionFile}";
+                    Version = $"VRCX-0 {versionFile}";
             }
             catch (Exception ex)
             {
                 logger.Error(ex, "Failed to read version file");
-                Version = "VRCX Nightly Build";
+                Version = "VRCX-0 Nightly Build";
+            }
+        }
+
+        private static void MigrateStartupRegistry()
+        {
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run", true);
+                if (key == null)
+                    return;
+
+                var oldStartup = key.GetValue("VRCX") as string;
+                if (string.IsNullOrEmpty(oldStartup))
+                    return;
+
+                if (string.IsNullOrEmpty(key.GetValue("VRCX-0") as string))
+                {
+                    key.SetValue("VRCX-0", $"\"{Application.ExecutablePath}\" --startup");
+                }
+
+                key.DeleteValue("VRCX", false);
+            }
+            catch (Exception ex)
+            {
+                logger.Warn(ex, "Failed to migrate startup registry entry");
             }
         }
 
         private static void ConfigureLogger()
         {
-            var fileName = Path.Join(AppDataDirectory, "logs", "VRCX.log");
-            if (StartupArgs.LaunchArguments.IsOverlay)
-                fileName = Path.Join(AppDataDirectory, "logs", "VRCX.Overlay.log");
+            var fileName = Path.Join(AppDataDirectory, "logs", "VRCX-0.log");
 
             LogManager.Setup().LoadConfiguration(builder =>
             {
@@ -121,45 +205,10 @@ namespace VRCX
         [SuppressMessage("Interoperability", "CA1416:Validate platform compatibility")]
         private static void Main()
         {
-            BrowserSubprocess.Start();
             try
             {
                 Run();
             }
-
-            #region Handle CEF Explosion
-
-            catch (FileNotFoundException e)
-            {
-                logger.Error(e, "Handled Exception, Missing file found in Handle Cef Explosion.");
-
-                var result = MessageBox.Show(
-                    "VRCX has encountered an error with the CefSharp backend,\nthis is typically caused by missing files or dependencies.\nWould you like to try autofix by automatically installing vc_redist?.",
-                    "VRCX CefSharp not found.", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
-                switch (result)
-                {
-                    case DialogResult.Yes:
-                        logger.Fatal("Handled Exception, user selected auto install of vc_redist.");
-                        Update.DownloadInstallRedist().GetAwaiter().GetResult();
-                        MessageBox.Show(
-                            "vc_redist has finished installing, if the issue persists upon next restart, please reinstall VRCX From GitHub,\nVRCX Will now restart.",
-                            "vc_redist installation complete", MessageBoxButtons.OK);
-                        Thread.Sleep(5000);
-                        AppApiInstance.RestartApplication(false);
-                        break;
-
-                    case DialogResult.No:
-                        logger.Fatal("Handled Exception, user chose manual.");
-                        MessageBox.Show(
-                            "VRCX will now close, try reinstalling VRCX using the setup from Github as a potential fix.",
-                            "VRCX CefSharp not found", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        Thread.Sleep(5000);
-                        Environment.Exit(0);
-                        break;
-                }
-            }
-
-            #endregion
 
             #region Handle Database Error
 
@@ -168,7 +217,7 @@ namespace VRCX
                 logger.Fatal(e, "Unhandled SQLite Exception, closing.");
                 var messageBoxResult = MessageBox.Show(
                     "A fatal database error has occured.\n" +
-                    "Please try to repair your database by following the steps in the provided repair guide, or alternatively rename your \"%AppData%\\VRCX\" folder to reset VRCX. " +
+                    "Please try to repair your database by following the steps in the provided repair guide, or alternatively rename your \"%AppData%\\VRCX-0\" folder to reset VRCX-0. " +
                     "If the issue still persists after following the repair guide please join the Discord (https://vrcx.app/discord) for further assistance. " +
                     "Would you like to open the webpage for database repair steps?\n" +
                     e, "Database error", MessageBoxButtons.YesNo, MessageBoxIcon.Error);
@@ -212,8 +261,7 @@ namespace VRCX
             VRCXStorage.Instance.Load();
             ConfigureLogger();
             GetVersion();
-            if (StartupArgs.LaunchArguments.IsOverlay)
-                OverlayProgram.OverlayMain();
+            MigrateStartupRegistry();
 
             Update.Check();
 
@@ -227,22 +275,34 @@ namespace VRCX
             
             IPCServer.Instance.Init();
             SQLite.Instance.Init();
-            AppApiInstance = new AppApiCef();
+            AppApiInstance = new AppApiWebView2();
             
             ProcessMonitor.Instance.Init();
             Discord.Instance.Init();
             WebApi.Instance.Init();
             LogWatcher.Instance.Init();
             AutoAppLaunchManager.Instance.Init();
-            CefService.Instance.Init();
-            OverlayServer.Instance.Init();
+            try
+            {
+                WebView2Service.Instance.Init().GetAwaiter().GetResult();
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "Failed to initialize WebView2 environment");
+                MessageBox.Show(
+                    $"Failed to initialize WebView2.\nPlease ensure Microsoft Edge WebView2 Runtime is installed.\n\n{ex.Message}",
+                    "VRCX-0 Error",
+                    MessageBoxButtons.OK,
+                    MessageBoxIcon.Error);
+                Environment.Exit(1);
+                return;
+            }
 
             Application.Run(new MainForm());
 
             logger.Info("{0} Exiting...", Version);
             WebApi.Instance.SaveCookies();
-            OverlayServer.Instance.Exit();
-            CefService.Instance.Exit();
+            WebView2Service.Instance.Exit();
             AutoAppLaunchManager.Instance.Exit();
             LogWatcher.Instance.Exit();
             WebApi.Instance.Exit();

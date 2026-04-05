@@ -118,52 +118,52 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
             vrcRegistryAskRestoreConfig
         ] = await Promise.all([
             configRepository.getBool('enablePrimaryPassword', false),
-            configRepository.getString('VRCX_bioLanguage'),
-            configRepository.getBool('VRCX_relaunchVRChatAfterCrash', false),
-            configRepository.getBool('VRCX_vrcQuitFix', true),
-            configRepository.getBool('VRCX_autoSweepVRChatCache', false),
-            configRepository.getBool('VRCX_selfInviteOverride', false),
-            configRepository.getBool('VRCX_saveInstancePrints', false),
-            configRepository.getBool('VRCX_cropInstancePrints', false),
-            configRepository.getBool('VRCX_saveInstanceStickers', false),
-            configRepository.getBool('VRCX_avatarRemoteDatabase', true),
-            configRepository.getBool('VRCX_enableAppLauncher', true),
-            configRepository.getBool('VRCX_enableAppLauncherAutoClose', true),
+            configRepository.getString('VRCX-0_bioLanguage'),
+            configRepository.getBool('VRCX-0_relaunchVRChatAfterCrash', false),
+            configRepository.getBool('VRCX-0_vrcQuitFix', true),
+            configRepository.getBool('VRCX-0_autoSweepVRChatCache', false),
+            configRepository.getBool('VRCX-0_selfInviteOverride', false),
+            configRepository.getBool('VRCX-0_saveInstancePrints', false),
+            configRepository.getBool('VRCX-0_cropInstancePrints', false),
+            configRepository.getBool('VRCX-0_saveInstanceStickers', false),
+            configRepository.getBool('VRCX-0_avatarRemoteDatabase', true),
+            configRepository.getBool('VRCX-0_enableAppLauncher', true),
+            configRepository.getBool('VRCX-0_enableAppLauncherAutoClose', true),
             configRepository.getBool(
-                'VRCX_enableAppLauncherRunProcessOnce',
+                'VRCX-0_enableAppLauncherRunProcessOnce',
                 true
             ),
-            configRepository.getBool('VRCX_screenshotHelper', true),
+            configRepository.getBool('VRCX-0_screenshotHelper', true),
             configRepository.getBool(
-                'VRCX_screenshotHelperModifyFilename',
+                'VRCX-0_screenshotHelperModifyFilename',
                 false
             ),
             configRepository.getBool(
-                'VRCX_screenshotHelperCopyToClipboard',
+                'VRCX-0_screenshotHelperCopyToClipboard',
                 false
             ),
-            configRepository.getBool('VRCX_youtubeAPI', false),
-            configRepository.getString('VRCX_youtubeAPIKey', ''),
-            configRepository.getBool('VRCX_translationAPI', false),
-            configRepository.getString('VRCX_translationAPIKey', ''),
-            configRepository.getString('VRCX_translationAPIType', 'google'),
-            configRepository.getString('VRCX_translationAPIEndpoint', ''),
-            configRepository.getString('VRCX_translationAPIModel', ''),
-            configRepository.getString('VRCX_translationAPIPrompt', ''),
-            configRepository.getBool('VRCX_progressPie', false),
-            configRepository.getBool('VRCX_progressPieFilter', true),
+            configRepository.getBool('VRCX-0_youtubeAPI', false),
+            configRepository.getString('VRCX-0_youtubeAPIKey', ''),
+            configRepository.getBool('VRCX-0_translationAPI', false),
+            configRepository.getString('VRCX-0_translationAPIKey', ''),
+            configRepository.getString('VRCX-0_translationAPIType', 'google'),
+            configRepository.getString('VRCX-0_translationAPIEndpoint', ''),
+            configRepository.getString('VRCX-0_translationAPIModel', ''),
+            configRepository.getString('VRCX-0_translationAPIPrompt', ''),
+            configRepository.getBool('VRCX-0_progressPie', false),
+            configRepository.getBool('VRCX-0_progressPieFilter', true),
             configRepository.getBool(
-                'VRCX_showConfirmationOnSwitchAvatar',
+                'VRCX-0_showConfirmationOnSwitchAvatar',
                 false
             ),
-            configRepository.getBool('VRCX_gameLogDisabled', false),
-            configRepository.getString('VRCX_avatarAutoCleanup', 'Off'),
-            configRepository.getString('VRCX_userGeneratedContentPath', ''),
-            configRepository.getBool('VRCX_autoDeleteOldPrints', false),
-            configRepository.getFloat('VRCX_notificationOpacity', 100),
-            configRepository.getBool('VRCX_saveInstanceEmoji', false),
-            configRepository.getBool('VRCX_vrcRegistryAutoBackup', true),
-            configRepository.getBool('VRCX_vrcRegistryAskRestore', true)
+            configRepository.getBool('VRCX-0_gameLogDisabled', false),
+            configRepository.getString('VRCX-0_avatarAutoCleanup', 'Off'),
+            configRepository.getString('VRCX-0_userGeneratedContentPath', ''),
+            configRepository.getBool('VRCX-0_autoDeleteOldPrints', false),
+            configRepository.getFloat('VRCX-0_notificationOpacity', 100),
+            configRepository.getBool('VRCX-0_saveInstanceEmoji', false),
+            configRepository.getBool('VRCX-0_vrcRegistryAutoBackup', true),
+            configRepository.getBool('VRCX-0_vrcRegistryAskRestore', true)
         ]);
 
         if (!bioLanguageConfig || !languageCodes.includes(bioLanguageConfig)) {
@@ -232,39 +232,39 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
     function setRelaunchVRChatAfterCrash() {
         relaunchVRChatAfterCrash.value = !relaunchVRChatAfterCrash.value;
         configRepository.setBool(
-            'VRCX_relaunchVRChatAfterCrash',
+            'VRCX-0_relaunchVRChatAfterCrash',
             relaunchVRChatAfterCrash.value
         );
     }
     function setVrcQuitFix() {
         vrcQuitFix.value = !vrcQuitFix.value;
-        configRepository.setBool('VRCX_vrcQuitFix', vrcQuitFix.value);
+        configRepository.setBool('VRCX-0_vrcQuitFix', vrcQuitFix.value);
     }
     function setAutoSweepVRChatCache() {
         autoSweepVRChatCache.value = !autoSweepVRChatCache.value;
         configRepository.setBool(
-            'VRCX_autoSweepVRChatCache',
+            'VRCX-0_autoSweepVRChatCache',
             autoSweepVRChatCache.value
         );
     }
     function setSelfInviteOverride() {
         selfInviteOverride.value = !selfInviteOverride.value;
         configRepository.setBool(
-            'VRCX_selfInviteOverride',
+            'VRCX-0_selfInviteOverride',
             selfInviteOverride.value
         );
     }
     function setSaveInstancePrints() {
         saveInstancePrints.value = !saveInstancePrints.value;
         configRepository.setBool(
-            'VRCX_saveInstancePrints',
+            'VRCX-0_saveInstancePrints',
             saveInstancePrints.value
         );
     }
     function setCropInstancePrints() {
         cropInstancePrints.value = !cropInstancePrints.value;
         configRepository.setBool(
-            'VRCX_cropInstancePrints',
+            'VRCX-0_cropInstancePrints',
             cropInstancePrints.value
         );
         cropPrintsChanged();
@@ -272,7 +272,7 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
     function setSaveInstanceStickers() {
         saveInstanceStickers.value = !saveInstanceStickers.value;
         configRepository.setBool(
-            'VRCX_saveInstanceStickers',
+            'VRCX-0_saveInstanceStickers',
             saveInstanceStickers.value
         );
     }
@@ -282,14 +282,14 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
     function setAvatarRemoteDatabase(value) {
         avatarRemoteDatabase.value = value;
         configRepository.setBool(
-            'VRCX_avatarRemoteDatabase',
+            'VRCX-0_avatarRemoteDatabase',
             avatarRemoteDatabase.value
         );
     }
     async function setEnableAppLauncher() {
         enableAppLauncher.value = !enableAppLauncher.value;
         await configRepository.setBool(
-            'VRCX_enableAppLauncher',
+            'VRCX-0_enableAppLauncher',
             enableAppLauncher.value
         );
         handleSetAppLauncherSettings();
@@ -297,7 +297,7 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
     async function setEnableAppLauncherAutoClose() {
         enableAppLauncherAutoClose.value = !enableAppLauncherAutoClose.value;
         await configRepository.setBool(
-            'VRCX_enableAppLauncherAutoClose',
+            'VRCX-0_enableAppLauncherAutoClose',
             enableAppLauncherAutoClose.value
         );
         handleSetAppLauncherSettings();
@@ -306,7 +306,7 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
         enableAppLauncherRunProcessOnce.value =
             !enableAppLauncherRunProcessOnce.value;
         await configRepository.setBool(
-            'VRCX_enableAppLauncherRunProcessOnce',
+            'VRCX-0_enableAppLauncherRunProcessOnce',
             enableAppLauncherRunProcessOnce.value
         );
         handleSetAppLauncherSettings();
@@ -314,7 +314,7 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
     async function setScreenshotHelper() {
         screenshotHelper.value = !screenshotHelper.value;
         await configRepository.setBool(
-            'VRCX_screenshotHelper',
+            'VRCX-0_screenshotHelper',
             screenshotHelper.value
         );
     }
@@ -322,7 +322,7 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
         screenshotHelperModifyFilename.value =
             !screenshotHelperModifyFilename.value;
         await configRepository.setBool(
-            'VRCX_screenshotHelperModifyFilename',
+            'VRCX-0_screenshotHelperModifyFilename',
             screenshotHelperModifyFilename.value
         );
     }
@@ -330,18 +330,18 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
         screenshotHelperCopyToClipboard.value =
             !screenshotHelperCopyToClipboard.value;
         await configRepository.setBool(
-            'VRCX_screenshotHelperCopyToClipboard',
+            'VRCX-0_screenshotHelperCopyToClipboard',
             screenshotHelperCopyToClipboard.value
         );
     }
     async function setYouTubeApi() {
         youTubeApi.value = !youTubeApi.value;
-        await configRepository.setBool('VRCX_youtubeAPI', youTubeApi.value);
+        await configRepository.setBool('VRCX-0_youtubeAPI', youTubeApi.value);
     }
     async function setTranslationApi() {
         translationApi.value = !translationApi.value;
         await configRepository.setBool(
-            'VRCX_translationAPI',
+            'VRCX-0_translationAPI',
             translationApi.value
         );
     }
@@ -351,42 +351,42 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
     async function setYouTubeApiKey(value) {
         youTubeApiKey.value = value;
         await configRepository.setString(
-            'VRCX_youtubeAPIKey',
+            'VRCX-0_youtubeAPIKey',
             youTubeApiKey.value
         );
     }
     async function setTranslationApiKey(value) {
         translationApiKey.value = value;
         await configRepository.setString(
-            'VRCX_translationAPIKey',
+            'VRCX-0_translationAPIKey',
             translationApiKey.value
         );
     }
     async function setTranslationApiType(value) {
         translationApiType.value = value || 'google';
         await configRepository.setString(
-            'VRCX_translationAPIType',
+            'VRCX-0_translationAPIType',
             translationApiType.value
         );
     }
     async function setTranslationApiEndpoint(value) {
         translationApiEndpoint.value = value;
         await configRepository.setString(
-            'VRCX_translationAPIEndpoint',
+            'VRCX-0_translationAPIEndpoint',
             translationApiEndpoint.value
         );
     }
     async function setTranslationApiModel(value) {
         translationApiModel.value = value;
         await configRepository.setString(
-            'VRCX_translationAPIModel',
+            'VRCX-0_translationAPIModel',
             translationApiModel.value
         );
     }
     async function setTranslationApiPrompt(value) {
         translationApiPrompt.value = value;
         await configRepository.setString(
-            'VRCX_translationAPIPrompt',
+            'VRCX-0_translationAPIPrompt',
             translationApiPrompt.value
         );
     }
@@ -486,16 +486,16 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
 
     function setBioLanguage(language) {
         bioLanguage.value = language;
-        configRepository.setString('VRCX_bioLanguage', language);
+        configRepository.setString('VRCX-0_bioLanguage', language);
     }
     async function setProgressPie() {
         progressPie.value = !progressPie.value;
-        await configRepository.setBool('VRCX_progressPie', progressPie.value);
+        await configRepository.setBool('VRCX-0_progressPie', progressPie.value);
     }
     async function setProgressPieFilter() {
         progressPieFilter.value = !progressPieFilter.value;
         await configRepository.setBool(
-            'VRCX_progressPieFilter',
+            'VRCX-0_progressPieFilter',
             progressPieFilter.value
         );
     }
@@ -503,21 +503,21 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
         showConfirmationOnSwitchAvatar.value =
             !showConfirmationOnSwitchAvatar.value;
         await configRepository.setBool(
-            'VRCX_showConfirmationOnSwitchAvatar',
+            'VRCX-0_showConfirmationOnSwitchAvatar',
             showConfirmationOnSwitchAvatar.value
         );
     }
     async function setGameLogDisabled() {
         gameLogDisabled.value = !gameLogDisabled.value;
         await configRepository.setBool(
-            'VRCX_gameLogDisabled',
+            'VRCX-0_gameLogDisabled',
             gameLogDisabled.value
         );
     }
 
     async function setAvatarAutoCleanup(value) {
         avatarAutoCleanup.value = value;
-        await configRepository.setString('VRCX_avatarAutoCleanup', value);
+        await configRepository.setString('VRCX-0_avatarAutoCleanup', value);
     }
 
     /**
@@ -570,12 +570,12 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
      */
     async function runAvatarAutoCleanup(userId) {
         const cleanupSetting = await configRepository.getString(
-            'VRCX_avatarAutoCleanup',
+            'VRCX-0_avatarAutoCleanup',
             'Off'
         );
         if (cleanupSetting === 'Off') return;
     
-        const configKey = `VRCX_lastAvatarCleanupDate_${userId}`;
+        const configKey = `VRCX-0_lastAvatarCleanupDate_${userId}`;
         const lastCleanupStr = await configRepository.getString(
             configKey,
             ''
@@ -613,7 +613,7 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
     async function setSaveInstanceEmoji() {
         saveInstanceEmoji.value = !saveInstanceEmoji.value;
         await configRepository.setBool(
-            'VRCX_saveInstanceEmoji',
+            'VRCX-0_saveInstanceEmoji',
             saveInstanceEmoji.value
         );
     }
@@ -623,26 +623,26 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
             path = '';
         }
         ugcFolderPath.value = path;
-        await configRepository.setString('VRCX_userGeneratedContentPath', path);
+        await configRepository.setString('VRCX-0_userGeneratedContentPath', path);
     }
 
     async function setAutoDeleteOldPrints() {
         autoDeleteOldPrints.value = !autoDeleteOldPrints.value;
         await configRepository.setBool(
-            'VRCX_autoDeleteOldPrints',
+            'VRCX-0_autoDeleteOldPrints',
             autoDeleteOldPrints.value
         );
     }
 
     async function setNotificationOpacity(value) {
         notificationOpacity.value = value;
-        await configRepository.setInt('VRCX_notificationOpacity', value);
+        await configRepository.setInt('VRCX-0_notificationOpacity', value);
     }
 
     async function setVrcRegistryAutoBackup() {
         vrcRegistryAutoBackup.value = !vrcRegistryAutoBackup.value;
         await configRepository.setBool(
-            'VRCX_vrcRegistryAutoBackup',
+            'VRCX-0_vrcRegistryAutoBackup',
             vrcRegistryAutoBackup.value
         );
     }
@@ -650,7 +650,7 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
     async function setVrcRegistryAskRestore() {
         vrcRegistryAskRestore.value = !vrcRegistryAskRestore.value;
         await configRepository.setBool(
-            'VRCX_vrcRegistryAskRestore',
+            'VRCX-0_vrcRegistryAskRestore',
             vrcRegistryAskRestore.value
         );
     }
@@ -1012,7 +1012,7 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
                         vrcxStore.clearVRCXCacheFrequency / 2
                     );
                     await configRepository.setString(
-                        'VRCX_clearVRCXCacheFrequency',
+                        'VRCX-0_clearVRCXCacheFrequency',
                         vrcxStore.clearVRCXCacheFrequency.toString()
                     );
                 }

@@ -1,23 +1,14 @@
 import { initDayjs } from './dayjs';
 import { initInteropApi } from './interopApi';
-import { initNoty } from './noty';
-import { initUi, initUiForVrOverlay } from './ui';
+import { initUi } from './ui';
 
 /**
- * @param {boolean} isVrOverlay
  * @returns {Promise<void>}
  */
-export async function initPlugins(isVrOverlay = false) {
-    await initInteropApi(isVrOverlay);
-    if (!isVrOverlay) {
-        await initUi();
-    } else {
-        await initUiForVrOverlay();
-    }
+export async function initPlugins() {
+    await initInteropApi();
+    await initUi();
     initDayjs();
-    if (isVrOverlay) {
-        initNoty(true);
-    }
 }
 
 export * from './i18n';

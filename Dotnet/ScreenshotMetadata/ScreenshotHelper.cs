@@ -9,7 +9,7 @@ using System.Xml;
 using Newtonsoft.Json;
 using NLog;
 
-namespace VRCX
+namespace VRCX_0
 {
     internal static class ScreenshotHelper
     {
@@ -190,7 +190,7 @@ namespace VRCX
         /// <returns>A list of metadata strings found in the image file.</returns>
         /// <remarks>
         /// This function reads all the text chunks from the PNG image file and returns them as a list.
-        /// For VRChat screenshots, the list will contain the "XML:com.adobe.xmp"(VRChat, usually) and "Description"(VRCX) chunks, with the VRChat metadata always coming first if available.
+        /// For VRChat screenshots, the list will contain the "XML:com.adobe.xmp"(VRChat, usually) and "Description"(VRCX-0) chunks, with the VRChat metadata always coming first if available.
         /// The strings are not guaranteed to be valid metadata.
         /// If no metadata is found, an empty list is returned.
         /// </remarks>

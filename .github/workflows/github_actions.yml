@@ -11,64 +11,84 @@ permissions:
     contents: read
 
 jobs:
-    build_windows_cef:
+    build:
         runs-on: windows-latest
         defaults:
             run:
                 shell: bash
         steps:
             - uses: actions/checkout@v6
+
             - id: version
               run: |
                   version="$(cat Version)"
                   echo "version=${version}" >> "$GITHUB_OUTPUT"
+
             - name: Setup .NET 10
               uses: actions/setup-dotnet@v5
               with:
                   dotnet-version: '10.0.x'
-            - name: Node.js
+
+            - name: Setup Node.js
               uses: actions/setup-node@v6
               with:
                   node-version: lts/*
                   cache: npm
+
             - name: Set installer version
               run: echo "!define PRODUCT_VERSION_FROM_FILE \"${{ steps.version.outputs.version }}.0\"" > Installer/version_define.nsh
+
             - uses: actions/cache@v5
               with:
                   path: ~/.nuget/packages
-                  key: ${{ runner.os }}-nuget-${{ hashFiles('**/Dotnet/VRCX-0-Cef.csproj') }}
-                  restore-keys: |
-                      ${{ runner.os }}-nuget-
-            - name: Restore npm dependencies
+                  key: ${{ runner.os }}-nuget-${{ hashFiles('Dotnet/VRCX-0.csproj') }}
+                  restore-keys: ${{ runner.os }}-nuget-
+
+            # ── Frontend ─────────────────────────────────────
+            - name: Install npm dependencies
               run: npm ci
-            - name: Build Cef html
+
+            - name: Build frontend
               run: npm run prod
-            - name: Build Cef .NET application
-              run: dotnet build Dotnet/VRCX-0-Cef.csproj -p:Configuration=Release -p:WarningLevel=0 -p:Platform=x64 -p:PlatformTarget=x64 -p:RestorePackagesConfig=true -t:"Restore;Clean;Build" -m -a x64 --self-contained
-            - name: Move html to Cef output
-              run: rm -rf build/Cef/html && mv build/html build/Cef/html
+
+            # ── .NET ─────────────────────────────────────────
+            - name: Build .NET
+              run: |
+                  dotnet build Dotnet/VRCX-0.csproj \
+                      -p:Configuration=Release \
+                      -p:Platform=x64 \
+                      -t:Restore,Build \
+                      -m --self-contained
+
+            # ── Package ──────────────────────────────────────
             - name: Install NSIS
               run: choco install nsis -y
-            - name: Create NSIS installer
+
+            - name: Create installer
               uses: joncloud/makensis-action@v4
               with:
                   script-file: Installer/installer.nsi
                   additional-plugin-paths: Installer/Plugins
-            - name: Rename setup
+
+            - name: Rename installer
               run: mv Installer/VRCX-0_Setup.exe "VRCX-0_${{ steps.version.outputs.version }}_Setup.exe"
+
             - name: Create zip
               shell: pwsh
               run: |
                   $version = "${{ steps.version.outputs.version }}"
-                  Get-ChildItem -Path build/Cef -Recurse -File |
+                  Get-ChildItem -Path build -Recurse -File |
                       Where-Object { $_.Extension -notin '.log','.pdb' } |
                       Compress-Archive -DestinationPath "VRCX-0_${version}.zip"
-            - name: Upload setup artifact
+
+            # ── Upload ───────────────────────────────────────
+            - name: Upload installer
               uses: actions/upload-artifact@v7
               with:
-                  name: Cef-Setup
+                  name: VRCX-0-Setup
                   path: VRCX-0_${{ steps.version.outputs.version }}_Setup.exe
-            - name: Upload zip artifact
+
+            - name: Upload zip
               uses: actions/upload-artifact@v7
               with:
                   name: VRCX-0-Zip

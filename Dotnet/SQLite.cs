@@ -4,7 +4,7 @@ using System.Data.SQLite;
 using System.IO;
 using System.Threading;
 
-namespace VRCX
+namespace VRCX_0
 {
     public class SQLite
     {
@@ -25,7 +25,7 @@ namespace VRCX
         public void Init()
         {
             var dataSource = Program.ConfigLocation;
-            var jsonDataSource = VRCXStorage.Instance.Get("VRCX_DatabaseLocation");
+            var jsonDataSource = VRCXStorage.Instance.Get("VRCX-0_DatabaseLocation");
             if (!string.IsNullOrEmpty(jsonDataSource))
                 dataSource = jsonDataSource;
 

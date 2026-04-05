@@ -78,7 +78,7 @@
 
     async function init() {
         playerModerationTable.value.filters[0].value = JSON.parse(
-            await configRepository.getString('VRCX_playerModerationTableFilters', '[]')
+            await configRepository.getString('VRCX-0_playerModerationTableFilters', '[]')
         );
     }
 
@@ -86,7 +86,7 @@
 
     function saveTableFilters() {
         configRepository.setString(
-            'VRCX_playerModerationTableFilters',
+            'VRCX-0_playerModerationTableFilters',
             JSON.stringify(playerModerationTable.value.filters[0].value)
         );
     }

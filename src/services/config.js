@@ -8,7 +8,31 @@ function transformKey(key) {
     return `config:${String(key).toLowerCase()}`;
 }
 
+function transformLegacyKey(key) {
+    return `config:${String(key).toLowerCase().replace(/^vrcx-0/, 'vrcx')}`;
+}
+
 class ConfigRepository {
+    async getRawValue(key) {
+        const _key = transformKey(key);
+        let value = undefined;
+        await sqliteService.execute(
+            (row) => {
+                value = row[0];
+            },
+            `SELECT value FROM configs WHERE key = @key`,
+            {
+                '@key': _key
+            }
+        );
+
+        if (value === null || value === undefined || value === 'undefined') {
+            return null;
+        }
+
+        return value;
+    }
+
     async init() {
         await sqliteService.executeNonQuery(
             'CREATE TABLE IF NOT EXISTS configs (`key` TEXT PRIMARY KEY, `value` TEXT)'
@@ -31,22 +55,34 @@ class ConfigRepository {
      * @returns {Promise<string | null>}
      */
     async getString(key, defaultValue = null) {
-        const _key = transformKey(key);
-        let value = undefined;
-        await sqliteService.execute(
-            (row) => {
-                value = row[0];
-            },
-            `SELECT value FROM configs WHERE key = @key`,
-            {
-                '@key': _key
-            }
-        );
-
-        if (value === null || value === undefined || value === 'undefined') {
-            return defaultValue;
+        let value = await this.getRawValue(key);
+        if (value !== null) {
+            return value;
         }
-        return value;
+
+        const legacyKey = transformLegacyKey(key);
+        if (legacyKey !== transformKey(key)) {
+            let legacyValue = undefined;
+            await sqliteService.execute(
+                (row) => {
+                    legacyValue = row[0];
+                },
+                `SELECT value FROM configs WHERE key = @key`,
+                {
+                    '@key': legacyKey
+                }
+            );
+
+            if (
+                legacyValue !== null &&
+                legacyValue !== undefined &&
+                legacyValue !== 'undefined'
+            ) {
+                return legacyValue;
+            }
+        }
+
+        return defaultValue;
     }
 
     /**

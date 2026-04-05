@@ -172,7 +172,7 @@ export const useNotificationStore = defineStore('Notification', () => {
     async function init() {
         notificationTable.value.filters[0].value = JSON.parse(
             await configRepository.getString(
-                'VRCX_notificationTableFilters',
+                'VRCX-0_notificationTableFilters',
                 '[]'
             )
         );
@@ -878,17 +878,16 @@ export const useNotificationStore = defineStore('Notification', () => {
             notiConditions[notificationsSettingsStore.desktopToast]?.() ||
             notiConditions['AFK']();
 
-        const playOverlayToast =
+        const playNotificationToast =
             notiConditions[notificationsSettingsStore.overlayToast]?.();
-        const playOverlayNotification =
-            notificationsSettingsStore.overlayNotifications && playOverlayToast;
         const playXSNotification =
-            notificationsSettingsStore.xsNotifications && playOverlayToast;
+            notificationsSettingsStore.xsNotifications && playNotificationToast;
         const playOvrtHudNotifications =
-            notificationsSettingsStore.ovrtHudNotifications && playOverlayToast;
+            notificationsSettingsStore.ovrtHudNotifications &&
+            playNotificationToast;
         const playOvrtWristNotifications =
             notificationsSettingsStore.ovrtWristNotifications &&
-            playOverlayToast;
+            playNotificationToast;
 
         let message = '';
         if (noty.title) {
@@ -916,8 +915,7 @@ export const useNotificationStore = defineStore('Notification', () => {
             playDesktopToast ||
             playXSNotification ||
             playOvrtHudNotifications ||
-            playOvrtWristNotifications ||
-            playOverlayNotification
+            playOvrtWristNotifications
         ) {
             if (notificationsSettingsStore.imageNotifications) {
                 notySaveImage(noty).then((image) => {
@@ -939,9 +937,6 @@ export const useNotificationStore = defineStore('Notification', () => {
                     if (playDesktopToast) {
                         displayDesktopToast(noty, message, image);
                     }
-                    if (playOverlayNotification) {
-                        displayOverlayNotification(noty, message, image);
-                    }
                 });
             } else {
                 if (playXSNotification) {
@@ -958,9 +953,6 @@ export const useNotificationStore = defineStore('Notification', () => {
                 }
                 if (playDesktopToast) {
                     displayDesktopToast(noty, message, '');
-                }
-                if (playOverlayNotification) {
-                    displayOverlayNotification(noty, message, '');
                 }
             }
         }
@@ -993,7 +985,6 @@ export const useNotificationStore = defineStore('Notification', () => {
     const {
         notySaveImage,
         displayDesktopToast,
-        displayOverlayNotification,
         displayXSNotification,
         displayOvrtNotification
     } = createOverlayDispatch({

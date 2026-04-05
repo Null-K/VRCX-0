@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace VRCX
+namespace VRCX_0
 {
     public static class WinApi
     {

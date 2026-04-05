@@ -4,7 +4,7 @@ using System.Text;
 using System.Threading;
 using NLog;
 
-namespace VRCX
+namespace VRCX_0
 {
     public class Discord
     {

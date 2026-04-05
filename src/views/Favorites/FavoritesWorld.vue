@@ -426,8 +426,8 @@
         containerRef: worldFavoritesContainerRef,
         gridStyle: worldFavoritesGridStyle
     } = useFavoritesCardScaling({
-        configKey: 'VRCX_FavoritesWorldCardScale',
-        spacingConfigKey: 'VRCX_FavoritesWorldCardSpacing',
+        configKey: 'VRCX-0_FavoritesWorldCardScale',
+        spacingConfigKey: 'VRCX-0_FavoritesWorldCardSpacing',
         min: 0.6,
         max: 1,
         step: 0.01,
@@ -473,7 +473,7 @@
         maxSize: splitterMaxSize,
         handleLayout,
         setDragging: splitterSetDragging
-    } = useFavoritesSplitter({ configKey: 'VRCX_FavoritesWorldSplitter' });
+    } = useFavoritesSplitter({ configKey: 'VRCX-0_FavoritesWorldSplitter' });
     const worldExportDialogVisible = ref(false);
     const worldFavoriteSearch = ref('');
     const worldFavoriteSearchResults = ref([]);

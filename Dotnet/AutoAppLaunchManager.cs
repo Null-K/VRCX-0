@@ -11,7 +11,7 @@ using System.Timers;
 using Microsoft.Win32;
 using NLog;
 
-namespace VRCX
+namespace VRCX_0
 {
     /// <summary>
     /// The class responsible for launching user-defined applications when VRChat opens/closes.

@@ -442,7 +442,7 @@
         }
     );
 
-    const VISIBILITY_KEY = 'VRCX_statusBarVisibility';
+    const VISIBILITY_KEY = 'VRCX-0_statusBarVisibility';
 
     const visibility = reactive({ ...defaultVisibility });
 
@@ -551,8 +551,8 @@
         return formatAppUptime(elapsedSeconds);
     });
 
-    const CLOCKS_KEY = 'VRCX_statusBarClocks';
-    const CLOCK_COUNT_KEY = 'VRCX_statusBarClockCount';
+    const CLOCKS_KEY = 'VRCX-0_statusBarClocks';
+    const CLOCK_COUNT_KEY = 'VRCX-0_statusBarClockCount';
     const localOffset = normalizeUtcHour(dayjs().utcOffset() / 60);
     const defaultClocks = [{ offset: localOffset }, { offset: 0 }, { offset: localOffset < 0 ? 9 : -5 }];
 

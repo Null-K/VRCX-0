@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.IO.Pipes;
 using System.Threading.Tasks;
 
-namespace VRCX
+namespace VRCX_0
 {
     public class IPCServer
     {
@@ -36,7 +36,7 @@ namespace VRCX
             {
                 hash += c;
             }
-            return $"vrcx-ipc-{hash}";
+            return $"vrcx-0-ipc-{hash}";
         }
 
         public void CreateIPCServer()

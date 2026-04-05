@@ -114,10 +114,10 @@ export const useGameLogStore = defineStore('GameLog', () => {
      */
     async function init() {
         gameLogTable.value.filter = JSON.parse(
-            await configRepository.getString('VRCX_gameLogTableFilters', '[]')
+            await configRepository.getString('VRCX-0_gameLogTableFilters', '[]')
         );
         gameLogTable.value.vip = await configRepository.getBool(
-            'VRCX_gameLogTableVIPFilter',
+            'VRCX-0_gameLogTableVIPFilter',
             false
         );
     }
@@ -312,11 +312,11 @@ export const useGameLogStore = defineStore('GameLog', () => {
      */
     async function gameLogTableLookup() {
         await configRepository.setString(
-            'VRCX_gameLogTableFilters',
+            'VRCX-0_gameLogTableFilters',
             JSON.stringify(gameLogTable.value.filter)
         );
         await configRepository.setBool(
-            'VRCX_gameLogTableVIPFilter',
+            'VRCX-0_gameLogTableVIPFilter',
             gameLogTable.value.vip
         );
         gameLogTable.value.loading = true;

@@ -6,9 +6,8 @@
             <simple-switch
                 :label="t('view.settings.advanced.photon.event_hud.enable')"
                 :value="photonEventOverlay"
-                :disabled="!openVR"
                 :tooltip="t('view.settings.advanced.photon.event_hud.enable_tooltip')"
-                @change="saveEventOverlay('VRCX_PhotonEventOverlay')"></simple-switch>
+                @change="saveEventOverlay('VRCX-0_PhotonEventOverlay')"></simple-switch>
         </div>
         <div class="options-container-item">
             <span class="name">{{ t('view.settings.advanced.photon.event_hud.filter') }}</span>
@@ -18,7 +17,7 @@
                 variant="outline"
                 size="sm"
                 :model-value="photonEventOverlayFilter"
-                :disabled="!openVR || !photonEventOverlay"
+                :disabled="!photonEventOverlay"
                 @update:model-value="
                     setPhotonEventOverlayFilter($event);
                     saveEventOverlay();
@@ -35,7 +34,7 @@
             </ToggleGroup>
         </div>
         <div class="options-container-item">
-            <Button size="sm" variant="outline" :disabled="!openVR" @click="promptPhotonOverlayMessageTimeout">{{
+            <Button size="sm" variant="outline" @click="promptPhotonOverlayMessageTimeout">{{
                 t('view.settings.advanced.photon.event_hud.message_timeout')
             }}</Button>
         </div>
@@ -64,9 +63,8 @@
         <simple-switch
             :label="t('view.settings.advanced.photon.timeout_hud.enable')"
             :value="timeoutHudOverlay"
-            :disabled="!openVR"
             :tooltip="t('view.settings.advanced.photon.timeout_hud.enable_tooltip')"
-            @change="saveEventOverlay('VRCX_TimeoutHudOverlay')"></simple-switch>
+            @change="saveEventOverlay('VRCX-0_TimeoutHudOverlay')"></simple-switch>
         <div class="options-container-item">
             <span class="name">{{ t('view.settings.advanced.photon.timeout_hud.filter') }}</span>
             <ToggleGroup
@@ -75,7 +73,7 @@
                 variant="outline"
                 size="sm"
                 :model-value="timeoutHudOverlayFilter"
-                :disabled="!openVR || !timeoutHudOverlay"
+                :disabled="!timeoutHudOverlay"
                 @update:model-value="
                     setTimeoutHudOverlayFilter($event);
                     saveEventOverlay();
@@ -92,7 +90,7 @@
             </ToggleGroup>
         </div>
         <div class="options-container-item">
-            <Button size="sm" variant="outline" :disabled="!openVR" @click="promptPhotonLobbyTimeoutThreshold">{{
+            <Button size="sm" variant="outline" @click="promptPhotonLobbyTimeoutThreshold">{{
                 t('view.settings.advanced.photon.timeout_hud.timeout_threshold')
             }}</Button>
         </div>
@@ -106,7 +104,7 @@
 
     import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../../components/ui/select';
     import { ToggleGroup, ToggleGroupItem } from '../../../components/ui/toggle-group';
-    import { useNotificationsSettingsStore, usePhotonStore } from '../../../stores';
+    import { usePhotonStore } from '../../../stores';
     import { photonEventTableTypeFilterList } from '../../../shared/constants/photon';
 
     import SimpleSwitch from './SimpleSwitch.vue';
@@ -131,5 +129,4 @@
         timeoutHudOverlayFilter
     } = storeToRefs(usePhotonStore());
 
-    const { openVR } = storeToRefs(useNotificationsSettingsStore());
 </script>

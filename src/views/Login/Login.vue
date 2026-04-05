@@ -320,7 +320,7 @@
 
     async function detectAndPromptLanguage() {
         try {
-            const savedLanguage = await configRepository.getString('VRCX_appLanguage');
+            const savedLanguage = await configRepository.getString('VRCX-0_appLanguage');
             if (savedLanguage || !isActive) return;
 
             const systemLanguage = await AppApi.CurrentLanguage();
@@ -364,7 +364,7 @@
             if (!isActive) return;
 
             // Re-check: user may have manually switched language while the dialog was open
-            const currentLanguage = await configRepository.getString('VRCX_appLanguage');
+            const currentLanguage = await configRepository.getString('VRCX-0_appLanguage');
             if (currentLanguage || !isActive) return;
 
             if (ok) {

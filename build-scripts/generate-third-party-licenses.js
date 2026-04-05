@@ -178,8 +178,7 @@ function parseCsprojBinaryReferences(csprojText) {
     )) {
         const normalizedPath = includePath.replaceAll('\\', '/');
         const fileName = path.basename(normalizedPath);
-        const overrideName =
-            fileName === 'openvr_api.dll' ? 'OpenVR SDK' : fileName;
+        const overrideName = fileName;
 
         binaryEntries.push({
             name: overrideName,
@@ -357,7 +356,7 @@ function enrichDotnetEntries(entries) {
 
 function createThirdPartyNoticeText(frontendLicenseMarkdown, entries) {
     const lines = [
-        'VRCX Third-Party Notices',
+        'VRCX-0 Third-Party Notices',
         '',
         `Generated: ${new Date().toISOString()}`,
         '',
@@ -426,7 +425,6 @@ function main() {
         .readdirSync(dotnetDir)
         .filter((fileName) => fileName.endsWith('.csproj'))
         .map((fileName) => path.join(dotnetDir, fileName))
-        .concat(path.join(dotnetDir, 'DBMerger', 'DBMerger.csproj'))
         .filter(
             (filePath, index, filePaths) =>
                 filePaths.indexOf(filePath) === index && fs.existsSync(filePath)

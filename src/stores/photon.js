@@ -161,28 +161,28 @@ export const usePhotonStore = defineStore('Photon', () => {
             chatboxUserBlacklistConfig,
             chatboxKeywordBlacklistConfig
         ] = await Promise.all([
-            configRepository.getBool('VRCX_PhotonEventOverlay', false),
+            configRepository.getBool('VRCX-0_PhotonEventOverlay', false),
             configRepository.getString(
-                'VRCX_PhotonEventOverlayFilter',
+                'VRCX-0_PhotonEventOverlayFilter',
                 'Everyone'
             ),
             configRepository.getString(
-                'VRCX_photonEventTypeOverlayFilter',
+                'VRCX-0_photonEventTypeOverlayFilter',
                 '[]'
             ),
-            configRepository.getBool('VRCX_TimeoutHudOverlay', false),
+            configRepository.getBool('VRCX-0_TimeoutHudOverlay', false),
             configRepository.getString(
-                'VRCX_TimeoutHudOverlayFilter',
+                'VRCX-0_TimeoutHudOverlayFilter',
                 'Everyone'
             ),
-            configRepository.getInt('VRCX_photonLobbyTimeoutThreshold', 6000),
+            configRepository.getInt('VRCX-0_photonLobbyTimeoutThreshold', 6000),
             configRepository.getString(
-                'VRCX_photonOverlayMessageTimeout',
+                'VRCX-0_photonOverlayMessageTimeout',
                 (6000).toString()
             ),
-            configRepository.getString('VRCX_photonEventTypeFilter', '[]'),
-            configRepository.getString('VRCX_chatboxUserBlacklist'),
-            configRepository.getString('VRCX_chatboxBlacklist')
+            configRepository.getString('VRCX-0_photonEventTypeFilter', '[]'),
+            configRepository.getString('VRCX-0_chatboxUserBlacklist'),
+            configRepository.getString('VRCX-0_chatboxBlacklist')
         ]);
 
         photonEventOverlay.value = photonEventOverlayConfig;
@@ -231,7 +231,7 @@ export const usePhotonStore = defineStore('Photon', () => {
         set: (value) => {
             state.photonLobbyTimeoutThreshold = value;
             configRepository.setString(
-                'VRCX_photonLobbyTimeoutThreshold',
+                'VRCX-0_photonLobbyTimeoutThreshold',
                 value.toString()
             );
         }
@@ -241,7 +241,7 @@ export const usePhotonStore = defineStore('Photon', () => {
         set: (value) => {
             state.photonOverlayMessageTimeout = value;
             configRepository.setString(
-                'VRCX_photonOverlayMessageTimeout',
+                'VRCX-0_photonOverlayMessageTimeout',
                 value.toString()
             );
         }
@@ -249,12 +249,12 @@ export const usePhotonStore = defineStore('Photon', () => {
 
     function setPhotonLoggingEnabled() {
         photonLoggingEnabled.value = !photonLoggingEnabled.value;
-        configRepository.setBool('VRCX_photonLoggingEnabled', true);
+        configRepository.setBool('VRCX-0_photonLoggingEnabled', true);
     }
     function setPhotonEventOverlay() {
         photonEventOverlay.value = !photonEventOverlay.value;
         configRepository.setBool(
-            'VRCX_PhotonEventOverlay',
+            'VRCX-0_PhotonEventOverlay',
             photonEventOverlay.value
         );
     }
@@ -262,28 +262,25 @@ export const usePhotonStore = defineStore('Photon', () => {
     function setPhotonEventOverlayFilter(value) {
         photonEventOverlayFilter.value = value;
         configRepository.setString(
-            'VRCX_PhotonEventOverlayFilter',
+            'VRCX-0_PhotonEventOverlayFilter',
             photonEventOverlayFilter.value
         );
     }
     function setPhotonEventTableTypeOverlayFilter(value) {
         photonEventTableTypeOverlayFilter.value = value;
         configRepository.setString(
-            'VRCX_photonEventTypeOverlayFilter',
+            'VRCX-0_photonEventTypeOverlayFilter',
             JSON.stringify(photonEventTableTypeOverlayFilter.value)
         );
     }
     function setTimeoutHudOverlay(value) {
         timeoutHudOverlay.value = !timeoutHudOverlay.value;
-        configRepository.setBool('VRCX_TimeoutHudOverlay', value);
-        if (!timeoutHudOverlay.value) {
-            AppApi.ExecuteVrOverlayFunction('updateHudTimeout', '[]');
-        }
+        configRepository.setBool('VRCX-0_TimeoutHudOverlay', value);
     }
     function setTimeoutHudOverlayFilter(value) {
         timeoutHudOverlayFilter.value = value;
         configRepository.setString(
-            'VRCX_TimeoutHudOverlayFilter',
+            'VRCX-0_TimeoutHudOverlayFilter',
             timeoutHudOverlayFilter.value
         );
     }
@@ -304,9 +301,9 @@ export const usePhotonStore = defineStore('Photon', () => {
     }
 
     async function saveEventOverlay(configKey = '') {
-        if (configKey === 'VRCX_PhotonEventOverlay') {
+        if (configKey === 'VRCX-0_PhotonEventOverlay') {
             setPhotonEventOverlay();
-        } else if (configKey === 'VRCX_TimeoutHudOverlay') {
+        } else if (configKey === 'VRCX-0_TimeoutHudOverlay') {
             setTimeoutHudOverlay();
         }
         vrStore.updateOpenVR();
@@ -393,14 +390,14 @@ export const usePhotonStore = defineStore('Photon', () => {
 
     async function saveChatboxUserBlacklist() {
         await configRepository.setString(
-            'VRCX_chatboxUserBlacklist',
+            'VRCX-0_chatboxUserBlacklist',
             JSON.stringify(Object.fromEntries(chatboxUserBlacklist.value))
         );
     }
 
     async function saveChatboxBlacklist() {
         await configRepository.setString(
-            'VRCX_chatboxBlacklist',
+            'VRCX-0_chatboxBlacklist',
             JSON.stringify(chatboxBlacklist.value)
         );
     }
@@ -416,11 +413,11 @@ export const usePhotonStore = defineStore('Photon', () => {
             photonEventTableTypeFilter.value;
 
         await configRepository.setString(
-            'VRCX_photonEventTypeFilter',
+            'VRCX-0_photonEventTypeFilter',
             JSON.stringify(photonEventTableTypeFilter.value)
         );
         // await configRepository.setString(
-        //     'VRCX_photonEventTypeOverlayFilter',
+        //     'VRCX-0_photonEventTypeOverlayFilter',
         //     JSON.stringify(this.photonEventTableTypeOverlayFilter)
         // );
     }
@@ -499,7 +496,6 @@ export const usePhotonStore = defineStore('Photon', () => {
     function photonLobbyWatcherLoopStop() {
         state.photonLobbyWatcherLoop = false;
         photonLobbyTimeout.value = [];
-        AppApi.ExecuteVrOverlayFunction('updateHudTimeout', '[]');
     }
 
     function resetLocationPhotonState() {
@@ -541,9 +537,6 @@ export const usePhotonStore = defineStore('Photon', () => {
         const dtNow = Date.now();
         const bias2 = photonLastEvent7List.value + 1.5 * 1000;
         if (dtNow > bias2 || locationStore.lastLocation.playerList.size <= 1) {
-            if (photonLobbyTimeout.value.length > 0) {
-                AppApi.ExecuteVrOverlayFunction('updateHudTimeout', '[]');
-            }
             photonLobbyTimeout.value = [];
             workerTimers.setTimeout(() => photonLobbyWatcher(), 500);
             return;
@@ -582,35 +575,6 @@ export const usePhotonStore = defineStore('Photon', () => {
                 }
                 return 0;
             });
-            if (timeoutHudOverlay.value) {
-                if (
-                    timeoutHudOverlayFilter.value === 'VIP' ||
-                    timeoutHudOverlayFilter.value === 'Friends'
-                ) {
-                    var filteredHudTimeout = [];
-                    hudTimeout.forEach((item) => {
-                        if (
-                            timeoutHudOverlayFilter.value === 'VIP' &&
-                            favoriteStore.getCachedFavoritesByObjectId(
-                                item.userId
-                            )
-                        ) {
-                            filteredHudTimeout.push(item);
-                        } else if (
-                            timeoutHudOverlayFilter.value === 'Friends' &&
-                            friendStore.friends.has(item.userId)
-                        ) {
-                            filteredHudTimeout.push(item);
-                        }
-                    });
-                } else {
-                    var filteredHudTimeout = hudTimeout;
-                }
-                AppApi.ExecuteVrOverlayFunction(
-                    'updateHudTimeout',
-                    JSON.stringify(filteredHudTimeout)
-                );
-            }
             photonLobbyTimeout.value = hudTimeout;
             instanceStore.getCurrentInstanceUserList();
         }
@@ -656,29 +620,7 @@ export const usePhotonStore = defineStore('Photon', () => {
         ) {
             return;
         }
-        if (photonEventOverlay.value) {
-            if (
-                photonEventOverlayFilter.value === 'VIP' ||
-                photonEventOverlayFilter.value === 'Friends'
-            ) {
-                if (
-                    feed.userId &&
-                    ((photonEventOverlayFilter.value === 'VIP' && isFavorite) ||
-                        (photonEventOverlayFilter.value === 'Friends' &&
-                            isFriend))
-                ) {
-                    AppApi.ExecuteVrOverlayFunction(
-                        'addEntryHudFeed',
-                        JSON.stringify(feed)
-                    );
-                }
-            } else {
-                AppApi.ExecuteVrOverlayFunction(
-                    'addEntryHudFeed',
-                    JSON.stringify(feed)
-                );
-            }
-        }
+        // VR overlay removed.
     }
 
     function getDisplayNameFromPhotonId(photonId) {

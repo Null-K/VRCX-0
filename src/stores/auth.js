@@ -124,7 +124,7 @@ export const useAuthStore = defineStore('Auth', () => {
         const [lastUserLoggedIn, savedEnableCustomEndpoint] = await Promise.all(
             [
                 configRepository.getString('lastUserLoggedIn', ''),
-                configRepository.getBool('VRCX_enableCustomEndpoint', false)
+                configRepository.getBool('VRCX-0_enableCustomEndpoint', false)
             ]
         );
         loginForm.value.lastUserLoggedIn = lastUserLoggedIn;
@@ -553,7 +553,7 @@ export const useAuthStore = defineStore('Auth', () => {
      */
     async function toggleCustomEndpoint() {
         await configRepository.setBool(
-            'VRCX_enableCustomEndpoint',
+            'VRCX-0_enableCustomEndpoint',
             enableCustomEndpoint.value
         );
         loginForm.value.endpoint = '';

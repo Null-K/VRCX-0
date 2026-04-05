@@ -504,10 +504,10 @@
 
     async function loadLayoutSettings() {
         const [iterations, spacing, curvature, separation] = await Promise.all([
-            configRepository.getInt('VRCX_MutualGraphLayoutIterations', LAYOUT_DEFAULTS.layoutIterations),
-            configRepository.getInt('VRCX_MutualGraphLayoutSpacing', LAYOUT_DEFAULTS.layoutSpacing),
-            configRepository.getFloat('VRCX_MutualGraphEdgeCurvature', LAYOUT_DEFAULTS.edgeCurvature),
-            configRepository.getFloat('VRCX_MutualGraphCommunitySeparation', LAYOUT_DEFAULTS.communitySeparation)
+            configRepository.getInt('VRCX-0_MutualGraphLayoutIterations', LAYOUT_DEFAULTS.layoutIterations),
+            configRepository.getInt('VRCX-0_MutualGraphLayoutSpacing', LAYOUT_DEFAULTS.layoutSpacing),
+            configRepository.getFloat('VRCX-0_MutualGraphEdgeCurvature', LAYOUT_DEFAULTS.edgeCurvature),
+            configRepository.getFloat('VRCX-0_MutualGraphCommunitySeparation', LAYOUT_DEFAULTS.communitySeparation)
         ]);
         layoutSettings.layoutIterations = clampNumber(iterations, LAYOUT_ITERATIONS_MIN, LAYOUT_ITERATIONS_MAX);
         layoutSettings.layoutSpacing = clampNumber(spacing, LAYOUT_SPACING_MIN, LAYOUT_SPACING_MAX);
@@ -517,10 +517,10 @@
     }
 
     function persistLayoutSettings() {
-        configRepository.setInt('VRCX_MutualGraphLayoutIterations', layoutSettings.layoutIterations);
-        configRepository.setInt('VRCX_MutualGraphLayoutSpacing', layoutSettings.layoutSpacing);
-        configRepository.setFloat('VRCX_MutualGraphEdgeCurvature', layoutSettings.edgeCurvature);
-        configRepository.setFloat('VRCX_MutualGraphCommunitySeparation', layoutSettings.communitySeparation);
+        configRepository.setInt('VRCX-0_MutualGraphLayoutIterations', layoutSettings.layoutIterations);
+        configRepository.setInt('VRCX-0_MutualGraphLayoutSpacing', layoutSettings.layoutSpacing);
+        configRepository.setFloat('VRCX-0_MutualGraphEdgeCurvature', layoutSettings.edgeCurvature);
+        configRepository.setFloat('VRCX-0_MutualGraphCommunitySeparation', layoutSettings.communitySeparation);
     }
 
     function resetLayoutSettings() {
@@ -567,7 +567,7 @@
     const graphMeta = ref(new Map());
     const isRefreshingNode = ref(false);
 
-    const EXCLUDED_FRIENDS_KEY = 'VRCX_MutualGraphExcludedFriends';
+    const EXCLUDED_FRIENDS_KEY = 'VRCX-0_MutualGraphExcludedFriends';
     const excludedFriendIds = useLocalStorage(EXCLUDED_FRIENDS_KEY, []);
 
     watch(excludedFriendIds, async () => {

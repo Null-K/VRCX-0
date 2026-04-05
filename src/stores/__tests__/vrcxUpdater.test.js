@@ -43,13 +43,13 @@ describe('useVRCXUpdaterStore.setAutoUpdateVRCX', () => {
     beforeEach(async () => {
         mocks.configRepository.getString.mockImplementation(
             (key, defaultValue) => {
-                if (key === 'VRCX_autoUpdateVRCX') {
+                if (key === 'VRCX-0_autoUpdateVRCX') {
                     return Promise.resolve('Off');
                 }
-                if (key === 'VRCX_id') {
+                if (key === 'VRCX-0_id') {
                     return Promise.resolve('test-vrcx-id');
                 }
-                if (key === 'VRCX_lastVRCXVersion') {
+                if (key === 'VRCX-0_lastVRCXVersion') {
                     return Promise.resolve('2026.1.0');
                 }
                 return Promise.resolve(defaultValue ?? '');
@@ -76,7 +76,7 @@ describe('useVRCXUpdaterStore.setAutoUpdateVRCX', () => {
         expect(store.autoUpdateVRCX).toBe('Off');
         expect(store.pendingVRCXUpdate).toBe(false);
         expect(mocks.configRepository.setString).toHaveBeenCalledWith(
-            'VRCX_autoUpdateVRCX',
+            'VRCX-0_autoUpdateVRCX',
             'Off'
         );
     });
@@ -90,7 +90,7 @@ describe('useVRCXUpdaterStore.setAutoUpdateVRCX', () => {
         expect(store.autoUpdateVRCX).toBe('Notify');
         expect(store.pendingVRCXUpdate).toBe(true);
         expect(mocks.configRepository.setString).toHaveBeenCalledWith(
-            'VRCX_autoUpdateVRCX',
+            'VRCX-0_autoUpdateVRCX',
             'Notify'
         );
     });

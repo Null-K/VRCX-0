@@ -98,7 +98,7 @@ export const useVrcxStore = defineStore('Vrcx', () => {
         try {
 
             state.databaseVersion = await configRepository.getInt(
-                'VRCX_databaseVersion',
+                'VRCX-0_databaseVersion',
                 0
             );
             const databaseUpgradeSucceeded = await updateDatabaseVersion();
@@ -107,56 +107,46 @@ export const useVrcxStore = defineStore('Vrcx', () => {
             }
 
             clearVRCXCacheFrequency.value = await configRepository.getInt(
-                'VRCX_clearVRCXCacheFrequency',
+                'VRCX-0_clearVRCXCacheFrequency',
                 172800
             );
 
-            if (!(await VRCXStorage.Get('VRCX_DatabaseLocation'))) {
-                await VRCXStorage.Set('VRCX_DatabaseLocation', '');
+            if (!(await VRCXStorage.Get('VRCX-0_DatabaseLocation'))) {
+                await VRCXStorage.Set('VRCX-0_DatabaseLocation', '');
             }
-            if (!(await VRCXStorage.Get('VRCX_ProxyServer'))) {
-                await VRCXStorage.Set('VRCX_ProxyServer', '');
+            if (!(await VRCXStorage.Get('VRCX-0_ProxyServer'))) {
+                await VRCXStorage.Set('VRCX-0_ProxyServer', '');
             }
-            if ((await VRCXStorage.Get('VRCX_DisableGpuAcceleration')) === '') {
-                await VRCXStorage.Set('VRCX_DisableGpuAcceleration', 'false');
+            if ((await VRCXStorage.Get('VRCX-0_DisableGpuAcceleration')) === '') {
+                await VRCXStorage.Set('VRCX-0_DisableGpuAcceleration', 'false');
             }
-            if (
-                (await VRCXStorage.Get(
-                    'VRCX_DisableVrOverlayGpuAcceleration'
-                )) === ''
-            ) {
-                await VRCXStorage.Set(
-                    'VRCX_DisableVrOverlayGpuAcceleration',
-                    'false'
-                );
-            }
-            proxyServer.value = await VRCXStorage.Get('VRCX_ProxyServer');
+            proxyServer.value = await VRCXStorage.Get('VRCX-0_ProxyServer');
             state.locationX = parseInt(
-                await VRCXStorage.Get('VRCX_LocationX'),
+                await VRCXStorage.Get('VRCX-0_LocationX'),
                 10
             );
             state.locationY = parseInt(
-                await VRCXStorage.Get('VRCX_LocationY'),
+                await VRCXStorage.Get('VRCX-0_LocationY'),
                 10
             );
             state.sizeWidth = parseInt(
-                await VRCXStorage.Get('VRCX_SizeWidth'),
+                await VRCXStorage.Get('VRCX-0_SizeWidth'),
                 10
             );
             state.sizeHeight = parseInt(
-                await VRCXStorage.Get('VRCX_SizeHeight'),
+                await VRCXStorage.Get('VRCX-0_SizeHeight'),
                 10
             );
-            state.windowState = await VRCXStorage.Get('VRCX_WindowState');
+            state.windowState = await VRCXStorage.Get('VRCX-0_WindowState');
 
             maxTableSize.value = await configRepository.getInt(
-                'VRCX_maxTableSize_v2',
+                'VRCX-0_maxTableSize_v2',
                 DEFAULT_MAX_TABLE_SIZE
             );
             database.setMaxTableSize(maxTableSize.value);
 
             searchLimit.value = await configRepository.getInt(
-                'VRCX_searchLimit',
+                'VRCX-0_searchLimit',
                 DEFAULT_SEARCH_LIMIT
             );
             if (searchLimit.value < SEARCH_LIMIT_MIN) {
@@ -206,7 +196,7 @@ export const useVrcxStore = defineStore('Vrcx', () => {
                 await database.vacuum(); // succ
                 await database.optimize();
                 await configRepository.setInt(
-                    'VRCX_databaseVersion',
+                    'VRCX-0_databaseVersion',
                     databaseVersion
                 );
                 console.log('Database update complete.');
@@ -516,14 +506,6 @@ export const useVrcxStore = defineStore('Vrcx', () => {
         }
     }
 
-    /**
-     * This function is called by .NET(CefCustomDragHandler#CefCustomDragHandler) when a file is dragged over a drop zone in the app window.
-     * @param {string} filePath - The full path to the file being dragged into the window
-     */
-    function dragEnterCef(filePath) {
-        currentlyDroppingFile.value = filePath;
-    }
-
     watch(
         () => watchState.isLoggedIn,
         (isLoggedIn) => {
@@ -674,7 +656,7 @@ export const useVrcxStore = defineStore('Vrcx', () => {
             data: regJson
         };
         let backupsJson = await configRepository.getString(
-            'VRCX_VRChatRegistryBackups'
+            'VRCX-0_VRChatRegistryBackups'
         );
         if (!backupsJson) {
             backupsJson = JSON.stringify([]);
@@ -682,7 +664,7 @@ export const useVrcxStore = defineStore('Vrcx', () => {
         const backups = JSON.parse(backupsJson);
         backups.push(newBackup);
         await configRepository.setString(
-            'VRCX_VRChatRegistryBackups',
+            'VRCX-0_VRChatRegistryBackups',
             JSON.stringify(backups)
         );
         // await this.updateRegistryBackupDialog();
@@ -703,10 +685,10 @@ export const useVrcxStore = defineStore('Vrcx', () => {
         const hasVRChatRegistryFolder = await AppApi.HasVRChatRegistryFolder();
         if (!hasVRChatRegistryFolder) {
             const lastBackupDate = await configRepository.getString(
-                'VRCX_VRChatRegistryLastBackupDate'
+                'VRCX-0_VRChatRegistryLastBackupDate'
             );
             const lastRestoreCheck = await configRepository.getString(
-                'VRCX_VRChatRegistryLastRestoreCheck'
+                'VRCX-0_VRChatRegistryLastRestoreCheck'
             );
             if (
                 !lastBackupDate ||
@@ -725,7 +707,7 @@ export const useVrcxStore = defineStore('Vrcx', () => {
             showRegistryBackupDialog();
             await AppApi.FocusWindow();
             await configRepository.setString(
-                'VRCX_VRChatRegistryLastRestoreCheck',
+                'VRCX-0_VRChatRegistryLastRestoreCheck',
                 lastBackupDate
             );
         } else {
@@ -749,7 +731,7 @@ export const useVrcxStore = defineStore('Vrcx', () => {
         }
         const date = new Date();
         const lastBackupDate = await configRepository.getString(
-            'VRCX_VRChatRegistryLastBackupDate'
+            'VRCX-0_VRChatRegistryLastBackupDate'
         );
         if (lastBackupDate) {
             const lastBackup = new Date(lastBackupDate);
@@ -760,7 +742,7 @@ export const useVrcxStore = defineStore('Vrcx', () => {
             }
         }
         let backupsJson = await configRepository.getString(
-            'VRCX_VRChatRegistryBackups'
+            'VRCX-0_VRChatRegistryBackups'
         );
         if (!backupsJson) {
             backupsJson = JSON.stringify([]);
@@ -777,12 +759,12 @@ export const useVrcxStore = defineStore('Vrcx', () => {
             }
         }
         await configRepository.setString(
-            'VRCX_VRChatRegistryBackups',
+            'VRCX-0_VRChatRegistryBackups',
             JSON.stringify(backups)
         );
         backupVrcRegistry('Auto Backup');
         await configRepository.setString(
-            'VRCX_VRChatRegistryLastBackupDate',
+            'VRCX-0_VRChatRegistryLastBackupDate',
             date.toJSON()
         );
     }
@@ -813,7 +795,6 @@ export const useVrcxStore = defineStore('Vrcx', () => {
         tryAutoBackupVrcRegistry,
         processScreenshot,
         ipcEvent,
-        dragEnterCef,
         backupVrcRegistry,
         updateDatabaseVersion,
         waitForDatabaseInit

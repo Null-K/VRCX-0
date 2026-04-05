@@ -16,10 +16,9 @@ using NLog;
 using SixLabors.ImageSharp;
 using Timer = System.Threading.Timer;
 
-using CefSharp;
 using System.Windows.Forms;
 
-namespace VRCX
+namespace VRCX_0
 {
     public class WebApi
     {
@@ -97,7 +96,7 @@ namespace VRCX
 
             if (string.IsNullOrEmpty(ProxyUrl))
             {
-                var proxyUrl = VRCXStorage.Instance.Get("VRCX_ProxyServer");
+                var proxyUrl = VRCXStorage.Instance.Get("VRCX-0_ProxyServer");
                 if (!string.IsNullOrEmpty(proxyUrl))
                     ProxyUrl = proxyUrl;
             }
@@ -112,10 +111,10 @@ namespace VRCX
             }
             catch (UriFormatException)
             {
-                VRCXStorage.Instance.Set("VRCX_ProxyServer", string.Empty);
+                VRCXStorage.Instance.Set("VRCX-0_ProxyServer", string.Empty);
                 VRCXStorage.Instance.Save();
                 const string message =
-                    "The proxy server URI you used is invalid.\nVRCX will close, please correct the proxy URI.";
+                    "The proxy server URI you used is invalid.\nVRCX-0 will close, please correct the proxy URI.";
                 System.Windows.Forms.MessageBox.Show(message, "Invalid Proxy URI", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 Logger.Error(message);
                 Environment.Exit(0);
@@ -130,7 +129,8 @@ namespace VRCX
 
         public void ClearCookies()
         {
-            Cef.GetGlobalCookieManager().DeleteCookies();
+            // Clear WebView2 cookies
+            MainForm.Instance?.Browser?.CoreWebView2?.CookieManager?.DeleteAllCookies();
             CookieContainer = new CookieContainer();
             InitializeHttpClient();
             _cookieDirty = true;

@@ -364,7 +364,6 @@
         </SettingsGroup>
 
         <RegistryBackupDialog />
-        <PhotonSettings v-if="photonLoggingEnabled" />
     </div>
 </template>
 
@@ -389,7 +388,6 @@
         useGeneralSettingsStore,
         useGroupStore,
         useInstanceStore,
-        usePhotonStore,
         useUiStore,
         useUserStore,
         useVRCXUpdaterStore,
@@ -400,7 +398,6 @@
     import { clearVRCXCache } from '@/coordinators/vrcxCoordinator';
     import { openExternalLink } from '@/shared/utils';
 
-    import PhotonSettings from '../PhotonSettings.vue';
     import RegistryBackupDialog from '../../../Tools/dialogs/RegistryBackupDialog.vue';
     import SettingsGroup from '../SettingsGroup.vue';
     import SettingsItem from '../SettingsItem.vue';
@@ -429,7 +426,6 @@
     const { cachedGroups } = useGroupStore();
     const { cachedInstances } = useInstanceStore();
 
-    const { photonLoggingEnabled } = storeToRefs(usePhotonStore());
     const { isDarkMode } = storeToRefs(useAppearanceSettingsStore());
 
     const {

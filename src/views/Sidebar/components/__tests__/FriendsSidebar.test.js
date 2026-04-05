@@ -295,7 +295,7 @@ describe('FriendsSidebar.vue', () => {
 
         expect(wrapper.findAll('[data-testid="friend-item"]').length).toBe(0);
         expect(mocks.configRepository.setBool).toHaveBeenCalledWith(
-            'VRCX_isFriendsGroupOnline',
+            'VRCX-0_isFriendsGroupOnline',
             false
         );
     });

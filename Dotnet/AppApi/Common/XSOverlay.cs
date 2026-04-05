@@ -2,7 +2,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text.Json;
 
-namespace VRCX
+namespace VRCX_0
 {
     public partial class AppApi
     {

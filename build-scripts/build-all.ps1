@@ -1,46 +1,51 @@
-cd ..
-
 $ErrorActionPreference = "Stop"
+Set-Location "$PSScriptRoot\.."
 
-$installPath = &"C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe" -version 16.0 -property installationpath
-Import-Module (Join-Path $installPath "Common7\Tools\Microsoft.VisualStudio.DevShell.dll")
-Enter-VsDevShell -VsInstallPath $installPath -SkipAutomaticLocation
+$version = (Get-Content -Path "Version" -Raw).Trim()
+$date    = Get-Date -Format yyyyMMdd
 
-$Date = Get-Date -format yyyyMMdd
-$ZipName = "VRCX_" + $Date + ".zip"
-$SetupName = "VRCX_" + $Date + "_Setup.exe"
+Write-Host "=== VRCX-0 Build ===" -ForegroundColor Cyan
 
-Write-Host "Building .Net..." -ForegroundColor Green
-dotnet build Dotnet\VRCX-Cef.csproj -p:Configuration=Release -p:WarningLevel=0 -p:Platform=x64 -p:RestorePackagesConfig=true -t:"Restore;Clean;Build" -m --self-contained
-
-Write-Host "Building Node.js..." -ForegroundColor Green
-Remove-Item -Path "node_modules" -Force -Recurse -ErrorAction SilentlyContinue
+# ── 1. Frontend ──────────────────────────────────────────────
+Write-Host "Building frontend..." -ForegroundColor Green
+Remove-Item -Path "build\html" -Force -Recurse -ErrorAction SilentlyContinue
 npm ci --loglevel=error
-$ErrorActionPreference = "Continue"
 npm run prod
-$ErrorActionPreference = "Stop"
-Remove-Item -Path "build\Cef\html" -Force -Recurse -ErrorAction SilentlyContinue
-New-Item -ItemType Junction -Path "build\Cef\html" -Target "build\html"
+if ($LASTEXITCODE -ne 0) { throw "Frontend build failed" }
 
-Write-Host "Creating Zip..." -ForegroundColor Green
-cd "build\Cef"
-7z a -tzip $ZipName * -mx=7 -xr0!"*.log" -xr0!"*.pdb"
-Move-Item $ZipName ..\..\$ZipName -Force
-cd ..\..\
+# ── 2. .NET ──────────────────────────────────────────────────
+Write-Host "Building .NET..." -ForegroundColor Green
+dotnet build Dotnet\VRCX-0.csproj `
+    -p:Configuration=Release `
+    -p:Platform=x64 `
+    -t:Restore`,Build `
+    -m --self-contained
+if ($LASTEXITCODE -ne 0) { throw ".NET build failed" }
 
-Write-Host "Creating Installer..." -ForegroundColor Green
-$version = Get-Content -Path "Version" -Raw
-cd "Installer"
-Out-File -FilePath "version_define.nsh" -Encoding UTF8 -InputObject "!define PRODUCT_VERSION_FROM_FILE `"$version.0`""
-$nsisPath = "C:\Program Files (x86)\NSIS\makensis.exe"
-&$nsisPath installer.nsi
+# ── 3. Zip ───────────────────────────────────────────────────
+$zipName = "VRCX-0_${date}.zip"
+Write-Host "Creating $zipName ..." -ForegroundColor Green
+Push-Location build
+if (Test-Path $zipName) { Remove-Item $zipName }
+7z a -tzip $zipName * -mx=7 -xr0!"*.log" -xr0!"*.pdb" | Out-Null
+Move-Item $zipName "..\..\$zipName" -Force
+Pop-Location
+
+# ── 4. Installer ─────────────────────────────────────────────
+$setupName = "VRCX-0_${date}_Setup.exe"
+Write-Host "Creating installer..." -ForegroundColor Green
+Push-Location Installer
+Out-File -FilePath "version_define.nsh" -Encoding UTF8 `
+    -InputObject "!define PRODUCT_VERSION_FROM_FILE `"${version}.0`""
+$nsis = "C:\Program Files (x86)\NSIS\makensis.exe"
+& $nsis installer.nsi
+if ($LASTEXITCODE -ne 0) { throw "NSIS failed" }
 Start-Sleep -Seconds 1
-Move-Item VRCX_Setup.exe ..\$SetupName -Force
-cd ..
+Move-Item VRCX-0_Setup.exe "..\$setupName" -Force
+Pop-Location
 
-Write-Host "Creating SHA256-hash..." -ForegroundColor Green
-$hash = Get-FileHash -Path $SetupName -Algorithm SHA256
-$hashLine = "$($hash.Hash)  $SetupName"
-$hashLine | Out-File -FilePath "SHA256SUMS.txt" -Encoding ASCII
+# ── 5. SHA256 ────────────────────────────────────────────────
+$hash = (Get-FileHash -Path $setupName -Algorithm SHA256).Hash
+"$hash  $setupName" | Out-File -FilePath "SHA256SUMS.txt" -Encoding ASCII
 
-Write-Host "Done!" -ForegroundColor Green
+Write-Host "Done! → $zipName / $setupName" -ForegroundColor Green

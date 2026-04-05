@@ -1,7 +1,7 @@
 import { ref } from 'vue';
 import configRepository from '../../../../services/config';
 
-const STORAGE_KEY = 'VRCX_statusPresets';
+const STORAGE_KEY = 'VRCX-0_statusPresets';
 const MAX_PRESETS = 10;
 
 const STATUS_CLASS_MAP = {
