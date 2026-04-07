@@ -16,13 +16,11 @@ const VRChatCameraResolutions = [
 const branches = {
     Stable: {
         name: 'Stable',
-        urlReleases: 'https://api.github.com/repos/Map1en/VRCX-0/releases',
-        urlLatest: 'https://api.github.com/repos/Map1en/VRCX-0/releases/latest'
+        urlReleases: 'https://api.github.com/repos/Map1en/VRCX-0/releases'
     },
     Beta: {
         name: 'Beta',
-        urlReleases: 'https://api.github.com/repos/Map1en/VRCX-0/releases',
-        urlLatest: 'https://api.github.com/repos/Map1en/VRCX-0/releases/latest'
+        urlReleases: 'https://api.github.com/repos/Map1en/VRCX-0/releases'
     }
 };
 

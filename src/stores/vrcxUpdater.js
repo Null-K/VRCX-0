@@ -445,16 +445,6 @@ export const useVRCXUpdaterStore = defineStore('VRCXUpdater', () => {
      * @returns {Promise<ReturnType<typeof normalizeGitHubRelease> | null>}
      */
     async function fetchLatestBranchRelease(selectedBranch) {
-        if (selectedBranch === 'Stable') {
-            const releases = await fetchGitHubReleases(
-                branches[selectedBranch].urlLatest
-            );
-            if (!releases?.length) {
-                return null;
-            }
-            return normalizeGitHubRelease(releases[0]);
-        }
-
         const releases = await fetchBranchReleases(selectedBranch);
         return releases?.[0] || null;
     }

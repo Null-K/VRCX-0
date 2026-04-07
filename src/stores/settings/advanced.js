@@ -732,9 +732,9 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
             const response = await webApiService.execute({
                 url,
                 method: 'GET',
-                headers: {
-                    Referer: 'https://vrcx.app'
-                }
+                // headers: {
+                //     Referer: 'https://vrcx.app'
+                // }
             });
             const json = JSON.parse(response.data);
             logWebRequest('[EXTERNAL GET]', url, `(${response.status})`, json);
@@ -771,7 +771,7 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        Referer: 'https://vrcx.app'
+                        // Referer: 'https://vrcx.app'
                     },
                     body: JSON.stringify({
                         q: text,
@@ -816,9 +816,9 @@ export const useAdvancedSettingsStore = defineStore('AdvancedSettings', () => {
 
         const headers = {
             'Content-Type': 'application/json',
-            Referer: 'https://vrcx.app',
-            'HTTP-Referer': 'https://vrcx.app',
-            'X-Title': 'VRCX'
+            // Referer: 'https://vrcx.app',
+            // 'HTTP-Referer': 'https://vrcx.app',
+            // 'X-Title': 'VRCX'
         };
         const keyToUse = overrides?.key ?? translationApiKey.value;
         if (keyToUse) {

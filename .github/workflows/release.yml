@@ -67,7 +67,7 @@ jobs:
                   echo "base_version=${base_version}"       >> "$GITHUB_OUTPUT"
                   echo "build_version=${build_version}"     >> "$GITHUB_OUTPUT"
                   echo "display_version=${display_version}" >> "$GITHUB_OUTPUT"
-                  echo "tag=v${build_version}"              >> "$GITHUB_OUTPUT"
+                  echo "tag=v${display_version}"            >> "$GITHUB_OUTPUT"
                   echo "name=VRCX-0 ${display_version}"     >> "$GITHUB_OUTPUT"
                   echo "prerelease=${prerelease}"           >> "$GITHUB_OUTPUT"
 
@@ -125,12 +125,22 @@ jobs:
             - run: npm ci
             - run: npm run tauri:build
 
+            - name: Rename NSIS installer
+              shell: pwsh
+              run: |
+                  $nsisDir = "src-tauri/target/release/bundle/nsis"
+                  $original = Get-ChildItem "$nsisDir/*.exe" | Select-Object -First 1
+                  if ($original) {
+                      $newName = "VRCX-0_${{ steps.meta.outputs.display_version }}_windows_x64-setup.exe"
+                      Rename-Item $original.FullName -NewName $newName
+                  }
+
             - name: Package portable zip
               shell: pwsh
               run: |
                   $zipDir = "src-tauri/target/release/bundle/zip"
                   $packageDir = Join-Path $zipDir "VRCX-0"
-                  $zipPath = Join-Path $zipDir "VRCX-0_${{ steps.meta.outputs.display_version }}_windows_x64.zip"
+                  $zipPath = Join-Path $zipDir "VRCX-0_${{ steps.meta.outputs.display_version }}_windows_x64-portable.zip"
                   if (Test-Path $packageDir) {
                       Remove-Item $packageDir -Recurse -Force
                   }
