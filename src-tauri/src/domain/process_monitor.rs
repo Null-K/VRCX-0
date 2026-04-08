@@ -6,6 +6,7 @@ use sysinfo::{ProcessesToUpdate, System};
 use tauri::{AppHandle, Emitter};
 
 use super::auto_launch::AutoAppLaunchManager;
+use super::log_watcher::LogWatcher;
 
 pub struct ProcessMonitor {
     game_running: Arc<AtomicBool>,
@@ -20,7 +21,12 @@ impl ProcessMonitor {
         }
     }
 
-    pub fn start(&self, app_handle: AppHandle, auto_launch: AutoAppLaunchManager) {
+    pub fn start(
+        &self,
+        app_handle: AppHandle,
+        auto_launch: AutoAppLaunchManager,
+        log_watcher: LogWatcher,
+    ) {
         let game = Arc::clone(&self.game_running);
         let steamvr = Arc::clone(&self.steamvr_running);
 
@@ -49,6 +55,10 @@ impl ProcessMonitor {
 
                 let prev_game = game.swap(game_found, Ordering::Relaxed);
                 let prev_steamvr = steamvr.swap(steamvr_found, Ordering::Relaxed);
+
+                if first_poll || prev_game != game_found {
+                    log_watcher.set_game_running(game_found);
+                }
 
                 if prev_game != game_found || prev_steamvr != steamvr_found {
                     let _ = app_handle.emit(

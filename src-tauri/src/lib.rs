@@ -78,7 +78,11 @@ pub fn run() {
             let state = app.state::<AppState>();
             state
                 .process_monitor
-                .start(app.handle().clone(), state.auto_launch.clone());
+                .start(
+                    app.handle().clone(),
+                    state.auto_launch.clone(),
+                    state.log_watcher.clone(),
+                );
             state.ipc.start(app.handle().clone());
 
             let local_low = std::env::var("LOCALAPPDATA")

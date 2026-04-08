@@ -3,11 +3,14 @@ use std::fs::{self, File};
 use std::io::{BufRead, BufReader, Seek, SeekFrom};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, RwLock};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use chrono::{Local, NaiveDateTime, Utc};
 use tauri::{AppHandle, Emitter};
 
+const INACTIVE_POLL_KEEPALIVE: Duration = Duration::from_secs(120);
+
+#[derive(Clone)]
 pub struct LogWatcher {
     inner: Arc<Inner>,
 }
@@ -18,6 +21,8 @@ struct Inner {
     active: Mutex<bool>,
     reset_flag: Mutex<bool>,
     vrc_closed_gracefully: Mutex<bool>,
+    game_running: Mutex<bool>,
+    keep_polling_until: Mutex<Option<Instant>>,
 }
 
 impl LogWatcher {
@@ -29,11 +34,14 @@ impl LogWatcher {
                 active: Mutex::new(false),
                 reset_flag: Mutex::new(false),
                 vrc_closed_gracefully: Mutex::new(false),
+                game_running: Mutex::new(false),
+                keep_polling_until: Mutex::new(None),
             }),
         }
     }
 
     pub fn start(&self, log_dir: PathBuf, app_handle: AppHandle) {
+        *self.inner.keep_polling_until.lock().unwrap() = Some(Instant::now() + INACTIVE_POLL_KEEPALIVE);
         let inner = Arc::clone(&self.inner);
         std::thread::spawn(move || thread_loop(inner, log_dir, app_handle));
     }
@@ -45,10 +53,12 @@ impl LogWatcher {
             *self.inner.till_date.lock().unwrap() = Some(dt);
         }
         *self.inner.active.lock().unwrap() = true;
+        *self.inner.keep_polling_until.lock().unwrap() = Some(Instant::now() + INACTIVE_POLL_KEEPALIVE);
     }
 
     pub fn reset(&self) {
         *self.inner.reset_flag.lock().unwrap() = true;
+        *self.inner.keep_polling_until.lock().unwrap() = Some(Instant::now() + INACTIVE_POLL_KEEPALIVE);
     }
 
     pub fn get(&self) -> Vec<Vec<String>> {
@@ -63,6 +73,14 @@ impl LogWatcher {
 
     pub fn vrc_closed_gracefully(&self) -> bool {
         *self.inner.vrc_closed_gracefully.lock().unwrap()
+    }
+
+    pub fn set_game_running(&self, running: bool) {
+        *self.inner.game_running.lock().unwrap() = running;
+        if !running {
+            *self.inner.keep_polling_until.lock().unwrap() =
+                Some(Instant::now() + INACTIVE_POLL_KEEPALIVE);
+        }
     }
 }
 
@@ -83,8 +101,20 @@ fn thread_loop(inner: Arc<Inner>, log_dir: PathBuf, app_handle: AppHandle) {
             }
         }
 
-        if active {
-            update(&inner, &log_dir, &app_handle, &mut contexts, &mut first_run);
+        let should_poll = if active {
+            let game_running = *inner.game_running.lock().unwrap();
+            let keep_polling_until = *inner.keep_polling_until.lock().unwrap();
+            game_running || keep_polling_until.is_some_and(|deadline| Instant::now() <= deadline)
+        } else {
+            false
+        };
+
+        if should_poll {
+            let saw_new_data = update(&inner, &log_dir, &app_handle, &mut contexts, &mut first_run);
+            if saw_new_data {
+                *inner.keep_polling_until.lock().unwrap() =
+                    Some(Instant::now() + INACTIVE_POLL_KEEPALIVE);
+            }
         }
 
         std::thread::sleep(Duration::from_secs(1));
@@ -97,7 +127,7 @@ fn update(
     app_handle: &AppHandle,
     contexts: &mut HashMap<String, LogContext>,
     first_run: &mut bool,
-) {
+) -> bool {
     let till_date_utc = inner
         .till_date
         .lock()
@@ -110,7 +140,7 @@ fn update(
 
     if !log_dir.exists() {
         *first_run = false;
-        return;
+        return false;
     }
 
     let mut entries: Vec<_> = fs::read_dir(log_dir)
@@ -125,6 +155,7 @@ fn update(
 
     entries.sort_by_key(|e| e.metadata().and_then(|m| m.created()).ok());
 
+    let mut saw_new_data = false;
     for entry in entries {
         let name = entry.file_name().to_string_lossy().to_string();
         let meta = match entry.metadata() {
@@ -144,7 +175,7 @@ fn update(
         let ctx = contexts.entry(name.clone()).or_insert_with(LogContext::new);
 
 
-        parse_log(
+        saw_new_data |= parse_log(
             inner,
             app_handle,
             &entry.path(),
@@ -160,6 +191,7 @@ fn update(
     }
 
     *first_run = false;
+    saw_new_data
 }
 
 fn parse_log(
@@ -170,17 +202,18 @@ fn parse_log(
     ctx: &mut LogContext,
     till_date: NaiveDateTime,
     first_run: bool,
-) {
+) -> bool {
     let file = match File::open(path) {
         Ok(f) => f,
-        Err(_) => return,
+        Err(_) => return false,
     };
     let mut reader = BufReader::with_capacity(65536, file);
     if reader.seek(SeekFrom::Start(ctx.position)).is_err() {
-        return;
+        return false;
     }
 
     let mut line = String::new();
+    let initial_position = ctx.position;
     loop {
         line.clear();
         match reader.read_line(&mut line) {
@@ -286,6 +319,7 @@ fn parse_log(
     }
 
     ctx.position = reader.stream_position().unwrap_or(ctx.position);
+    ctx.position > initial_position
 }
 
 fn convert_log_time_to_iso8601(line: &str) -> String {
