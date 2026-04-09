@@ -35,6 +35,7 @@ pub struct AppState {
 
     pub auto_launch: AutoAppLaunchManager,
     pub legacy_vrcx_available: bool,
+    pub restart_after_legacy_migration: bool,
 }
 
 impl AppState {
@@ -53,9 +54,11 @@ impl AppState {
         };
 
         let migration_flag = paths.app_data.join("pending_vrcx_migration");
+        let mut restart_after_legacy_migration = false;
         if migration_flag.exists() {
             copy_legacy_vrcx_data(&paths)?;
             let _ = std::fs::remove_file(&migration_flag);
+            restart_after_legacy_migration = true;
             tracing::info!("Legacy VRCX data migration completed");
         }
 
@@ -65,13 +68,7 @@ impl AppState {
 
         let storage = StorageService::new(&paths.config_file)?;
 
-        let db_path = storage
-            .get("VRCX_DatabaseLocation")
-            .filter(|s| !s.is_empty())
-            .map(PathBuf::from)
-            .unwrap_or_else(|| paths.db_file.clone());
-
-        let db = DatabaseService::new(&db_path)?;
+        let db = DatabaseService::new(&paths.db_file)?;
         let process_monitor = ProcessMonitor::new();
         let log_watcher = LogWatcher::new();
         let web = WebClient::new(&storage, &db)?;
@@ -99,6 +96,7 @@ impl AppState {
             screenshot_cache,
             auto_launch,
             legacy_vrcx_available,
+            restart_after_legacy_migration,
         })
     }
 }
@@ -112,7 +110,19 @@ fn has_legacy_vrcx_data() -> bool {
     };
 
     let legacy_dir = base_app_data.join("VRCX");
-    legacy_dir.join("VRCX.sqlite3").exists()
+    resolve_legacy_database_path(&legacy_dir).is_some()
+}
+
+fn legacy_database_location() -> Option<PathBuf> {
+    let base_app_data = std::env::var_os("APPDATA")
+        .map(PathBuf::from)
+        .or_else(dirs::config_dir)?;
+    let legacy_config = base_app_data.join("VRCX").join("VRCX.json");
+    let content = std::fs::read_to_string(legacy_config).ok()?;
+    let data: std::collections::HashMap<String, String> = serde_json::from_str(&content).ok()?;
+    data.get("VRCX_DatabaseLocation")
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
 }
 
 fn copy_legacy_vrcx_data(paths: &AppPaths) -> Result<(), AppError> {
@@ -128,19 +138,30 @@ fn copy_legacy_vrcx_data(paths: &AppPaths) -> Result<(), AppError> {
         return Ok(());
     }
 
-    copy_if_exists(legacy_dir.join("VRCX.sqlite3"), paths.db_file.clone())?;
-    copy_if_exists(
-        legacy_dir.join("VRCX.sqlite3-shm"),
-        paths.app_data.join("VRCX-0.sqlite3-shm"),
-    )?;
-    copy_if_exists(
-        legacy_dir.join("VRCX.sqlite3-wal"),
-        paths.app_data.join("VRCX-0.sqlite3-wal"),
-    )?;
+    if let Some(legacy_db) = resolve_legacy_database_path(&legacy_dir) {
+        copy_if_exists(legacy_db.clone(), paths.db_file.clone())?;
+        copy_if_exists(
+            sidecar_path(&legacy_db, "shm"),
+            paths.app_data.join("VRCX-0.sqlite3-shm"),
+        )?;
+        copy_if_exists(
+            sidecar_path(&legacy_db, "wal"),
+            paths.app_data.join("VRCX-0.sqlite3-wal"),
+        )?;
+    }
     copy_if_exists(legacy_dir.join("VRCX.json"), paths.config_file.clone())?;
-    sanitize_copied_legacy_config(&paths.config_file)?;
+    remove_database_location_from_config(&paths.config_file)?;
 
     Ok(())
+}
+
+fn resolve_legacy_database_path(legacy_dir: &std::path::Path) -> Option<PathBuf> {
+    if let Some(config_db) = legacy_database_location().filter(|path| path.exists()) {
+        return Some(config_db);
+    }
+
+    let default_db = legacy_dir.join("VRCX.sqlite3");
+    default_db.exists().then_some(default_db)
 }
 
 fn copy_if_exists(from: PathBuf, to: PathBuf) -> Result<(), AppError> {
@@ -152,7 +173,11 @@ fn copy_if_exists(from: PathBuf, to: PathBuf) -> Result<(), AppError> {
     Ok(())
 }
 
-fn sanitize_copied_legacy_config(config_path: &PathBuf) -> Result<(), AppError> {
+fn sidecar_path(db_path: &std::path::Path, suffix: &str) -> PathBuf {
+    PathBuf::from(format!("{}-{suffix}", db_path.to_string_lossy()))
+}
+
+fn remove_database_location_from_config(config_path: &std::path::Path) -> Result<(), AppError> {
     if !config_path.exists() {
         return Ok(());
     }

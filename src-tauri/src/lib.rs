@@ -76,6 +76,24 @@ pub fn run() {
         .manage(app_state)
         .setup(|app| {
             let state = app.state::<AppState>();
+            if state.restart_after_legacy_migration {
+                #[cfg(debug_assertions)]
+                {
+                    tracing::warn!("legacy migration completed; restart VRCX manually in dev build");
+                }
+
+                #[cfg(not(debug_assertions))]
+                {
+                    let exe = std::env::current_exe()
+                        .map_err(|e| crate::error::AppError::Custom(format!("current exe: {e}")))?;
+                    std::process::Command::new(exe)
+                        .spawn()
+                        .map_err(|e| crate::error::AppError::Custom(format!("restart: {e}")))?;
+                    app.handle().exit(0);
+                    return Ok(());
+                }
+            }
+
             state
                 .process_monitor
                 .start(
