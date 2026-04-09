@@ -79,7 +79,7 @@ jobs:
                   else
                       src="CHANGELOG-beta.md"
                   fi
-                  notes=$(sed '1{/^## /d}' "$src" | sed '/^<!--/,/-->/d' | sed '/./,$!d' | sed -e :a -e '/^\n*$/{$d;N;ba}')
+                  notes=$(awk '/^## /{if(n++)exit;next} 1' "$src" | sed '/^<!--/,/-->/d' | sed '/./,$!d' | sed -e :a -e '/^\n*$/{$d;N;ba}')
                   if [ -z "$notes" ]; then
                       notes="No changelog provided."
                   fi
