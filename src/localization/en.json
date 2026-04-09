@@ -359,7 +359,7 @@
             "avatars": {
                 "search": "Search",
                 "vrchat_favorites": "VRChat Favorites",
-                "local_favorites": "Local Favorites (Requires VRC+)",
+                "local_favorites": "Local Favorites (Requires VRChat+)",
                 "new_group": "New Group",
                 "cancel_refresh": "Cancel Refresh",
                 "check_invalid": "Check for deleted/private avatars",
@@ -485,7 +485,7 @@
                     "earned": "Badge Earned"
                 },
                 "vrcplus": {
-                    "gift": "VRC+ Gift"
+                    "gift": "VRChat+ Gift"
                 },
                 "localNotifs": "System",
                 "economy": {
@@ -1093,7 +1093,7 @@
             "advanced": {
                 "advanced": {
                     "launch_options": "Launch Options",
-                    "vrc_registry_backup": "VRC Registry Backup",
+                    "vrc_registry_backup": "VRChat Registry Backup",
                     "vrchat_settings": {
                         "header": "VRChat"
                     },
@@ -1147,7 +1147,7 @@
                     },
                     "delete_all_screenshot_metadata": {
                         "button": "Remove Screenshot Metadata",
-                        "ask": "Are you sure you want to delete all VRC & VRCX screenshot metadata from your VRChat Pictures folder?",
+                        "ask": "Are you sure you want to delete all VRChat & VRCX screenshot metadata from your VRChat Pictures folder?",
                         "confirm": "Deleting all screenshot metadata is a very destructive action and cannot be undone! This includes all prints, sub folders and other unrelated images in your VRChat Pictures folder, if these photos are precious to you, please make a backup before proceeding.",
                         "confirm_yes": "Yes",
                         "confirm_no": "No"
@@ -1181,7 +1181,7 @@
                         "docs": "Launch Command Docs",
                         "show_confirmation_on_switch_avatar_enable": "Confirm Before Switching Avatars",
                         "show_confirmation_on_switch_avatar_tooltip": "When disabled, VRCX will not ask for confirmation before switching avatars.",
-                        "website_userscript": "VRC Website Userscript"
+                        "website_userscript": "VRChat Website Userscript"
                     },
                     "screenshot_helper": {
                         "header": "Screenshot Helper",
@@ -1336,7 +1336,7 @@
                 "invite_to_group": "Invite To Group",
                 "group_moderation": "Group Moderation",
                 "send_boop": "Send Boop",
-                "manage_gallery_inventory_icon": "Manage VRC+ Images & Inventory",
+                "manage_gallery_inventory_icon": "Manage VRChat+ Images & Inventory",
                 "accept_friend_request": "Accept Friend Request",
                 "decline_friend_request": "Decline Friend Request",
                 "cancel_friend_request": "Cancel Friend Request",
@@ -1409,7 +1409,7 @@
                 "copy_id": "Copy ID",
                 "copy_url": "Copy URL",
                 "copy_display_name": "Copy DisplayName",
-                "vrcplus_hides_avatar": "When a VRC+ profile photo is set, avatar info is hidden. This also hides avatar changes in the feed",
+                "vrcplus_hides_avatar": "When a VRChat+ profile photo is set, avatar info is hidden. This also hides avatar changes in the feed",
                 "instance_full": "full",
                 "instance_closed": "Instance closed",
                 "instance_age_restricted": "Restricted",
@@ -1793,7 +1793,7 @@
             "header": "Choose Group",
             "vrchat_favorites": "VRChat Favorites",
             "local_favorites": "Local Favorites",
-            "local_avatar_favorites": "Local Favorites (Requires VRC+)"
+            "local_avatar_favorites": "Local Favorites (Requires VRChat+)"
         },
         "social_status": {
             "header": "Social Status",
@@ -1868,7 +1868,7 @@
             "legacy": "Legacy",
             "roles": "Roles",
             "open_ingame": "Open in-game",
-            "display_name": "Display Name (VRC+)"
+            "display_name": "Display Name (VRChat+)"
         },
         "launch": {
             "header": "Launch",
@@ -2403,7 +2403,7 @@
             "ok": "OK"
         },
         "registry_backup": {
-            "header": "VRC Registry Settings Backup",
+            "header": "VRChat Registry Settings Backup",
             "backup": "Backup",
             "restore": "Restore",
             "save_to_file": "Save to file",
@@ -2414,7 +2414,7 @@
             "date": "Date",
             "action": "Action",
             "auto_backup": "Auto backup every 3 days (deletes after 2 weeks)",
-            "ask_to_restore": "Ask to restore when no VRC registry settings are present",
+            "ask_to_restore": "Ask to restore when no VRChat registry settings are present",
             "restore_prompt": "VRCX has noticed auto backup of VRChat registry settings is enabled but this computer doesn't have any, if you'd like to restore from backup you can do so from here."
         },
         "avatar_database_provider": {
@@ -2447,7 +2447,7 @@
         "leave_group": "Are you sure you want to leave this group?",
         "disable_gamelog": "Continue? Disable GameLog",
         "restore_backup": "Continue? Restore Backup",
-        "delete_vrc_registry": "Continue? Delete VRC Registry Settings",
+        "delete_vrc_registry": "Continue? Delete existing VRChat registry settings",
         "clear_cache": "Continue? Clear all VRChat cache",
         "close_instance": "Continue? Close Instance, nobody will be able to join",
         "bulk_unfavorite": "Are you sure you want to unfavorite {count} favorites?\nThis action cannot be undone.",
@@ -2782,7 +2782,7 @@
             "load_failed": "Failed to load friends list, logging out"
         },
         "vrcplus": {
-            "required": "VRCPlus required"
+            "required": "VRChat+ required"
         },
         "screenshot_metadata": {
             "deleted": "Screenshot metadata deleted",
@@ -2796,9 +2796,9 @@
             "copied_to_clipboard": "Image copied to clipboard"
         },
         "registry": {
-            "restored": "VRC registry settings restored",
-            "deleted": "VRC registry settings deleted",
-            "restore_failed": "Failed to restore VRC registry settings, check console for full error: {error}",
+            "restored": "VRChat registry settings restored",
+            "deleted": "Existing VRChat registry settings deleted",
+            "restore_failed": "Failed to restore VRChat registry settings, check console for full error: {error}",
             "invalid_json": "Invalid JSON"
         },
         "cache": {
