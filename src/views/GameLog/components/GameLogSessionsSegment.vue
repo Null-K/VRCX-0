@@ -24,7 +24,7 @@
             <Badge
                 v-else-if="showCurrentBadge"
                 variant="outline"
-                class="text-[0.625rem] h-4 px-1 text-green-500 border-green-500/40 dark:text-green-400 dark:border-green-400/40">
+                class="text-[0.625rem] h-4 px-1 ">
                 {{ t('common.current_session') }}
             </Badge>
             <div v-if="segment.events && segment.events.length > 0" class="flex items-center gap-2 text-muted-foreground text-[0.6875rem] ml-auto shrink-0">

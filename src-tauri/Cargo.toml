@@ -45,6 +45,7 @@ windows-sys = { version = "0.59", features = [
     "Win32_System_Threading",
 ] }
 winreg = "0.56.0"
+tauri-plugin-autostart = "2.5.1"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

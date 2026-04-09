@@ -8,6 +8,8 @@ use std::path::PathBuf;
 use base64::{engine::general_purpose::STANDARD as B64, Engine};
 use fast_rsync::{Signature, SignatureOptions};
 use tauri::{AppHandle, Emitter, State};
+#[cfg(target_os = "windows")]
+use tauri_plugin_autostart::ManagerExt as _;
 
 use crate::domain::ipc::IpcPacket;
 use crate::domain::png::{self as png_mod, ChunkType};
@@ -672,27 +674,18 @@ pub async fn app__copy_image_to_clipboard(path: String) -> Result<(), AppError> 
 }
 
 #[tauri::command]
-pub fn app__set_startup(_enabled: bool) -> Result<(), AppError> {
+pub fn app__set_startup(app_handle: AppHandle, _enabled: bool) -> Result<(), AppError> {
     #[cfg(target_os = "windows")]
     {
-        let enabled = _enabled;
-        use winreg::enums::*;
-        use winreg::RegKey;
-        let hkcu = RegKey::predef(HKEY_CURRENT_USER);
-        let key = hkcu
-            .open_subkey_with_flags(
-                "SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run",
-                KEY_SET_VALUE | KEY_READ,
-            )
-            .map_err(|e| AppError::Custom(format!("registry: {e}")))?;
-
-        if enabled {
-            let exe = std::env::current_exe()
-                .map_err(|e| AppError::Custom(format!("current exe: {e}")))?;
-            key.set_value("VRCX-0", &exe.to_string_lossy().as_ref())
-                .map_err(|e| AppError::Custom(format!("set registry: {e}")))?;
+        let autolaunch = app_handle.autolaunch();
+        if _enabled {
+            autolaunch
+                .enable()
+                .map_err(|e| AppError::Custom(format!("enable autostart: {e}")))?;
         } else {
-            let _ = key.delete_value("VRCX-0");
+            autolaunch
+                .disable()
+                .map_err(|e| AppError::Custom(format!("disable autostart: {e}")))?;
         }
     }
     Ok(())

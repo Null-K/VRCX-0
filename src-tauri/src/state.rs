@@ -35,6 +35,7 @@ pub struct AppState {
 
     pub auto_launch: AutoAppLaunchManager,
     pub legacy_vrcx_available: bool,
+    pub launched_from_autostart: bool,
 }
 
 impl AppState {
@@ -51,6 +52,7 @@ impl AppState {
             image_cache: app_data.join("ImageCache"),
             app_data,
         };
+        let launched_from_autostart = std::env::args().any(|arg| arg == "--autostart");
 
         let migration_flag = paths.app_data.join("pending_vrcx_migration");
         if migration_flag.exists() {
@@ -93,6 +95,7 @@ impl AppState {
             screenshot_cache,
             auto_launch,
             legacy_vrcx_available,
+            launched_from_autostart,
         })
     }
 }

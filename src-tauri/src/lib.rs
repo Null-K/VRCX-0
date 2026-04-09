@@ -3,12 +3,31 @@ mod domain;
 mod error;
 mod state;
 
+use std::collections::HashMap;
 use std::borrow::Cow;
+use std::time::Duration;
 
 use tauri::http::{header::CONTENT_TYPE, Request, Response, StatusCode};
+use tauri::menu::{Menu, MenuItem};
 use tauri::Manager;
+use tauri::WindowEvent;
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
+use tauri_plugin_autostart::ManagerExt as _;
 
 use state::AppState;
+
+fn db_config_bool(state: &AppState, key: &str) -> Option<bool> {
+    let mut args = HashMap::new();
+    args.insert("@key".to_string(), serde_json::Value::String(key.to_string()));
+
+    state
+        .db
+        .execute("SELECT value FROM configs WHERE key = @key LIMIT 1", &args)
+        .ok()
+        .and_then(|rows| rows.into_iter().next())
+        .and_then(|row| row.into_iter().next())
+        .and_then(|value| value.as_str().map(|s| s == "true"))
+}
 
 fn screenshot_protocol_response(request: Request<Vec<u8>>) -> Response<Cow<'static, [u8]>> {
     let path = match percent_encoding::percent_decode_str(&request.uri().path()[1..])
@@ -73,9 +92,71 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_window_state::Builder::new().build())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            Some(vec!["--autostart"]),
+        ))
+        .on_window_event(|window, event| {
+            if window.label() != "main" {
+                return;
+            }
+
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                let state = window.state::<AppState>();
+                if state.storage.get("VRCX_CloseToTray").as_deref() == Some("true") {
+                    api.prevent_close();
+                    let _ = window.hide();
+                    let _ = window.set_skip_taskbar(true);
+                }
+            }
+        })
+        .on_tray_icon_event(|app, event| match event {
+            TrayIconEvent::Click {
+                button: MouseButton::Left,
+                button_state: MouseButtonState::Up,
+                ..
+            }
+            | TrayIconEvent::DoubleClick {
+                button: MouseButton::Left,
+                ..
+            } => {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_skip_taskbar(false);
+                    let _ = window.show();
+                    let _ = window.unminimize();
+                    let _ = window.set_focus();
+                }
+            }
+            _ => {}
+        })
         .manage(app_state)
         .setup(|app| {
             let state = app.state::<AppState>();
+            if let Some(tray) = app.tray_by_id("main") {
+                let exit_item = MenuItem::with_id(app, "tray-exit", "Exit", true, None::<&str>)?;
+                let menu = Menu::with_items(app, &[&exit_item])?;
+                let _ = tray.set_menu(Some(menu));
+                let _ = tray.set_show_menu_on_left_click(false);
+            }
+
+            if db_config_bool(&state, "config:vrcx_startatwindowsstartup") == Some(true)
+                && !app.autolaunch().is_enabled().unwrap_or(false)
+            {
+                let _ = app.autolaunch().enable();
+            }
+
+            if state.launched_from_autostart
+                && state.storage.get("VRCX_StartAsMinimizedState").as_deref() == Some("true")
+            {
+                if let Some(window) = app.get_webview_window("main") {
+                    let window = window.clone();
+                    tauri::async_runtime::spawn(async move {
+                        tokio::time::sleep(Duration::from_millis(100)).await;
+                        let _ = window.hide();
+                        let _ = window.set_skip_taskbar(true);
+                    });
+                }
+            }
             state
                 .process_monitor
                 .start(
@@ -96,6 +177,11 @@ pub fn run() {
             }
 
             Ok(())
+        })
+        .on_menu_event(|app, event| {
+            if event.id().0 == "tray-exit" {
+                app.exit(0);
+            }
         })
         .invoke_handler(tauri::generate_handler![
             api::storage::storage__get,
