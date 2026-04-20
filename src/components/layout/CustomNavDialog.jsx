@@ -1,10 +1,25 @@
 import {
-    ArrowDownIcon,
-    ArrowUpIcon,
+    DndContext,
+    KeyboardSensor,
+    PointerSensor,
+    closestCenter,
+    useDroppable,
+    useSensor,
+    useSensors
+} from '@dnd-kit/core';
+import {
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
+import {
     EyeIcon,
     EyeOffIcon,
     FolderPlusIcon,
     FolderXIcon,
+    GripVerticalIcon,
     PencilIcon,
     PlusIcon,
     RotateCcwIcon,
@@ -18,6 +33,13 @@ import {
     DASHBOARD_NAV_KEY_PREFIX,
     DEFAULT_DASHBOARD_ICON
 } from '@/shared/constants/dashboard.js';
+import {
+    DEFAULT_FOLDER_ICON,
+    DEFAULT_NAV_ICON_KEY,
+    NAV_ICON_OPTIONS,
+    getNavIconComponent,
+    normalizeNavIconKey
+} from '@/shared/constants/navIcons.js';
 import { isToolNavKey } from '@/shared/constants/tools.js';
 import { useDashboardStore } from '@/state/dashboardStore.js';
 import { useModalStore } from '@/state/modalStore.js';
@@ -29,9 +51,47 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/ui/shadcn/dialog';
+import {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectTrigger,
+    SelectValue
+} from '@/ui/shadcn/select';
 import { Separator } from '@/ui/shadcn/separator';
 
-const DEFAULT_FOLDER_ICON = 'ri-folder-line';
+function getFolderItemKey(item) {
+    return typeof item === 'string' ? item : item?.key;
+}
+
+function getFolderItemIcon(item) {
+    return typeof item === 'object' && item ? item.icon : undefined;
+}
+
+function createFolderItem(key, icon = '') {
+    const normalizedIcon = normalizeNavIconKey(icon, '');
+    return normalizedIcon ? { key, icon: normalizedIcon } : key;
+}
+
+function getItemSortableId(key) {
+    return `item:${key}`;
+}
+
+function getFolderSortableId(id) {
+    return `folder:${id}`;
+}
+
+function getFolderDropId(id) {
+    return `folder-drop:${id}`;
+}
+
+function getFolderIdFromDropId(id) {
+    const value = String(id || '');
+    return value.startsWith('folder-drop:')
+        ? value.slice('folder-drop:'.length)
+        : '';
+}
 
 function cloneLayout(source) {
     if (!Array.isArray(source)) {
@@ -45,14 +105,28 @@ function cloneLayout(source) {
                     id: entry.id,
                     name: entry.name,
                     nameKey: entry.nameKey || null,
-                    icon: entry.icon || DEFAULT_FOLDER_ICON,
-                    items: Array.isArray(entry.items) ? [...entry.items] : []
+                    icon: normalizeNavIconKey(entry.icon, DEFAULT_FOLDER_ICON),
+                    items: Array.isArray(entry.items)
+                        ? entry.items
+                              .map((item) => {
+                                  const key = getFolderItemKey(item);
+                                  return key
+                                      ? createFolderItem(
+                                            key,
+                                            getFolderItemIcon(item)
+                                        )
+                                      : null;
+                              })
+                              .filter(Boolean)
+                        : []
                 };
             }
             if (entry?.type === 'item') {
+                const icon = normalizeNavIconKey(entry.icon, '');
                 return {
                     type: 'item',
-                    key: entry.key
+                    key: entry.key,
+                    ...(icon ? { icon } : {})
                 };
             }
             return null;
@@ -82,17 +156,6 @@ function definitionLabel(definition, t) {
     return t(definition.labelKey || definition.tooltip || definition.key || '');
 }
 
-function moveArrayItem(values, index, delta) {
-    const targetIndex = index + delta;
-    if (targetIndex < 0 || targetIndex >= values.length) {
-        return values;
-    }
-    const next = [...values];
-    const [item] = next.splice(index, 1);
-    next.splice(targetIndex, 0, item);
-    return next;
-}
-
 function removeKeyFromLayout(layout, key) {
     const normalizedKey = String(key || '');
     let removed = false;
@@ -104,7 +167,7 @@ function removeKeyFromLayout(layout, key) {
         if (entry.type === 'item') {
             if (entry.key === normalizedKey) {
                 removed = true;
-                placement = { parentId: null, index };
+                placement = { parentId: null, index, icon: entry.icon };
                 continue;
             }
             next.push(entry);
@@ -118,13 +181,18 @@ function removeKeyFromLayout(layout, key) {
                 itemIndex < (entry.items || []).length;
                 itemIndex += 1
             ) {
-                const itemKey = entry.items[itemIndex];
+                const item = entry.items[itemIndex];
+                const itemKey = getFolderItemKey(item);
                 if (itemKey === normalizedKey) {
                     removed = true;
-                    placement = { parentId: entry.id, index: itemIndex };
+                    placement = {
+                        parentId: entry.id,
+                        index: itemIndex,
+                        icon: getFolderItemIcon(item)
+                    };
                     continue;
                 }
-                items.push(itemKey);
+                items.push(item);
             }
             next.push({
                 ...entry,
@@ -141,7 +209,8 @@ function removeKeyFromLayout(layout, key) {
 }
 
 function insertKeyIntoLayout(layout, key, placement) {
-    const entry = { type: 'item', key };
+    const icon = normalizeNavIconKey(placement?.icon, '');
+    const entry = { type: 'item', key, ...(icon ? { icon } : {}) };
     const next = cloneLayout(layout);
 
     if (placement?.parentId) {
@@ -155,7 +224,7 @@ function insertKeyIntoLayout(layout, key, placement) {
                 0,
                 Math.min(placement.index, folder.items.length)
             );
-            folder.items.splice(index, 0, key);
+            folder.items.splice(index, 0, createFolderItem(key, icon));
             return next;
         }
     }
@@ -179,47 +248,204 @@ function isDashboardKey(key) {
     return String(key || '').startsWith(DASHBOARD_NAV_KEY_PREFIX);
 }
 
+function buildVisibleNodes(layout) {
+    const nodes = [];
+    for (const entry of layout || []) {
+        if (entry.type === 'folder') {
+            const folderId = String(entry.id);
+            nodes.push({
+                type: 'folder',
+                id: folderId,
+                sortableId: getFolderSortableId(folderId),
+                parentId: null
+            });
+            for (const item of entry.items || []) {
+                const key = getFolderItemKey(item);
+                if (!key) {
+                    continue;
+                }
+                nodes.push({
+                    type: 'item',
+                    id: String(key),
+                    key,
+                    icon: getFolderItemIcon(item),
+                    sortableId: getItemSortableId(key),
+                    parentId: folderId
+                });
+            }
+            continue;
+        }
+        if (entry.type === 'item' && entry.key) {
+            nodes.push({
+                type: 'item',
+                id: String(entry.key),
+                key: entry.key,
+                icon: entry.icon,
+                sortableId: getItemSortableId(entry.key),
+                parentId: null
+            });
+        }
+    }
+    return nodes;
+}
+
+function resolveDragNode(id, nodes) {
+    const value = String(id || '');
+    if (!value) {
+        return null;
+    }
+
+    const dropFolderId = getFolderIdFromDropId(value);
+    if (dropFolderId) {
+        return {
+            type: 'folder-drop',
+            id: dropFolderId,
+            parentId: null,
+            sortableId: value
+        };
+    }
+
+    return nodes.find((node) => node.sortableId === value) || null;
+}
+
+function sameDragNode(a, b) {
+    return Boolean(
+        a &&
+        b &&
+        a.type === b.type &&
+        a.id === b.id &&
+        (a.parentId || null) === (b.parentId || null)
+    );
+}
+
+function removeLayoutItem(entries, key) {
+    const normalizedKey = String(key || '');
+    for (let index = 0; index < entries.length; index += 1) {
+        const entry = entries[index];
+        if (entry.type === 'item' && String(entry.key) === normalizedKey) {
+            const [removed] = entries.splice(index, 1);
+            return {
+                key: removed.key,
+                icon: removed.icon
+            };
+        }
+        if (entry.type === 'folder') {
+            const itemIndex = (entry.items || []).findIndex(
+                (item) => String(getFolderItemKey(item)) === normalizedKey
+            );
+            if (itemIndex >= 0) {
+                const [removed] = entry.items.splice(itemIndex, 1);
+                return {
+                    key: getFolderItemKey(removed),
+                    icon: getFolderItemIcon(removed)
+                };
+            }
+        }
+    }
+    return null;
+}
+
+function findTopLevelIndex(entries, node) {
+    if (!node) {
+        return -1;
+    }
+    return entries.findIndex((entry) => {
+        if (node.type === 'folder') {
+            return entry.type === 'folder' && String(entry.id) === node.id;
+        }
+        return entry.type === 'item' && String(entry.key) === node.id;
+    });
+}
+
+function findFolder(entries, folderId) {
+    return entries.find(
+        (entry) => entry.type === 'folder' && String(entry.id) === folderId
+    );
+}
+
+function findFolderItemIndex(folder, node) {
+    if (!folder || !node) {
+        return -1;
+    }
+    return (folder.items || []).findIndex(
+        (item) => String(getFolderItemKey(item)) === node.id
+    );
+}
+
+function NavIconSelect({ value, fallbackIcon, ariaLabel, onValueChange }) {
+    const normalizedIcon = normalizeNavIconKey(value, fallbackIcon);
+
+    return (
+        <Select value={normalizedIcon} onValueChange={onValueChange}>
+            <SelectTrigger size="sm" className="w-32" aria-label={ariaLabel}>
+                <SelectValue />
+            </SelectTrigger>
+            <SelectContent align="start">
+                <SelectGroup>
+                    {NAV_ICON_OPTIONS.map((option) => {
+                        const OptionIcon = getNavIconComponent(option.key);
+                        return (
+                            <SelectItem key={option.key} value={option.key}>
+                                <span className="flex min-w-0 items-center gap-2">
+                                    <OptionIcon data-icon="inline-start" />
+                                    <span className="truncate">
+                                        {option.label}
+                                    </span>
+                                </span>
+                            </SelectItem>
+                        );
+                    })}
+                </SelectGroup>
+            </SelectContent>
+        </Select>
+    );
+}
+
 function NavItemRow({
     label,
+    icon,
+    fallbackIcon = DEFAULT_NAV_ICON_KEY,
     indent = false,
-    canMoveUp,
-    canMoveDown,
+    rowRef,
+    rowStyle,
+    dragHandleProps,
+    isDragging = false,
     isTool,
     isDashboard,
-    onMoveUp,
-    onMoveDown,
     onHide,
+    onIconChange,
     onEditDashboard,
     onDeleteDashboard
 }) {
     return (
         <div
+            ref={rowRef}
+            style={rowStyle}
             className={cn(
-                'flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm',
+                'flex items-center gap-2 rounded-md border px-2 py-1.5 text-sm transition-colors',
+                isDragging && 'opacity-50',
                 indent && 'ml-6'
             )}
         >
+            <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="shrink-0 cursor-grab touch-none active:cursor-grabbing"
+                aria-label={`Drag ${label}`}
+                {...dragHandleProps}
+            >
+                <GripVerticalIcon data-icon="inline-start" />
+            </Button>
+            {onIconChange ? (
+                <NavIconSelect
+                    value={icon}
+                    fallbackIcon={fallbackIcon}
+                    ariaLabel={`Icon for ${label}`}
+                    onValueChange={onIconChange}
+                />
+            ) : null}
             <span className="min-w-0 flex-1 truncate">{label}</span>
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Move ${label} up`}
-                disabled={!canMoveUp}
-                onClick={onMoveUp}
-            >
-                <ArrowUpIcon data-icon="inline-start" />
-            </Button>
-            <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label={`Move ${label} down`}
-                disabled={!canMoveDown}
-                onClick={onMoveDown}
-            >
-                <ArrowDownIcon data-icon="inline-start" />
-            </Button>
             {isDashboard ? (
                 <>
                     <Button
@@ -259,6 +485,50 @@ function NavItemRow({
     );
 }
 
+function SortableNavItemRow({ id, children }) {
+    const {
+        attributes,
+        listeners,
+        setActivatorNodeRef,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging
+    } = useSortable({ id });
+    const rowStyle = {
+        transform: CSS.Transform.toString(transform),
+        transition
+    };
+    const dragHandleProps = {
+        ...attributes,
+        ...listeners,
+        ref: setActivatorNodeRef,
+        onClick: (event) => event.stopPropagation()
+    };
+
+    return children({
+        rowRef: setNodeRef,
+        rowStyle,
+        dragHandleProps,
+        isDragging
+    });
+}
+
+function FolderDropZone({ folderId, label }) {
+    const { setNodeRef } = useDroppable({
+        id: getFolderDropId(folderId)
+    });
+
+    return (
+        <div
+            ref={setNodeRef}
+            className="text-muted-foreground ml-6 rounded-md border border-dashed px-2 py-1.5 text-sm"
+        >
+            {label}
+        </div>
+    );
+}
+
 export function CustomNavDialog({
     open,
     layout,
@@ -282,6 +552,16 @@ export function CustomNavDialog({
         () => new Set(hiddenKeys || [])
     );
     const [hiddenPlacement, setHiddenPlacement] = useState(() => new Map());
+    const sensors = useSensors(
+        useSensor(PointerSensor, {
+            activationConstraint: {
+                distance: 6
+            }
+        }),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates
+        })
+    );
 
     useEffect(() => {
         if (!open) {
@@ -318,6 +598,14 @@ export function CustomNavDialog({
                 })),
         [definitions, localHiddenKeys, t]
     );
+    const visibleNodes = useMemo(
+        () => buildVisibleNodes(localLayout),
+        [localLayout]
+    );
+    const sortableNodeIds = useMemo(
+        () => visibleNodes.map((node) => node.sortableId),
+        [visibleNodes]
+    );
 
     function updateFolderItems(folderIndex, updater) {
         setLocalLayout((current) =>
@@ -332,14 +620,171 @@ export function CustomNavDialog({
         );
     }
 
-    function moveTopLevel(index, delta) {
-        setLocalLayout((current) => moveArrayItem(current, index, delta));
+    function updateEntryIcon(index, icon, fallbackIcon) {
+        const normalizedIcon = normalizeNavIconKey(icon, fallbackIcon);
+        setLocalLayout((current) =>
+            current.map((entry, entryIndex) =>
+                entryIndex === index
+                    ? {
+                          ...entry,
+                          icon: normalizedIcon
+                      }
+                    : entry
+            )
+        );
     }
 
-    function moveFolderChild(folderIndex, itemIndex, delta) {
+    function updateFolderChildIcon(folderIndex, itemIndex, icon, fallbackIcon) {
+        const normalizedIcon = normalizeNavIconKey(icon, fallbackIcon);
         updateFolderItems(folderIndex, (items) =>
-            moveArrayItem(items, itemIndex, delta)
+            items.map((item, index) => {
+                if (index !== itemIndex) {
+                    return item;
+                }
+                const key = getFolderItemKey(item);
+                if (!key) {
+                    return item;
+                }
+                return createFolderItem(key, normalizedIcon);
+            })
         );
+    }
+
+    function moveItemByDrag(activeNode, targetNode) {
+        if (!activeNode || !targetNode) {
+            return;
+        }
+        setLocalLayout((current) => {
+            const nodes = buildVisibleNodes(current);
+            const sourceIndex = nodes.findIndex((node) =>
+                sameDragNode(node, activeNode)
+            );
+            const targetIndex = nodes.findIndex((node) =>
+                sameDragNode(node, targetNode)
+            );
+            const movingDown =
+                sourceIndex >= 0 && targetIndex >= 0
+                    ? sourceIndex < targetIndex
+                    : false;
+            const next = cloneLayout(current);
+            const removed = removeLayoutItem(next, activeNode.key);
+            if (!removed?.key) {
+                return current;
+            }
+            const itemIcon = removed.icon || activeNode.icon || '';
+
+            if (
+                targetNode.type === 'folder' ||
+                targetNode.type === 'folder-drop'
+            ) {
+                const folder = findFolder(next, targetNode.id);
+                if (!folder) {
+                    return current;
+                }
+                folder.items.push(createFolderItem(removed.key, itemIcon));
+                return next;
+            }
+
+            if (targetNode.parentId) {
+                const folder = findFolder(next, targetNode.parentId);
+                if (!folder) {
+                    return current;
+                }
+                const targetItemIndex = findFolderItemIndex(folder, targetNode);
+                if (targetItemIndex < 0) {
+                    return current;
+                }
+                folder.items.splice(
+                    targetItemIndex + (movingDown ? 1 : 0),
+                    0,
+                    createFolderItem(removed.key, itemIcon)
+                );
+                return next;
+            }
+
+            const targetTopIndex = findTopLevelIndex(next, targetNode);
+            if (targetTopIndex < 0) {
+                return current;
+            }
+            next.splice(targetTopIndex + (movingDown ? 1 : 0), 0, {
+                type: 'item',
+                key: removed.key,
+                ...(itemIcon ? { icon: normalizeNavIconKey(itemIcon, '') } : {})
+            });
+            return next;
+        });
+    }
+
+    function moveFolderByDrag(activeNode, targetNode) {
+        if (!activeNode || !targetNode || targetNode.type === 'folder-drop') {
+            return;
+        }
+        setLocalLayout((current) => {
+            const nodes = buildVisibleNodes(current);
+            const sourceIndex = nodes.findIndex((node) =>
+                sameDragNode(node, activeNode)
+            );
+            let normalizedTargetNode = targetNode;
+            if (targetNode.parentId) {
+                normalizedTargetNode =
+                    nodes.find(
+                        (node) =>
+                            node.type === 'folder' &&
+                            node.id === targetNode.parentId
+                    ) || targetNode;
+            }
+            if (normalizedTargetNode.parentId) {
+                return current;
+            }
+            const targetIndex = nodes.findIndex((node) =>
+                sameDragNode(node, normalizedTargetNode)
+            );
+            const movingDown =
+                sourceIndex >= 0 && targetIndex >= 0
+                    ? sourceIndex < targetIndex
+                    : false;
+            const next = cloneLayout(current);
+            const sourceTopIndex = findTopLevelIndex(next, activeNode);
+            if (sourceTopIndex < 0) {
+                return current;
+            }
+            const [folder] = next.splice(sourceTopIndex, 1);
+            const targetTopIndex = findTopLevelIndex(
+                next,
+                normalizedTargetNode
+            );
+            if (targetTopIndex < 0) {
+                return current;
+            }
+            next.splice(targetTopIndex + (movingDown ? 1 : 0), 0, folder);
+            return next;
+        });
+    }
+
+    function handleDragEnd(event) {
+        const activeNode = resolveDragNode(event.active?.id, visibleNodes);
+        let targetNode = resolveDragNode(event.over?.id, visibleNodes);
+
+        if (
+            !activeNode ||
+            !targetNode ||
+            sameDragNode(activeNode, targetNode)
+        ) {
+            return;
+        }
+        if (activeNode.type === 'folder') {
+            if (targetNode.parentId) {
+                targetNode =
+                    visibleNodes.find(
+                        (node) =>
+                            node.type === 'folder' &&
+                            node.id === targetNode.parentId
+                    ) || targetNode;
+            }
+            moveFolderByDrag(activeNode, targetNode);
+            return;
+        }
+        moveItemByDrag(activeNode, targetNode);
     }
 
     function hideItem(key) {
@@ -394,7 +839,7 @@ export function CustomNavDialog({
                 id: createFolderId(),
                 name: String(result.value || '').trim(),
                 nameKey: null,
-                icon: DEFAULT_FOLDER_ICON,
+                icon: normalizeNavIconKey(DEFAULT_FOLDER_ICON),
                 items: []
             }
         ]);
@@ -438,7 +883,23 @@ export function CustomNavDialog({
             next.splice(
                 folderIndex,
                 1,
-                ...(folder.items || []).map((key) => ({ type: 'item', key }))
+                ...(folder.items || [])
+                    .map((item) => {
+                        const key = getFolderItemKey(item);
+                        if (!key) {
+                            return null;
+                        }
+                        const icon = normalizeNavIconKey(
+                            getFolderItemIcon(item),
+                            ''
+                        );
+                        return {
+                            type: 'item',
+                            key,
+                            ...(icon ? { icon } : {})
+                        };
+                    })
+                    .filter(Boolean)
             );
             return next;
         });
@@ -487,7 +948,10 @@ export function CustomNavDialog({
         try {
             await updateDashboard(dashboardId, {
                 name: String(nameResult.value || '').trim(),
-                icon: dashboard.icon || DEFAULT_DASHBOARD_ICON
+                icon: normalizeNavIconKey(
+                    dashboard.icon,
+                    DEFAULT_DASHBOARD_ICON
+                )
             });
             toast.success(t('message.update_success'));
         } catch (error) {
@@ -542,180 +1006,276 @@ export function CustomNavDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[85vh] gap-4 overflow-hidden sm:max-w-3xl">
+            <DialogContent className="flex max-h-[85vh] flex-col gap-4 overflow-hidden sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>
                         {t('nav_menu.custom_nav.dialog_title')}
                     </DialogTitle>
                 </DialogHeader>
-                <div className="min-h-[40vh] overflow-y-auto pr-2">
-                    <div className="flex flex-col gap-1">
-                        {localLayout.map((entry, index) => {
-                            if (entry.type === 'folder') {
-                                return (
-                                    <div
-                                        key={entry.id}
-                                        className="flex flex-col gap-1 rounded-lg border p-2"
-                                    >
-                                        <div className="flex items-center gap-2 text-sm font-medium">
-                                            <span className="min-w-0 flex-1 truncate">
-                                                {entry.name}
-                                            </span>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Move ${entry.name} up`}
-                                                disabled={index === 0}
-                                                onClick={() =>
-                                                    moveTopLevel(index, -1)
-                                                }
+                <div className="min-h-0 flex-1 overflow-y-auto pr-2">
+                    <DndContext
+                        accessibility={
+                            typeof document === 'undefined'
+                                ? undefined
+                                : { container: document.body }
+                        }
+                        sensors={sensors}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <SortableContext
+                            items={sortableNodeIds}
+                            strategy={verticalListSortingStrategy}
+                        >
+                            <div className="flex flex-col gap-1">
+                                {localLayout.map((entry, index) => {
+                                    if (entry.type === 'folder') {
+                                        return (
+                                            <div
+                                                key={entry.id}
+                                                className="flex flex-col gap-1 rounded-lg border p-2"
                                             >
-                                                <ArrowUpIcon data-icon="inline-start" />
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Move ${entry.name} down`}
-                                                disabled={
-                                                    index ===
-                                                    localLayout.length - 1
-                                                }
-                                                onClick={() =>
-                                                    moveTopLevel(index, 1)
-                                                }
-                                            >
-                                                <ArrowDownIcon data-icon="inline-start" />
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Edit ${entry.name}`}
-                                                onClick={() =>
-                                                    void editFolder(index)
-                                                }
-                                            >
-                                                <PencilIcon data-icon="inline-start" />
-                                            </Button>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                aria-label={`Delete ${entry.name}`}
-                                                onClick={() =>
-                                                    deleteFolder(index)
-                                                }
-                                            >
-                                                <FolderXIcon data-icon="inline-start" />
-                                            </Button>
-                                        </div>
-                                        {entry.items?.length ? (
-                                            <div className="flex flex-col gap-1">
-                                                {entry.items.map(
-                                                    (key, childIndex) => {
-                                                        const definition =
-                                                            definitionMap.get(
-                                                                key
-                                                            );
-                                                        if (!definition) {
-                                                            return null;
-                                                        }
-                                                        return (
-                                                            <NavItemRow
-                                                                key={key}
-                                                                indent
-                                                                label={definitionLabel(
-                                                                    definition,
-                                                                    t
-                                                                )}
-                                                                canMoveUp={
-                                                                    childIndex >
-                                                                    0
+                                                <SortableNavItemRow
+                                                    id={getFolderSortableId(
+                                                        entry.id
+                                                    )}
+                                                >
+                                                    {({
+                                                        rowRef,
+                                                        rowStyle,
+                                                        dragHandleProps,
+                                                        isDragging
+                                                    }) => (
+                                                        <div
+                                                            ref={rowRef}
+                                                            style={rowStyle}
+                                                            className={cn(
+                                                                'flex items-center gap-2 rounded-md px-2 py-1 text-sm font-medium transition-colors',
+                                                                isDragging &&
+                                                                    'opacity-50'
+                                                            )}
+                                                        >
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon-sm"
+                                                                className="shrink-0 cursor-grab touch-none active:cursor-grabbing"
+                                                                aria-label={`Drag ${entry.name}`}
+                                                                {...dragHandleProps}
+                                                            >
+                                                                <GripVerticalIcon data-icon="inline-start" />
+                                                            </Button>
+                                                            <NavIconSelect
+                                                                value={
+                                                                    entry.icon
                                                                 }
-                                                                canMoveDown={
-                                                                    childIndex <
-                                                                    entry.items
-                                                                        .length -
-                                                                        1
+                                                                fallbackIcon={
+                                                                    DEFAULT_FOLDER_ICON
                                                                 }
-                                                                isTool={isToolNavKey(
-                                                                    key
-                                                                )}
-                                                                isDashboard={isDashboardKey(
-                                                                    key
-                                                                )}
-                                                                onMoveUp={() =>
-                                                                    moveFolderChild(
+                                                                ariaLabel={`Icon for ${entry.name}`}
+                                                                onValueChange={(
+                                                                    icon
+                                                                ) =>
+                                                                    updateEntryIcon(
                                                                         index,
-                                                                        childIndex,
-                                                                        -1
-                                                                    )
-                                                                }
-                                                                onMoveDown={() =>
-                                                                    moveFolderChild(
-                                                                        index,
-                                                                        childIndex,
-                                                                        1
-                                                                    )
-                                                                }
-                                                                onHide={() =>
-                                                                    hideItem(
-                                                                        key
-                                                                    )
-                                                                }
-                                                                onEditDashboard={() =>
-                                                                    void editDashboard(
-                                                                        key
-                                                                    )
-                                                                }
-                                                                onDeleteDashboard={() =>
-                                                                    void removeDashboard(
-                                                                        key
+                                                                        icon,
+                                                                        DEFAULT_FOLDER_ICON
                                                                     )
                                                                 }
                                                             />
-                                                        );
-                                                    }
+                                                            <span className="min-w-0 flex-1 truncate">
+                                                                {entry.name}
+                                                            </span>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon-sm"
+                                                                aria-label={`Edit ${entry.name}`}
+                                                                onClick={() =>
+                                                                    void editFolder(
+                                                                        index
+                                                                    )
+                                                                }
+                                                            >
+                                                                <PencilIcon data-icon="inline-start" />
+                                                            </Button>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="icon-sm"
+                                                                aria-label={`Delete ${entry.name}`}
+                                                                onClick={() =>
+                                                                    deleteFolder(
+                                                                        index
+                                                                    )
+                                                                }
+                                                            >
+                                                                <FolderXIcon data-icon="inline-start" />
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </SortableNavItemRow>
+                                                {entry.items?.length ? (
+                                                    <div className="flex flex-col gap-1">
+                                                        {entry.items.map(
+                                                            (
+                                                                item,
+                                                                childIndex
+                                                            ) => {
+                                                                const key =
+                                                                    getFolderItemKey(
+                                                                        item
+                                                                    );
+                                                                const definition =
+                                                                    definitionMap.get(
+                                                                        key
+                                                                    );
+                                                                if (
+                                                                    !definition
+                                                                ) {
+                                                                    return null;
+                                                                }
+                                                                return (
+                                                                    <SortableNavItemRow
+                                                                        key={
+                                                                            key
+                                                                        }
+                                                                        id={getItemSortableId(
+                                                                            key
+                                                                        )}
+                                                                    >
+                                                                        {(
+                                                                            rowProps
+                                                                        ) => (
+                                                                            <NavItemRow
+                                                                                {...rowProps}
+                                                                                indent
+                                                                                label={definitionLabel(
+                                                                                    definition,
+                                                                                    t
+                                                                                )}
+                                                                                icon={
+                                                                                    getFolderItemIcon(
+                                                                                        item
+                                                                                    ) ||
+                                                                                    definition.icon
+                                                                                }
+                                                                                fallbackIcon={
+                                                                                    definition.icon ||
+                                                                                    DEFAULT_NAV_ICON_KEY
+                                                                                }
+                                                                                isTool={isToolNavKey(
+                                                                                    key
+                                                                                )}
+                                                                                isDashboard={isDashboardKey(
+                                                                                    key
+                                                                                )}
+                                                                                onIconChange={(
+                                                                                    icon
+                                                                                ) =>
+                                                                                    updateFolderChildIcon(
+                                                                                        index,
+                                                                                        childIndex,
+                                                                                        icon,
+                                                                                        definition.icon ||
+                                                                                            DEFAULT_NAV_ICON_KEY
+                                                                                    )
+                                                                                }
+                                                                                onHide={() =>
+                                                                                    hideItem(
+                                                                                        key
+                                                                                    )
+                                                                                }
+                                                                                onEditDashboard={() =>
+                                                                                    void editDashboard(
+                                                                                        key
+                                                                                    )
+                                                                                }
+                                                                                onDeleteDashboard={() =>
+                                                                                    void removeDashboard(
+                                                                                        key
+                                                                                    )
+                                                                                }
+                                                                            />
+                                                                        )}
+                                                                    </SortableNavItemRow>
+                                                                );
+                                                            }
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <FolderDropZone
+                                                        folderId={entry.id}
+                                                        label={t(
+                                                            'nav_menu.custom_nav.folder_drop_here'
+                                                        )}
+                                                    />
                                                 )}
                                             </div>
-                                        ) : (
-                                            <div className="text-muted-foreground ml-6 rounded-md border border-dashed px-2 py-1.5 text-sm">
-                                                {t(
-                                                    'nav_menu.custom_nav.folder_drop_here'
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                );
-                            }
+                                        );
+                                    }
 
-                            const definition = definitionMap.get(entry.key);
-                            if (!definition) {
-                                return null;
-                            }
-                            return (
-                                <NavItemRow
-                                    key={entry.key}
-                                    label={definitionLabel(definition, t)}
-                                    canMoveUp={index > 0}
-                                    canMoveDown={index < localLayout.length - 1}
-                                    isTool={isToolNavKey(entry.key)}
-                                    isDashboard={isDashboardKey(entry.key)}
-                                    onMoveUp={() => moveTopLevel(index, -1)}
-                                    onMoveDown={() => moveTopLevel(index, 1)}
-                                    onHide={() => hideItem(entry.key)}
-                                    onEditDashboard={() =>
-                                        void editDashboard(entry.key)
+                                    const definition = definitionMap.get(
+                                        entry.key
+                                    );
+                                    if (!definition) {
+                                        return null;
                                     }
-                                    onDeleteDashboard={() =>
-                                        void removeDashboard(entry.key)
-                                    }
-                                />
-                            );
-                        })}
-                    </div>
+                                    return (
+                                        <SortableNavItemRow
+                                            key={entry.key}
+                                            id={getItemSortableId(entry.key)}
+                                        >
+                                            {(rowProps) => (
+                                                <NavItemRow
+                                                    {...rowProps}
+                                                    label={definitionLabel(
+                                                        definition,
+                                                        t
+                                                    )}
+                                                    icon={
+                                                        entry.icon ||
+                                                        definition.icon
+                                                    }
+                                                    fallbackIcon={
+                                                        definition.icon ||
+                                                        DEFAULT_NAV_ICON_KEY
+                                                    }
+                                                    isTool={isToolNavKey(
+                                                        entry.key
+                                                    )}
+                                                    isDashboard={isDashboardKey(
+                                                        entry.key
+                                                    )}
+                                                    onIconChange={(icon) =>
+                                                        updateEntryIcon(
+                                                            index,
+                                                            icon,
+                                                            definition.icon ||
+                                                                DEFAULT_NAV_ICON_KEY
+                                                        )
+                                                    }
+                                                    onHide={() =>
+                                                        hideItem(entry.key)
+                                                    }
+                                                    onEditDashboard={() =>
+                                                        void editDashboard(
+                                                            entry.key
+                                                        )
+                                                    }
+                                                    onDeleteDashboard={() =>
+                                                        void removeDashboard(
+                                                            entry.key
+                                                        )
+                                                    }
+                                                />
+                                            )}
+                                        </SortableNavItemRow>
+                                    );
+                                })}
+                            </div>
+                        </SortableContext>
+                    </DndContext>
                     {hiddenItems.length ? (
                         <>
                             <div className="my-4 flex items-center gap-2">
