@@ -46,12 +46,13 @@ import {
     readWorldCacheInfo
 } from '@/lib/worldAssetBundle.js';
 import {
+    gameLogRepository,
     playerListRepository,
+    vrchatModerationRepository,
     vrchatAuthRepository,
     vrchatSearchRepository,
     worldProfileRepository
 } from '@/repositories/index.js';
-import { database } from '@/services/database/index.js';
 import { openUserDialog, openWorldDialog } from '@/services/dialogService.js';
 import { parseLocation } from '@/shared/utils/locationParser.js';
 import { getFaviconUrl } from '@/shared/utils/urlUtils.js';
@@ -810,9 +811,8 @@ export function PlayerListPage({ embedded = false } = {}) {
             };
         }
 
-        database
-            .initUserTables(currentUserId)
-            .then(() => database.getAllModerations())
+        vrchatModerationRepository
+            .getAllLocalModerations(currentUserId)
             .then((rows) => {
                 if (!active) {
                     return;
@@ -950,7 +950,7 @@ export function PlayerListPage({ embedded = false } = {}) {
             }
 
             const cachedUserId = normalizeString(
-                await database
+                await gameLogRepository
                     .getUserIdFromDisplayName(displayName)
                     .catch(() => '')
             );

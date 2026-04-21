@@ -7,10 +7,10 @@ import {
 } from '@/lib/entityMedia.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import {
+    gameLogRepository,
     groupProfileRepository,
     userProfileRepository
 } from '@/repositories/index.js';
-import { database } from '@/services/database/index.js';
 import { useDialogStore } from '@/state/dialogStore.js';
 import { useFriendRosterStore } from '@/state/friendRosterStore.js';
 import { useModalStore } from '@/state/modalStore.js';
@@ -216,7 +216,7 @@ export function GroupDialogContent({ groupId, seedData = null }) {
             };
         }
 
-        database
+        gameLogRepository
             .getPreviousInstancesByGroupId(normalizedGroupId)
             .then((rows) => {
                 if (!active) {
