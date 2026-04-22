@@ -605,3 +605,89 @@ fn encode_png(img: &image::DynamicImage) -> Result<Vec<u8>, AppError> {
         .map_err(|e| AppError::Custom(format!("png encode: {e}")))?;
     Ok(buf)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::database::DatabaseService;
+    use crate::domain::storage::StorageService;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::thread::JoinHandle;
+    use std::time::{Duration, Instant};
+
+    struct TestDir {
+        path: std::path::PathBuf,
+    }
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path =
+                std::env::temp_dir().join(format!("vrcx-0-{name}-{}-{nonce}", std::process::id()));
+            std::fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.path);
+        }
+    }
+
+    fn spawn_text_server(body: &'static [u8]) -> (String, JoinHandle<()>) {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let addr = listener.local_addr().unwrap();
+        let url = format!("http://{addr}/api/1");
+        let handle = std::thread::spawn(move || {
+            let deadline = Instant::now() + Duration::from_secs(5);
+            loop {
+                match listener.accept() {
+                    Ok((mut stream, _)) => {
+                        let mut buffer = [0u8; 1024];
+                        let _ = stream.read(&mut buffer);
+                        let response = format!(
+                            "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                            body.len()
+                        );
+                        let _ = stream.write_all(response.as_bytes());
+                        let _ = stream.write_all(body);
+                        break;
+                    }
+                    Err(error)
+                        if error.kind() == std::io::ErrorKind::WouldBlock
+                            && Instant::now() < deadline =>
+                    {
+                        std::thread::sleep(Duration::from_millis(10));
+                    }
+                    Err(_) => break,
+                }
+            }
+        });
+        (url, handle)
+    }
+
+    #[test]
+    fn execute_returns_success_status_and_body_for_daily_get() -> Result<(), AppError> {
+        let dir = TestDir::new("web-client-daily");
+        let storage = StorageService::new(&dir.path.join("VRCX-0.json"))?;
+        let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+        let web = WebClient::new(&storage, &db)?;
+        let (url, server) = spawn_text_server(br#"{"ok":true}"#);
+
+        let mut options = HashMap::new();
+        options.insert("url".to_string(), serde_json::json!(url));
+        let result = tauri::async_runtime::block_on(web.execute(options));
+        server.join().unwrap();
+
+        let (status, body) = result?;
+        assert_eq!(status, 200);
+        assert_eq!(body, r#"{"ok":true}"#);
+        Ok(())
+    }
+}

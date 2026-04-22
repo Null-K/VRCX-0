@@ -205,3 +205,102 @@ fn is_windows_reserved_name(value: &str) -> bool {
             | "LPT1" | "LPT2" | "LPT3" | "LPT4" | "LPT5" | "LPT6" | "LPT7" | "LPT8" | "LPT9"
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+    use std::thread::JoinHandle;
+    use std::time::{Duration, Instant};
+
+    const SMALL_PNG: &[u8] = &[
+        0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44,
+        0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F,
+        0x15, 0xC4, 0x89, 0x00, 0x00, 0x00, 0x0A, 0x49, 0x44, 0x41, 0x54, 0x78, 0x9C, 0x63, 0x00,
+        0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0D, 0x0A, 0x2D, 0xB4, 0x00, 0x00, 0x00, 0x00, 0x49,
+        0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82,
+    ];
+
+    struct TestDir {
+        path: PathBuf,
+    }
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path =
+                std::env::temp_dir().join(format!("vrcx-0-{name}-{}-{nonce}", std::process::id()));
+            std::fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.path);
+        }
+    }
+
+    fn spawn_png_server() -> (String, JoinHandle<()>) {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let addr = listener.local_addr().unwrap();
+        let url = format!("http://{addr}/avatar.png");
+        let handle = std::thread::spawn(move || {
+            let deadline = Instant::now() + Duration::from_secs(5);
+            loop {
+                match listener.accept() {
+                    Ok((mut stream, _)) => {
+                        let mut buffer = [0u8; 1024];
+                        let _ = stream.read(&mut buffer);
+                        let response = format!(
+                            "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
+                            SMALL_PNG.len()
+                        );
+                        let _ = stream.write_all(response.as_bytes());
+                        let _ = stream.write_all(SMALL_PNG);
+                        break;
+                    }
+                    Err(error)
+                        if error.kind() == std::io::ErrorKind::WouldBlock
+                            && Instant::now() < deadline =>
+                    {
+                        std::thread::sleep(Duration::from_millis(10));
+                    }
+                    Err(_) => break,
+                }
+            }
+        });
+        (url, handle)
+    }
+
+    #[test]
+    fn get_image_writes_and_reuses_daily_avatar_cache() -> Result<(), AppError> {
+        let dir = TestDir::new("image-cache-daily");
+        let jar = Arc::new(reqwest_cookie_store::CookieStoreMutex::new(
+            reqwest_cookie_store::CookieStore::default(),
+        ));
+        let cache = ImageCache::new(dir.path.join("ImageCache"), jar, None)?;
+        cache
+            .allowed_hosts
+            .lock()
+            .unwrap()
+            .insert("127.0.0.1".into());
+
+        let (url, server) = spawn_png_server();
+        let first = tauri::async_runtime::block_on(cache.get_image(&url, "avatar-file", "1"));
+        server.join().unwrap();
+        let first = first?;
+
+        assert_eq!(std::fs::read(&first)?, SMALL_PNG);
+
+        let second = tauri::async_runtime::block_on(cache.get_image(&url, "avatar-file", "1"))?;
+        assert_eq!(second, first);
+        assert_eq!(std::fs::read(&second)?, SMALL_PNG);
+        Ok(())
+    }
+}

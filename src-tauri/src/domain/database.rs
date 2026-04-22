@@ -530,3 +530,77 @@ fn base64_encode(data: &[u8]) -> String {
     }
     s
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct TestDir {
+        path: PathBuf,
+    }
+
+    impl TestDir {
+        fn new(name: &str) -> Self {
+            let nonce = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .unwrap()
+                .as_nanos();
+            let path =
+                std::env::temp_dir().join(format!("vrcx-0-{name}-{}-{nonce}", std::process::id()));
+            std::fs::create_dir_all(&path).unwrap();
+            Self { path }
+        }
+    }
+
+    impl Drop for TestDir {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.path);
+        }
+    }
+
+    #[test]
+    fn executes_daily_named_parameter_reads_and_writes() -> Result<(), AppError> {
+        let dir = TestDir::new("sqlite-daily");
+        let db = DatabaseService::new(&dir.path.join("VRCX-0.sqlite3"))?;
+        let empty = HashMap::new();
+
+        db.execute_non_query(
+            "CREATE TABLE daily_items (id INTEGER PRIMARY KEY, name TEXT NOT NULL, visits INTEGER NOT NULL)",
+            &empty,
+        )?;
+
+        let mut args = HashMap::new();
+        args.insert("@id".to_string(), serde_json::json!(1));
+        args.insert("@name".to_string(), serde_json::json!("trusted"));
+        args.insert("@visits".to_string(), serde_json::json!(3));
+        assert_eq!(
+            db.execute_non_query(
+                "INSERT INTO daily_items (id, name, visits) VALUES (@id, @name, @visits)",
+                &args,
+            )?,
+            1
+        );
+
+        let mut update_args = HashMap::new();
+        update_args.insert("@id".to_string(), serde_json::json!(1));
+        update_args.insert("@visits".to_string(), serde_json::json!(4));
+        assert_eq!(
+            db.execute_non_query(
+                "UPDATE daily_items SET visits = @visits WHERE id = @id",
+                &update_args,
+            )?,
+            1
+        );
+
+        let rows = db.execute(
+            "SELECT name, visits FROM daily_items WHERE id = @id",
+            &update_args,
+        )?;
+
+        assert_eq!(
+            rows,
+            vec![vec![serde_json::json!("trusted"), serde_json::json!(4)]]
+        );
+        Ok(())
+    }
+}
