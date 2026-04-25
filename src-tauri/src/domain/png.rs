@@ -54,7 +54,6 @@ impl ChunkType {
             _ => Self::Unknown(s.to_string()),
         }
     }
-
 }
 
 #[derive(Clone, Debug)]

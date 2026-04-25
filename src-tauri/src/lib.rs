@@ -12,6 +12,7 @@ use tauri::menu::{Menu, MenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
 use tauri::Manager;
 use tauri::WindowEvent;
+#[cfg(target_os = "windows")]
 use tauri_plugin_autostart::ManagerExt as _;
 
 use api::app::host_capabilities::{
@@ -89,7 +90,7 @@ pub fn run() {
         )
         .init();
 
-    tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             show_main_window(app);
         }))
@@ -110,11 +111,15 @@ pub fn run() {
                         | tauri_plugin_window_state::StateFlags::FULLSCREEN,
                 )
                 .build(),
-        )
-        .plugin(tauri_plugin_autostart::init(
-            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
-            Some(vec!["--autostart"]),
-        ))
+        );
+
+    #[cfg(target_os = "windows")]
+    let builder = builder.plugin(tauri_plugin_autostart::init(
+        tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+        Some(vec!["--autostart"]),
+    ));
+
+    builder
         .on_window_event(|window, event| {
             if window.label() != "main" {
                 return;
@@ -176,10 +181,13 @@ pub fn run() {
                 let _ = tray.set_show_menu_on_left_click(false);
             }
 
-            if db_config_bool(&state, "config:vrcx_startatwindowsstartup") == Some(true)
-                && !app.autolaunch().is_enabled().unwrap_or(false)
+            #[cfg(target_os = "windows")]
             {
-                let _ = app.autolaunch().enable();
+                if db_config_bool(&state, "config:vrcx_startatwindowsstartup") == Some(true)
+                    && !app.autolaunch().is_enabled().unwrap_or(false)
+                {
+                    let _ = app.autolaunch().enable();
+                }
             }
 
             if state.launched_from_autostart
@@ -218,6 +226,30 @@ pub fn run() {
                     .map(|p| std::path::PathBuf::from(p).join("..\\LocalLow\\VRChat\\VRChat"))
                     .unwrap_or_default();
                 state.log_watcher.start(local_low, app.handle().clone());
+            }
+
+            #[cfg(target_os = "linux")]
+            if is_host_capability_available(HostCapability::GameLogWatcher) {
+                match crate::domain::vrchat_paths::discover_linux_vrchat_paths() {
+                    Ok(paths) => {
+                        let latest_log = paths
+                            .latest_log
+                            .as_ref()
+                            .map(|path| path.display().to_string())
+                            .unwrap_or_else(|| "pending".to_string());
+                        tracing::info!(
+                            log_dir = %paths.app_data.display(),
+                            latest_log,
+                            "starting Linux GameLog watcher"
+                        );
+                        state
+                            .log_watcher
+                            .start_without_process_monitor(paths.app_data, app.handle().clone());
+                    }
+                    Err(reason) => {
+                        tracing::warn!(reason, "Linux GameLog watcher is unavailable");
+                    }
+                }
             }
 
             #[cfg(all(debug_assertions, feature = "devtools"))]

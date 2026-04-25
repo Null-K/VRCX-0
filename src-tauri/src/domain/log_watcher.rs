@@ -22,6 +22,7 @@ struct Inner {
     reset_flag: Mutex<bool>,
     vrc_closed_gracefully: Mutex<bool>,
     game_running: Mutex<bool>,
+    poll_without_process_monitor: Mutex<bool>,
     keep_polling_until: Mutex<Option<Instant>>,
 }
 
@@ -35,12 +36,27 @@ impl LogWatcher {
                 reset_flag: Mutex::new(false),
                 vrc_closed_gracefully: Mutex::new(false),
                 game_running: Mutex::new(false),
+                poll_without_process_monitor: Mutex::new(false),
                 keep_polling_until: Mutex::new(None),
             }),
         }
     }
 
     pub fn start(&self, log_dir: PathBuf, app_handle: AppHandle) {
+        self.start_with_mode(log_dir, app_handle, false);
+    }
+
+    pub fn start_without_process_monitor(&self, log_dir: PathBuf, app_handle: AppHandle) {
+        self.start_with_mode(log_dir, app_handle, true);
+    }
+
+    fn start_with_mode(
+        &self,
+        log_dir: PathBuf,
+        app_handle: AppHandle,
+        poll_without_process_monitor: bool,
+    ) {
+        *self.inner.poll_without_process_monitor.lock().unwrap() = poll_without_process_monitor;
         *self.inner.keep_polling_until.lock().unwrap() =
             Some(Instant::now() + INACTIVE_POLL_KEEPALIVE);
         let inner = Arc::clone(&self.inner);
@@ -105,9 +121,15 @@ fn thread_loop(inner: Arc<Inner>, log_dir: PathBuf, app_handle: AppHandle) {
         }
 
         let should_poll = if active {
-            let game_running = *inner.game_running.lock().unwrap();
-            let keep_polling_until = *inner.keep_polling_until.lock().unwrap();
-            game_running || keep_polling_until.is_some_and(|deadline| Instant::now() <= deadline)
+            let poll_without_process_monitor = *inner.poll_without_process_monitor.lock().unwrap();
+            if poll_without_process_monitor {
+                true
+            } else {
+                let game_running = *inner.game_running.lock().unwrap();
+                let keep_polling_until = *inner.keep_polling_until.lock().unwrap();
+                game_running
+                    || keep_polling_until.is_some_and(|deadline| Instant::now() <= deadline)
+            }
         } else {
             false
         };

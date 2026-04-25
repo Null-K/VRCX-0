@@ -21,11 +21,16 @@ fn normalize_locale(locale: String) -> String {
 }
 
 pub(super) fn vrchat_config_path() -> PathBuf {
-    let local_app_data = std::env::var("LOCALAPPDATA").unwrap_or_default();
-    PathBuf::from(local_app_data).join("..\\LocalLow\\VRChat\\VRChat\\config.json")
+    vrchat_app_data().join("config.json")
 }
 
 pub(super) fn vrchat_app_data() -> PathBuf {
+    if cfg!(target_os = "linux") {
+        return crate::domain::vrchat_paths::discover_linux_vrchat_paths()
+            .map(|paths| paths.app_data)
+            .unwrap_or_default();
+    }
+
     let local_app_data = std::env::var("LOCALAPPDATA").unwrap_or_default();
     PathBuf::from(local_app_data).join("..\\LocalLow\\VRChat\\VRChat")
 }
@@ -47,9 +52,7 @@ pub(super) fn vrchat_photos_location() -> String {
         }
     }
 
-    dirs::picture_dir()
-        .unwrap_or_default()
-        .join("VRChat")
+    default_vrchat_photos_location()
         .to_string_lossy()
         .into_owned()
 }
@@ -124,7 +127,7 @@ fn vrchat_screenshots_location() -> String {
 
 #[tauri::command]
 pub fn app__get_vrchat_screenshots_location() -> Result<String, AppError> {
-    require_host_capability(HostCapability::SteamLibraryDiscovery)?;
+    require_host_capability(HostCapability::ScreenshotCache)?;
     Ok(vrchat_screenshots_location())
 }
 
@@ -143,6 +146,42 @@ pub(super) fn get_steam_path() -> String {
     }
 
     String::new()
+}
+
+pub(super) fn vrchat_crashes_location() -> PathBuf {
+    if cfg!(target_os = "linux") {
+        if let Ok(paths) = crate::domain::vrchat_paths::discover_linux_vrchat_paths() {
+            return paths
+                .proton_prefix
+                .join("drive_c")
+                .join("users")
+                .join("steamuser")
+                .join("AppData")
+                .join("Local")
+                .join("Temp")
+                .join("VRChat")
+                .join("VRChat")
+                .join("Crashes");
+        }
+    }
+
+    std::env::temp_dir().join("VRChat\\VRChat\\Crashes")
+}
+
+fn default_vrchat_photos_location() -> PathBuf {
+    if cfg!(target_os = "linux") {
+        if let Ok(paths) = crate::domain::vrchat_paths::discover_linux_vrchat_paths() {
+            return paths
+                .proton_prefix
+                .join("drive_c")
+                .join("users")
+                .join("steamuser")
+                .join("Pictures")
+                .join("VRChat");
+        }
+    }
+
+    dirs::picture_dir().unwrap_or_default().join("VRChat")
 }
 #[cfg(test)]
 mod tests {

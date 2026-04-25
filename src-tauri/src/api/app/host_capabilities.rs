@@ -63,6 +63,16 @@ impl CapabilityStatus {
         }
     }
 
+    #[cfg(target_os = "linux")]
+    fn unavailable(reason: &str) -> Self {
+        Self {
+            supported: true,
+            enabled: true,
+            available: false,
+            reason: Some(reason.to_string()),
+        }
+    }
+
     fn unsupported(label: &str, platform: &str) -> Self {
         Self {
             supported: false,
@@ -136,29 +146,7 @@ pub fn current_host_capabilities() -> HostCapabilities {
             ipc: available.clone(),
             screenshot_cache: available,
         },
-        "linux" => {
-            let pending = CapabilityStatus::pending("Linux implementation pending");
-            HostCapabilities {
-                platform: platform.to_string(),
-                local_database: available.clone(),
-                websocket_runtime: available.clone(),
-                game_log_watcher: pending.clone(),
-                game_process_monitor: pending.clone(),
-                vrchat_path_discovery: pending.clone(),
-                steam_library_discovery: pending,
-                steam_runtime_integration: CapabilityStatus::unsupported(
-                    "Steam runtime integration",
-                    "Linux",
-                ),
-                registry_prefs: CapabilityStatus::unsupported(
-                    "VRChat registry preferences",
-                    "Linux",
-                ),
-                game_launch: CapabilityStatus::unsupported("Game launch", "Linux"),
-                ipc: CapabilityStatus::unsupported("IPC", "Linux"),
-                screenshot_cache: CapabilityStatus::unsupported("Screenshot cache", "Linux"),
-            }
-        }
+        "linux" => linux_host_capabilities(platform, &available),
         "macos" => HostCapabilities {
             platform: platform.to_string(),
             local_database: available.clone(),
@@ -199,6 +187,79 @@ pub fn current_host_capabilities() -> HostCapabilities {
             ipc: CapabilityStatus::unsupported("IPC", platform),
             screenshot_cache: CapabilityStatus::unsupported("Screenshot cache", platform),
         },
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn linux_host_capabilities(platform: &str, available: &CapabilityStatus) -> HostCapabilities {
+    let steam_library_discovery =
+        match crate::domain::vrchat_paths::discover_linux_steam_libraries() {
+            Ok(_) => available.clone(),
+            Err(reason) => CapabilityStatus::unavailable(&reason),
+        };
+
+    let vrchat_path_discovery = match crate::domain::vrchat_paths::discover_linux_vrchat_paths() {
+        Ok(_) => available.clone(),
+        Err(reason) => CapabilityStatus::unavailable(&reason),
+    };
+
+    HostCapabilities {
+        platform: platform.to_string(),
+        local_database: available.clone(),
+        websocket_runtime: available.clone(),
+        game_log_watcher: vrchat_path_discovery.clone(),
+        game_process_monitor: CapabilityStatus::pending(
+            "Linux process monitor implementation pending",
+        ),
+        vrchat_path_discovery,
+        steam_library_discovery,
+        steam_runtime_integration: CapabilityStatus::unsupported(
+            "Steam runtime integration",
+            "Linux",
+        ),
+        registry_prefs: CapabilityStatus::unsupported("VRChat registry preferences", "Linux"),
+        game_launch: CapabilityStatus::unsupported("Game launch", "Linux"),
+        ipc: CapabilityStatus::unsupported("IPC", "Linux"),
+        screenshot_cache: CapabilityStatus::unsupported("Screenshot cache", "Linux"),
+    }
+}
+
+#[cfg(any(target_os = "windows", target_os = "macos"))]
+fn linux_host_capabilities(platform: &str, available: &CapabilityStatus) -> HostCapabilities {
+    pending_linux_host_capabilities(platform, available)
+}
+
+#[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
+fn linux_host_capabilities(platform: &str, available: &CapabilityStatus) -> HostCapabilities {
+    pending_linux_host_capabilities(platform, available)
+}
+
+#[cfg(any(
+    target_os = "windows",
+    target_os = "macos",
+    not(any(target_os = "windows", target_os = "linux", target_os = "macos"))
+))]
+fn pending_linux_host_capabilities(
+    platform: &str,
+    available: &CapabilityStatus,
+) -> HostCapabilities {
+    let pending = CapabilityStatus::pending("Linux implementation pending");
+    HostCapabilities {
+        platform: platform.to_string(),
+        local_database: available.clone(),
+        websocket_runtime: available.clone(),
+        game_log_watcher: pending.clone(),
+        game_process_monitor: pending.clone(),
+        vrchat_path_discovery: pending.clone(),
+        steam_library_discovery: pending,
+        steam_runtime_integration: CapabilityStatus::unsupported(
+            "Steam runtime integration",
+            "Linux",
+        ),
+        registry_prefs: CapabilityStatus::unsupported("VRChat registry preferences", "Linux"),
+        game_launch: CapabilityStatus::unsupported("Game launch", "Linux"),
+        ipc: CapabilityStatus::unsupported("IPC", "Linux"),
+        screenshot_cache: CapabilityStatus::unsupported("Screenshot cache", "Linux"),
     }
 }
 

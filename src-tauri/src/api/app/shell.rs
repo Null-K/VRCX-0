@@ -12,6 +12,7 @@ use super::host_capabilities::{require_host_capability, HostCapability};
 use super::paths::{
     app__get_ugc_photo_location, app__get_vrchat_photos_location,
     app__get_vrchat_screenshots_location, vrchat_app_data, vrchat_config_path,
+    vrchat_crashes_location,
 };
 
 #[tauri::command]
@@ -119,8 +120,7 @@ pub fn app__open_vrc_screenshots_folder() -> Result<bool, AppError> {
 #[tauri::command]
 pub fn app__open_crash_vrc_crash_dumps() -> Result<bool, AppError> {
     require_host_capability(HostCapability::VrchatPathDiscovery)?;
-    let temp = std::env::temp_dir();
-    let path = temp.join("VRChat\\VRChat\\Crashes");
+    let path = vrchat_crashes_location();
     open_folder(&path.to_string_lossy())
 }
 

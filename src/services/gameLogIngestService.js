@@ -133,7 +133,11 @@ async function persistGameLog(gameLog, options = {}) {
     switch (gameLog.type) {
         case 'location-destination': {
             const destination = normalizeString(gameLog.location);
-            if (!runtimeStore.gameState.isGameRunning || !destination) {
+            if (
+                !destination ||
+                (isHostCapabilityAvailable('gameProcessMonitor') &&
+                    !runtimeStore.gameState.isGameRunning)
+            ) {
                 break;
             }
             const changedAt = gameLog.dt || new Date().toISOString();
@@ -517,6 +521,7 @@ export async function syncGameLogTail() {
 
     if (
         ingestState.tailCaughtUp &&
+        isHostCapabilityAvailable('gameProcessMonitor') &&
         useRuntimeStore.getState().gameState.isGameRunning === false
     ) {
         return { processed: 0, skipped: true, caughtUp: true };
