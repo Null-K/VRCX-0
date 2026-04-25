@@ -40,7 +40,7 @@ export function StatusBarContextMenuContent({
             <ContextMenuSeparator />
             <ContextMenuSub>
                 <ContextMenuSubTrigger>
-                    {t('app_menu.generated.clocks')}
+                    {t('app_menu.clocks')}
                 </ContextMenuSubTrigger>
                 <ContextMenuSubContent>
                     {[0, 1, 2, 3].map((count) => (
@@ -54,9 +54,7 @@ export function StatusBarContextMenuContent({
                                 }
                             }}
                         >
-                            {count === 0
-                                ? 'No clocks'
-                                : `${count} clock${count === 1 ? '' : 's'}`}
+                            {count} {t(count === 1 ? 'app_menu.clock' : 'app_menu.clocks')}
                         </ContextMenuCheckboxItem>
                     ))}
                 </ContextMenuSubContent>

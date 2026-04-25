@@ -406,7 +406,7 @@ export function UserDialogInfoTab({
                 ) : null}
                 {visibleHomeLocationTarget ? (
                     <EntityInfoBlock
-                        label={t('dialog.user.generated.home_location')}
+                        label={t('dialog.user.info.home_location')}
                         full
                     >
                         <Location

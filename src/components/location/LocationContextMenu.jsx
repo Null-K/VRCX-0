@@ -69,7 +69,8 @@ export function LocationContextMenu({
                             onSelect={onCopyCurrentLocation}
                         >
                             <CopyIcon />
-                            {t('common.generated.generated.copy_location')}
+                            {t('common.actions.copy')}{' '}
+                            {t('dialog.new_instance.location')}
                         </ContextMenuItem>
                     </ContextMenuGroup>
                     <ContextMenuSeparator />
@@ -120,9 +121,7 @@ export function LocationContextMenu({
                                     onSelect={onLaunchCurrentInstance}
                                 >
                                     <ExternalLinkIcon />
-                                    {t(
-                                        'common.generated.generated.launch_in_vrchat'
-                                    )}
+                                    {t('dialog.launch.open_ingame')}
                                 </ContextMenuItem>
                                 <ContextMenuItem
                                     disabled={!canUseCurrentInstance}
@@ -131,9 +130,7 @@ export function LocationContextMenu({
                                     }
                                 >
                                     <MessageSquareIcon />
-                                    {t(
-                                        'common.generated.generated.self_invite'
-                                    )}
+                                    {t('dialog.launch.self_invite')}
                                 </ContextMenuItem>
                             </ContextMenuGroup>
                         </>

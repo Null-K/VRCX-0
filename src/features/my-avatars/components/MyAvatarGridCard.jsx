@@ -48,14 +48,14 @@ export function AvatarActionMenuItems({
             <Group>
                 <Item onSelect={() => handleAction('details')}>
                     <EyeIcon />
-                    {t('view.my_avatars.generated.view_details')}
+                    {t('common.actions.view_details')}
                 </Item>
                 <Item
                     disabled={disabled || isActive}
                     onSelect={() => handleAction('wear')}
                 >
                     <CheckIcon />
-                    {t('view.my_avatars.generated.select_avatar')}
+                    {t('dialog.avatar.actions.select')}
                 </Item>
             </Group>
             <Separator />
@@ -65,7 +65,7 @@ export function AvatarActionMenuItems({
                     onSelect={() => handleAction('manageTags')}
                 >
                     <TagIcon />
-                    {t('view.my_avatars.generated.manage_tags')}
+                    {t('dialog.avatar.actions.manage_tags')}
                 </Item>
             </Group>
             <Separator />
@@ -76,50 +76,50 @@ export function AvatarActionMenuItems({
                 >
                     <UserIcon />
                     {avatar?.releaseStatus === 'public'
-                        ? t('view.my_avatars.generated.make_private')
-                        : t('view.my_avatars.generated.make_public')}
+                        ? t('dialog.avatar.actions.make_private')
+                        : t('dialog.avatar.actions.make_public')}
                 </Item>
                 <Item
                     disabled={disabled}
                     onSelect={() => handleAction('rename')}
                 >
                     <PencilIcon />
-                    {t('view.my_avatars.generated.rename')}
+                    {t('dialog.avatar.actions.rename')}
                 </Item>
                 <Item
                     disabled={disabled}
                     onSelect={() => handleAction('changeDescription')}
                 >
                     <PencilIcon />
-                    {t('view.my_avatars.generated.change_description')}
+                    {t('dialog.avatar.actions.change_description')}
                 </Item>
                 <Item
                     disabled={disabled}
                     onSelect={() => handleAction('changeTags')}
                 >
                     <PencilIcon />
-                    {t('view.my_avatars.generated.change_content_tags')}
+                    {t('dialog.avatar.actions.change_content_tags')}
                 </Item>
                 <Item
                     disabled={disabled}
                     onSelect={() => handleAction('changeStyles')}
                 >
                     <PencilIcon />
-                    {t('view.my_avatars.generated.change_styles_author_tags')}
+                    {t('dialog.avatar.actions.change_styles_author_tags')}
                 </Item>
                 <Item
                     disabled={disabled}
                     onSelect={() => handleAction('changeImage')}
                 >
                     <ImageIcon />
-                    {t('view.my_avatars.generated.change_image')}
+                    {t('dialog.avatar.actions.change_image')}
                 </Item>
                 <Item
                     disabled={disabled}
                     onSelect={() => handleAction('createImpostor')}
                 >
                     <RefreshCwIcon />
-                    {t('view.my_avatars.generated.create_impostor')}
+                    {t('dialog.avatar.actions.create_impostor')}
                 </Item>
             </Group>
         </>

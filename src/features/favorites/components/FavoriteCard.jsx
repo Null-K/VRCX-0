@@ -270,7 +270,7 @@ const FavoriteCard = memo(function FavoriteCard({
                     <DropdownMenuContent align="end">
                         <DropdownMenuGroup>
                             <DropdownMenuItem onSelect={() => openHandler?.()}>
-                                {t('view.favorite.generated.view_details')}
+                                {t('common.actions.view_details')}
                             </DropdownMenuItem>
                         </DropdownMenuGroup>
                         {item.kind === 'friend' ? (
@@ -286,7 +286,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                             onFriendRequestInvite?.(item)
                                         }
                                     >
-                                        {t('view.favorite.generated.request_invite')}
+                                        {t('dialog.user.actions.request_invite')}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         disabled={
@@ -296,7 +296,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                         }
                                         onSelect={() => onFriendInvite?.(item)}
                                     >
-                                        {t('view.favorite.generated.send_invite')}
+                                        {t('dialog.user.actions.invite')}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         disabled={
@@ -306,7 +306,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                         }
                                         onSelect={() => onFriendBoop?.(item)}
                                     >
-                                        {t('view.favorite.generated.send_boop')}
+                                        {t('dialog.user.actions.send_boop')}
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
                                 <DropdownMenuSeparator />
@@ -318,7 +318,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                         }
                                         onSelect={() => onFriendLaunch?.(item)}
                                     >
-                                        {t('view.favorite.generated.launch_in_vrchat')}
+                                        {t('dialog.launch.open_ingame')}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         disabled={
@@ -329,7 +329,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                             onFriendSelfInvite?.(item)
                                         }
                                     >
-                                        {t('view.favorite.generated.self_invite')}
+                                        {t('dialog.launch.self_invite')}
                                     </DropdownMenuItem>
                                 </DropdownMenuGroup>
                             </>
@@ -340,13 +340,13 @@ const FavoriteCard = memo(function FavoriteCard({
                                     disabled={!onWorldNewInstance}
                                     onSelect={() => onWorldNewInstance?.(item)}
                                 >
-                                    {t('view.favorite.generated.new_instance')}
+                                    {t('dialog.world.actions.new_instance')}
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                     disabled={!onWorldSelfInvite}
                                     onSelect={() => onWorldSelfInvite?.(item)}
                                 >
-                                    {t('view.favorite.generated.new_instance_and_self_invite')}
+                                    {t('dialog.world.actions.new_instance_and_self_invite')}
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                         ) : null}
@@ -356,7 +356,7 @@ const FavoriteCard = memo(function FavoriteCard({
                                     disabled={!canSelectAvatar}
                                     onSelect={() => onAvatarSelect?.(item)}
                                 >
-                                    {t('view.favorite.generated.select_avatar')}
+                                    {t('dialog.avatar.actions.select')}
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                         ) : null}

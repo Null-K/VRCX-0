@@ -437,7 +437,7 @@ export function FriendLocationCard({
                         onSelect={onOpenUser}
                     >
                         <UserIcon />
-                        {t('common.generated.generated.user')}
+                        {t('table.playerList.user')}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!canOpenWorld}
@@ -461,14 +461,14 @@ export function FriendLocationCard({
                         onSelect={() => void onLaunchLocation?.()}
                     >
                         <ExternalLinkIcon />
-                        {t('common.generated.generated.launch_in_vrchat')}
+                        {t('dialog.launch.open_ingame')}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!canUseFriendLocation}
                         onSelect={() => void onSelfInviteLocation?.()}
                     >
                         <ExternalLinkIcon />
-                        {t('common.generated.generated.self_invite')}
+                        {t('dialog.launch.self_invite')}
                     </ContextMenuItem>
                 </ContextMenuGroup>
                 <ContextMenuSeparator />
@@ -477,19 +477,19 @@ export function FriendLocationCard({
                         disabled={!canSendInvite}
                         onSelect={() => void onSendInvite?.()}
                     >
-                        {t('common.generated.generated.send_invite')}
+                        {t('dialog.user.actions.invite')}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!canRequestInvite}
                         onSelect={() => void onRequestInvite?.()}
                     >
-                        {t('common.generated.generated.request_invite')}
+                        {t('dialog.user.actions.request_invite')}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!canBoop}
                         onSelect={() => void onSendBoop?.()}
                     >
-                        {t('common.generated.generated.send_boop')}
+                        {t('dialog.user.actions.send_boop')}
                     </ContextMenuItem>
                 </ContextMenuGroup>
                 <ContextMenuSeparator />
@@ -500,7 +500,7 @@ export function FriendLocationCard({
                             void copyCardText(friend?.id, 'User ID')
                         }
                     >
-                        {t('common.generated.generated.copy_user_id')}
+                        {t('dialog.user.info.copy_id')}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!rawLocation}
@@ -508,7 +508,8 @@ export function FriendLocationCard({
                             void copyCardText(rawLocation, 'Location')
                         }
                     >
-                        {t('common.generated.generated.copy_location')}
+                        {t('common.actions.copy')}{' '}
+                        {t('dialog.new_instance.location')}
                     </ContextMenuItem>
                 </ContextMenuGroup>
             </ContextMenuContent>

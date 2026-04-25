@@ -186,7 +186,7 @@ function FeedUserLink({
                         }
                     >
                         <UserIcon />
-                        {t('view.feed.generated.open_user')}
+                        {t('table.playerList.user')}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!worldTarget}
@@ -198,7 +198,7 @@ function FeedUserLink({
                         }
                     >
                         <GlobeIcon />
-                        {t('view.feed.generated.open_current_location')}
+                        {t('table.playerList.location')}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!groupTarget}
@@ -210,7 +210,7 @@ function FeedUserLink({
                         }
                     >
                         <UsersIcon />
-                        {t('view.feed.generated.open_group')}
+                        {t('side_panel.groups')}
                     </ContextMenuItem>
                 </ContextMenuGroup>
                 <ContextMenuSeparator />
@@ -220,7 +220,7 @@ function FeedUserLink({
                         onSelect={() => void actions?.launchLocation(location)}
                     >
                         <ExternalLinkIcon />
-                        {t('view.feed.generated.launch_in_vrchat')}
+                        {t('dialog.launch.open_ingame')}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!canUseFriendLocation}
@@ -229,7 +229,7 @@ function FeedUserLink({
                         }
                     >
                         <ExternalLinkIcon />
-                        {t('view.feed.generated.self_invite')}
+                        {t('dialog.launch.self_invite')}
                     </ContextMenuItem>
                 </ContextMenuGroup>
                 <ContextMenuSeparator />
@@ -239,7 +239,7 @@ function FeedUserLink({
                         onSelect={() => void actions?.sendInvite(friend || row)}
                     >
                         <ExternalLinkIcon />
-                        {t('view.feed.generated.send_invite')}
+                        {t('dialog.user.actions.invite')}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={isCurrentUser || !canRequestInvite}
@@ -248,14 +248,14 @@ function FeedUserLink({
                         }
                     >
                         <ExternalLinkIcon />
-                        {t('view.feed.generated.request_invite')}
+                        {t('dialog.user.actions.request_invite')}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={isCurrentUser || !canBoop}
                         onSelect={() => void actions?.sendBoop(friend || row)}
                     >
                         <ExternalLinkIcon />
-                        {t('view.feed.generated.send_boop')}
+                        {t('dialog.user.actions.send_boop')}
                     </ContextMenuItem>
                 </ContextMenuGroup>
                 <ContextMenuSeparator />
@@ -267,7 +267,7 @@ function FeedUserLink({
                         }
                     >
                         <CopyIcon />
-                        {t('view.feed.generated.copy_user_id')}
+                        {t('dialog.user.info.copy_id')}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!displayName}
@@ -276,7 +276,7 @@ function FeedUserLink({
                         }
                     >
                         <CopyIcon />
-                        {t('view.feed.generated.copy_display_name')}
+                        {t('dialog.user.info.copy_display_name')}
                     </ContextMenuItem>
                 </ContextMenuGroup>
             </ContextMenuContent>
