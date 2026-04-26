@@ -11,7 +11,6 @@ import {
     parseLocation,
     translateAccessType
 } from '@/shared/utils/location.js';
-import { Button } from '@/ui/shadcn/button';
 import { Spinner } from '@/ui/shadcn/spinner';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
@@ -252,6 +251,15 @@ export function StaticSidebarLocation({
         });
     }
 
+    function openGroupFromKeyboard(event) {
+        event.stopPropagation();
+        if (event.key !== 'Enter' && event.key !== ' ') {
+            return;
+        }
+        event.preventDefault();
+        openGroup(event);
+    }
+
     if (!text) {
         return <span className="text-transparent">-</span>;
     }
@@ -317,15 +325,15 @@ export function StaticSidebarLocation({
                 </span>
             </StaticLocationTooltip>
             {showGroupLink && metadata?.groupName ? (
-                <Button
-                    type="button"
-                    variant="ghost"
-                    className="ml-0.5 h-auto min-w-0 truncate p-0 text-left font-normal text-inherit hover:text-primary"
+                <span
+                    role="button"
+                    tabIndex={0}
+                    className="ml-0.5 min-w-0 cursor-pointer truncate text-left font-normal text-inherit hover:text-primary focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
                     onClick={openGroup}
-                    onKeyDown={(event) => event.stopPropagation()}
+                    onKeyDown={openGroupFromKeyboard}
                 >
                     ({metadata.groupName})
-                </Button>
+                </span>
             ) : null}
             {metadata?.isClosed ? (
                 <StaticLocationTooltip

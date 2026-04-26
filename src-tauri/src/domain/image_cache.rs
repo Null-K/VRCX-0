@@ -1,4 +1,5 @@
 use std::collections::HashSet;
+use std::future::Future;
 use std::path::{Component, Path, PathBuf};
 use std::sync::{Arc, Mutex};
 
@@ -56,6 +57,20 @@ impl ImageCache {
         file_id: &str,
         version: &str,
     ) -> Result<String, AppError> {
+        self.get_image_with_fetch(file_id, version, || self.fetch_image(url))
+            .await
+    }
+
+    async fn get_image_with_fetch<F, Fut>(
+        &self,
+        file_id: &str,
+        version: &str,
+        fetch_image: F,
+    ) -> Result<String, AppError>
+    where
+        F: FnOnce() -> Fut,
+        Fut: Future<Output = Result<Vec<u8>, AppError>>,
+    {
         let file_id = safe_cache_component(file_id);
         let version = safe_cache_component(version);
         let dir = self.cache_dir.join(file_id);
@@ -77,7 +92,7 @@ impl ImageCache {
         }
         std::fs::create_dir_all(&dir)?;
 
-        let bytes = self.fetch_image(url).await?;
+        let bytes = fetch_image().await?;
         std::fs::write(&file_path, &bytes)?;
 
         self.clean_cache_if_needed();
@@ -228,10 +243,6 @@ fn is_windows_reserved_name(value: &str) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::{Read, Write};
-    use std::net::TcpListener;
-    use std::thread::JoinHandle;
-    use std::time::{Duration, Instant};
 
     const SMALL_PNG: &[u8] = &[
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44,
@@ -264,39 +275,6 @@ mod tests {
         }
     }
 
-    fn spawn_png_server() -> (String, JoinHandle<()>) {
-        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
-        listener.set_nonblocking(true).unwrap();
-        let addr = listener.local_addr().unwrap();
-        let url = format!("http://{addr}/avatar.png");
-        let handle = std::thread::spawn(move || {
-            let deadline = Instant::now() + Duration::from_secs(5);
-            loop {
-                match listener.accept() {
-                    Ok((mut stream, _)) => {
-                        let mut buffer = [0u8; 1024];
-                        let _ = stream.read(&mut buffer);
-                        let response = format!(
-                            "HTTP/1.1 200 OK\r\nContent-Type: image/png\r\nContent-Length: {}\r\nConnection: close\r\n\r\n",
-                            SMALL_PNG.len()
-                        );
-                        let _ = stream.write_all(response.as_bytes());
-                        let _ = stream.write_all(SMALL_PNG);
-                        break;
-                    }
-                    Err(error)
-                        if error.kind() == std::io::ErrorKind::WouldBlock
-                            && Instant::now() < deadline =>
-                    {
-                        std::thread::sleep(Duration::from_millis(10));
-                    }
-                    Err(_) => break,
-                }
-            }
-        });
-        (url, handle)
-    }
-
     #[test]
     fn get_image_writes_and_reuses_daily_avatar_cache() -> Result<(), AppError> {
         let dir = TestDir::new("image-cache-daily");
@@ -304,20 +282,20 @@ mod tests {
             reqwest_cookie_store::CookieStore::default(),
         ));
         let cache = ImageCache::new(dir.path.join("ImageCache"), jar, None)?;
-        cache
-            .allowed_hosts
-            .lock()
-            .unwrap()
-            .insert("127.0.0.1".into());
 
-        let (url, server) = spawn_png_server();
-        let first = tauri::async_runtime::block_on(cache.get_image(&url, "avatar-file", "1"));
-        server.join().unwrap();
-        let first = first?;
+        let first = tauri::async_runtime::block_on(cache.get_image_with_fetch(
+            "avatar-file",
+            "1",
+            || async { Ok(SMALL_PNG.to_vec()) },
+        ))?;
 
         assert_eq!(std::fs::read(&first)?, SMALL_PNG);
 
-        let second = tauri::async_runtime::block_on(cache.get_image(&url, "avatar-file", "1"))?;
+        let second = tauri::async_runtime::block_on(cache.get_image_with_fetch(
+            "avatar-file",
+            "1",
+            || async { Err(AppError::Custom("unexpected cache miss".into())) },
+        ))?;
         assert_eq!(second, first);
         assert_eq!(std::fs::read(&second)?, SMALL_PNG);
         Ok(())
