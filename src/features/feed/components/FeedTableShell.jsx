@@ -42,13 +42,14 @@ export function FeedTableShell({
                             {table.getRowModel().rows.length > 0 ? (
                                 table.getRowModel().rows.map((row) => (
                                     <Fragment key={row.id}>
-                                        <TableRow>
+                                        <TableRow className="h-9">
                                             {row
                                                 .getVisibleCells()
                                                 .map((cell) => (
                                                     <ResizableTableCell
                                                         key={cell.id}
                                                         cell={cell}
+                                                        className="px-2 py-1"
                                                     />
                                                 ))}
                                         </TableRow>

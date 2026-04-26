@@ -25,7 +25,7 @@ export function MyAvatarsGridView({
                 {visibleGridRows.map((row) => (
                     <div
                         key={row.key}
-                        className="absolute right-1 left-1 grid overflow-hidden"
+                        className="absolute right-1 left-1 grid items-start overflow-visible p-0.5"
                         style={{
                             height: `${row.height}px`,
                             gap: `${gridGap}px`,

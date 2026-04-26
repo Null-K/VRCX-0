@@ -13,11 +13,16 @@ export function getMyAvatarsGridMetrics({ cardScale, cardSpacing, width }) {
                       gridColumnCount
               )
             : gridMinWidth;
+    const cardNameFontSize = Math.max(12, Math.round(22 * cardScale));
+    const cardNameHeight = cardNameFontSize * 2.75;
+    const cardBodyPaddingY = Math.round(6 * cardScale) * 2;
+    const cardTagsHeight = Math.max(14, Math.round(22 * cardScale));
+    const cardBodyGap = 2;
+    const cardBodyHeight =
+        cardBodyPaddingY + cardNameHeight + cardBodyGap + cardTagsHeight;
+    const rowPaddingY = 4;
     const gridRowHeight = Math.ceil(
-        Math.max(
-            180,
-            gridColumnWidth * 0.4 + Math.max(78, 116 * cardScale) + gridGap
-        )
+        gridColumnWidth * 0.4 + cardBodyHeight + rowPaddingY + gridGap
     );
 
     return {

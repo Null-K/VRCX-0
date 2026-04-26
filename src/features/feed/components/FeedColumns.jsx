@@ -22,8 +22,7 @@ function ExpanderCell({ row }) {
         <Button
             type="button"
             variant="ghost"
-            size="icon"
-            className="size-8"
+            size="icon-sm"
             onClick={() => row.toggleExpanded()}
         >
             {row.getIsExpanded() ? (

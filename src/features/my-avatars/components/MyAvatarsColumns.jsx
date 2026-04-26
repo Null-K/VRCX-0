@@ -58,7 +58,7 @@ export function buildMyAvatarsColumns({
                                 row.original?.name ||
                                 t('view.my_avatars.generated.avatar')
                             }
-                            className="h-10 w-16 rounded-sm object-cover"
+                            className="h-8 w-14 rounded-sm object-cover"
                             loading="lazy"
                         />
                     </Button>
@@ -66,7 +66,7 @@ export function buildMyAvatarsColumns({
                     <Button
                         type="button"
                         variant="outline"
-                        className="text-muted-foreground h-10 w-16 p-0"
+                        className="text-muted-foreground h-8 w-14 p-0"
                         onClick={() => openAvatarDetails(row.original)}
                     >
                         <ImageIcon data-icon="inline-start" />

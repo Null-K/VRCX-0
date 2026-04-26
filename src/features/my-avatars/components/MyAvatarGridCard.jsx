@@ -195,7 +195,7 @@ export function MyAvatarGridCard({
                         <span
                             className="line-clamp-2 block min-h-[2.75em] overflow-hidden leading-snug"
                             style={{
-                                fontSize: `${Math.max(9, Math.round(18 * cardScale))}px`
+                                fontSize: `${Math.max(12, Math.round(22 * cardScale))}px`
                             }}
                         >
                             {avatar?.name ||

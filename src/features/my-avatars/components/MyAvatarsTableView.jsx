@@ -47,7 +47,7 @@ export function MyAvatarsTableView({
                                     <ContextMenuTrigger asChild>
                                         <TableRow
                                             className={[
-                                                'cursor-pointer',
+                                                'h-10 cursor-pointer',
                                                 row.original?.id ===
                                                     currentAvatarId
                                                     ? 'bg-primary/10'
@@ -87,6 +87,7 @@ export function MyAvatarsTableView({
                                                     <ResizableTableCell
                                                         key={cell.id}
                                                         cell={cell}
+                                                        className="px-2 py-1"
                                                     />
                                                 ))}
                                         </TableRow>
