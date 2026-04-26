@@ -1,4 +1,6 @@
+import { REGEXP_ONLY_DIGITS, REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
 import { useTranslation } from 'react-i18next';
+
 import { FullscreenImageViewer } from '@/components/media/FullscreenImageViewer.jsx';
 import { useModalStore } from '@/state/modalStore.js';
 import {
@@ -19,7 +21,16 @@ import {
     DialogTitle
 } from '@/ui/shadcn/dialog';
 import { Input } from '@/ui/shadcn/input';
+import {
+    InputOTP,
+    InputOTPGroup,
+    InputOTPSeparator,
+    InputOTPSlot
+} from '@/ui/shadcn/input-otp';
 import { Textarea } from '@/ui/shadcn/textarea';
+
+const OTP_CODE_LENGTH = 6;
+const RECOVERY_CODE_LENGTH = 8;
 
 function matchesPromptPattern(pattern, value) {
     if (!(pattern instanceof RegExp)) {
@@ -28,6 +39,26 @@ function matchesPromptPattern(pattern, value) {
 
     const flags = pattern.flags.replace(/g/g, '');
     return new RegExp(pattern.source, flags).test(value ?? '');
+}
+
+function normalizeRecoveryCode(value) {
+    return (value ?? '')
+        .replace(/[^a-z0-9]/gi, '')
+        .slice(0, RECOVERY_CODE_LENGTH);
+}
+
+function getOtpInputValue(value, mode) {
+    if (mode === 'otp') {
+        return normalizeRecoveryCode(value);
+    }
+
+    return value ?? '';
+}
+
+function renderOtpSlots(count, offset = 0) {
+    return Array.from({ length: count }, (_, index) => (
+        <InputOTPSlot key={offset + index} index={offset + index} />
+    ));
 }
 
 export function ModalHost() {
@@ -57,6 +88,8 @@ export function ModalHost() {
         promptDialog.inputPattern,
         promptDialog.value
     );
+    const otpValue = getOtpInputValue(otpDialog.value, otpDialog.mode);
+    const otpIsRecoveryCode = otpDialog.mode === 'otp';
 
     return (
         <>
@@ -166,13 +199,54 @@ export function ModalHost() {
                             {otpDialog.description}
                         </DialogDescription>
                     </DialogHeader>
-                    <Input
-                        value={otpDialog.value}
-                        onChange={(event) => updateOtpValue(event.target.value)}
-                        placeholder={
-                            otpDialog.mode === 'emailOtp' ? 'Email OTP' : 'OTP'
-                        }
-                    />
+                    <div className="flex justify-center">
+                        <InputOTP
+                            value={otpValue}
+                            maxLength={
+                                otpIsRecoveryCode
+                                    ? RECOVERY_CODE_LENGTH
+                                    : OTP_CODE_LENGTH
+                            }
+                            inputMode={otpIsRecoveryCode ? 'text' : 'numeric'}
+                            pattern={
+                                otpIsRecoveryCode
+                                    ? REGEXP_ONLY_DIGITS_AND_CHARS
+                                    : REGEXP_ONLY_DIGITS
+                            }
+                            autoFocus
+                            pasteTransformer={
+                                otpIsRecoveryCode
+                                    ? normalizeRecoveryCode
+                                    : undefined
+                            }
+                            onChange={(value) =>
+                                updateOtpValue(
+                                    getOtpInputValue(value, otpDialog.mode)
+                                )
+                            }
+                            onComplete={(value) =>
+                                handleOtpOk(
+                                    getOtpInputValue(value, otpDialog.mode)
+                                )
+                            }
+                        >
+                            {otpIsRecoveryCode ? (
+                                <>
+                                    <InputOTPGroup>
+                                        {renderOtpSlots(4)}
+                                    </InputOTPGroup>
+                                    <InputOTPSeparator />
+                                    <InputOTPGroup>
+                                        {renderOtpSlots(4, 4)}
+                                    </InputOTPGroup>
+                                </>
+                            ) : (
+                                <InputOTPGroup>
+                                    {renderOtpSlots(OTP_CODE_LENGTH)}
+                                </InputOTPGroup>
+                            )}
+                        </InputOTP>
+                    </div>
                     <DialogFooter>
                         <Button
                             type="button"
