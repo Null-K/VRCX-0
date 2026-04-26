@@ -44,16 +44,37 @@ function estimateGroupSidebarRowSize(row) {
     }
 }
 
-function normalizeGroupId(instance) {
-    const nestedId =
-        instance?.group?.groupId ||
-        instance?.group?.id ||
-        instance?.instance?.group?.groupId ||
-        instance?.instance?.group?.id;
-    if (typeof nestedId === 'string' && nestedId.startsWith('grp_')) {
-        return nestedId;
+function firstGroupId(...values) {
+    for (const value of values) {
+        const text =
+            typeof value === 'string'
+                ? value.trim()
+                : String(value ?? '').trim();
+        if (text.startsWith('grp_')) {
+            return text;
+        }
     }
     return '';
+}
+
+function normalizeGroupId(instance) {
+    const location = resolveLocation(instance);
+    const parsedLocation = parseLocation(location);
+    return firstGroupId(
+        instance?.group?.groupId ||
+            instance?.group?.id ||
+            instance?.instance?.group?.groupId ||
+            instance?.instance?.group?.id,
+        instance?.groupId,
+        instance?.group_id,
+        instance?.instance?.groupId,
+        instance?.instance?.group_id,
+        instance?.ownerId,
+        instance?.owner_id,
+        instance?.instance?.ownerId,
+        instance?.instance?.owner_id,
+        parsedLocation.groupId
+    );
 }
 
 function resolveGroupName(instance, groupId) {
@@ -405,6 +426,12 @@ export function GroupsSidebar() {
                     type: 'message',
                     key: 'message:empty',
                     text: error || 'Failed to load group instances.'
+                });
+            } else if (status === 'ready') {
+                nextRows.push({
+                    type: 'message',
+                    key: 'message:empty-ready',
+                    text: 'No active group instances.'
                 });
             } else {
                 for (let index = 0; index < 4; index += 1) {

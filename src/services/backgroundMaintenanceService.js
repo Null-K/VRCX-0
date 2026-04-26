@@ -147,27 +147,45 @@ function parseInGameGroupOrder(value) {
         : [];
 }
 
-function normalizeGroupInstanceGroupId(instance) {
-    const explicitGroupId =
-        instance?.group?.groupId ||
-        instance?.group?.id ||
-        instance?.instance?.group?.groupId ||
-        instance?.instance?.group?.id;
-    if (
-        typeof explicitGroupId === 'string' &&
-        explicitGroupId.startsWith('grp_')
-    ) {
-        return explicitGroupId;
+function firstGroupId(...values) {
+    for (const value of values) {
+        const text =
+            typeof value === 'string'
+                ? value.trim()
+                : String(value ?? '').trim();
+        if (text.startsWith('grp_')) {
+            return text;
+        }
     }
+    return '';
+}
 
-    const ownerId = instance?.ownerId || instance?.instance?.ownerId;
-    return typeof ownerId === 'string' && ownerId.startsWith('grp_')
-        ? ownerId
-        : '';
+function normalizeGroupInstanceGroupId(instance) {
+    const location = instance?.location || instance?.instance?.location || '';
+    const parsedLocation = parseLocation(location);
+    return firstGroupId(
+        instance?.group?.groupId ||
+            instance?.group?.id ||
+            instance?.instance?.group?.groupId ||
+            instance?.instance?.group?.id,
+        instance?.groupId,
+        instance?.group_id,
+        instance?.instance?.groupId,
+        instance?.instance?.group_id,
+        instance?.ownerId,
+        instance?.owner_id,
+        instance?.instance?.ownerId,
+        instance?.instance?.owner_id,
+        parsedLocation.groupId
+    );
 }
 
 function getGroupInstanceGroup(instance) {
     return instance?.group || instance?.instance?.group || null;
+}
+
+function createGroupInstanceFallback(groupId) {
+    return groupId ? { id: groupId, groupId, name: groupId } : null;
 }
 
 function hasCompleteGroupInstanceGroup(instance) {
@@ -258,7 +276,7 @@ async function hydrateGroupInstances(instances, endpoint) {
     return (instances || []).map((instance) => {
         const groupId = normalizeGroupInstanceGroupId(instance);
         const group = mergeGroupInstanceGroup(
-            getGroupInstanceGroup(instance),
+            getGroupInstanceGroup(instance) || createGroupInstanceFallback(groupId),
             groupsById.get(groupId)
         );
         return group ? { ...instance, group } : instance;
