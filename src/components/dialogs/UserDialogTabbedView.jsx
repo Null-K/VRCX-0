@@ -102,10 +102,7 @@ export function UserDialogTabbedView({
     onReportHacking,
     onGroupModeration,
     onEditSelfStatus,
-    onEditSelfLanguages,
-    onEditSelfBio,
-    onEditSelfBioLinks,
-    onEditSelfPronouns,
+    onEditSelfProfileDetails,
     onToggleSelfAvatarCopying,
     onToggleSelfBooping,
     onToggleSelfSharedConnections,
@@ -435,10 +432,7 @@ export function UserDialogTabbedView({
                         onCopyUserId={() => void copyUserText(profile.id, 'User ID')}
                         onCopyUserUrl={() => void copyUserText(userUrl, 'User URL')}
                         onEditMemo={onEditMemo}
-                        onEditSelfBio={onEditSelfBio}
-                        onEditSelfBioLinks={onEditSelfBioLinks}
-                        onEditSelfLanguages={onEditSelfLanguages}
-                        onEditSelfPronouns={onEditSelfPronouns}
+                        onEditSelfProfileDetails={onEditSelfProfileDetails}
                         onEditSelfStatus={onEditSelfStatus}
                         onExtendedModeration={onExtendedModeration}
                         onFriendRequest={onFriendRequest}

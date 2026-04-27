@@ -1,13 +1,13 @@
 import { InviteMessageDialog } from '../../InviteMessageDialog.jsx';
 import {
-    UserLanguageDialog,
+    UserProfileDetailsDialog,
     UserSocialStatusDialog
 } from '../UserSelfEditDialogs.jsx';
 
 export function UserDialogContentDialogs({
     actionStatus,
     socialStatusDialog,
-    languageDialog,
+    profileDetailsDialog,
     inviteMessageDialog
 }) {
     return (
@@ -27,17 +27,29 @@ export function UserDialogContentDialogs({
                 onCancel={socialStatusDialog.onCancel}
                 onSave={socialStatusDialog.onSave}
             />
-            <UserLanguageDialog
-                open={languageDialog.open}
-                onOpenChange={languageDialog.onOpenChange}
+            <UserProfileDetailsDialog
+                open={profileDetailsDialog.open}
+                onOpenChange={profileDetailsDialog.onOpenChange}
                 actionStatus={actionStatus}
-                currentLanguageRows={languageDialog.currentLanguageRows}
-                availableLanguageOptions={languageDialog.availableLanguageOptions}
-                selectedLanguageToAdd={languageDialog.selectedLanguageToAdd}
-                languageOptionsStatus={languageDialog.languageOptionsStatus}
-                onSelectedLanguageChange={languageDialog.onSelectedLanguageChange}
-                onAddLanguage={languageDialog.onAddLanguage}
-                onRemoveLanguage={languageDialog.onRemoveLanguage}
+                draft={profileDetailsDialog.draft}
+                setDraft={profileDetailsDialog.setDraft}
+                languageRows={profileDetailsDialog.languageRows}
+                availableLanguageOptions={
+                    profileDetailsDialog.availableLanguageOptions
+                }
+                selectedLanguageToAdd={
+                    profileDetailsDialog.selectedLanguageToAdd
+                }
+                languageOptionsStatus={
+                    profileDetailsDialog.languageOptionsStatus
+                }
+                onSelectedLanguageChange={
+                    profileDetailsDialog.onSelectedLanguageChange
+                }
+                onAddLanguage={profileDetailsDialog.onAddLanguage}
+                onRemoveLanguage={profileDetailsDialog.onRemoveLanguage}
+                onCancel={profileDetailsDialog.onCancel}
+                onSave={profileDetailsDialog.onSave}
             />
             <InviteMessageDialog
                 open={Boolean(inviteMessageDialog.request)}

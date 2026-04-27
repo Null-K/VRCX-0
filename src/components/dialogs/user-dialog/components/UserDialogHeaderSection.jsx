@@ -238,10 +238,7 @@ export function UserDialogHeaderSection({
     onCopyUserId,
     onCopyUserUrl,
     onEditMemo,
-    onEditSelfBio,
-    onEditSelfBioLinks,
-    onEditSelfLanguages,
-    onEditSelfPronouns,
+    onEditSelfProfileDetails,
     onEditSelfStatus,
     onExtendedModeration,
     onFriendRequest,
@@ -439,10 +436,9 @@ export function UserDialogHeaderSection({
                             onShowAvatarAuthor={onShowAvatarAuthor}
                             onOpenFallbackAvatar={onOpenFallbackAvatar}
                             onEditSelfStatus={onEditSelfStatus}
-                            onEditSelfLanguages={onEditSelfLanguages}
-                            onEditSelfBio={onEditSelfBio}
-                            onEditSelfBioLinks={onEditSelfBioLinks}
-                            onEditSelfPronouns={onEditSelfPronouns}
+                            onEditSelfProfileDetails={
+                                onEditSelfProfileDetails
+                            }
                             onToggleSelfAvatarCopying={
                                 onToggleSelfAvatarCopying
                             }

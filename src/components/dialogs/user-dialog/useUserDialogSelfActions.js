@@ -26,6 +26,76 @@ function setSelfActionStatus(actionStatusRef, setActionStatus, nextStatus) {
     setActionStatus(nextStatus);
 }
 
+function createProfileDetailsDraft() {
+    return {
+        languageKeys: [],
+        bio: '',
+        bioLinks: [''],
+        pronouns: ''
+    };
+}
+
+function normalizeStringArray(values) {
+    const seen = new Set();
+    const rows = [];
+    for (const value of values ?? []) {
+        const normalized =
+            typeof value === 'string'
+                ? value.trim()
+                : String(value ?? '').trim();
+        if (!normalized || seen.has(normalized)) {
+            continue;
+        }
+        rows.push(normalized);
+        seen.add(normalized);
+    }
+    return rows;
+}
+
+function normalizeLanguageKeys(values) {
+    const keys = [];
+    const seen = new Set();
+    for (const value of values ?? []) {
+        const key = normalizeLanguageKey(value);
+        if (!key || seen.has(key)) {
+            continue;
+        }
+        keys.push(key);
+        seen.add(key);
+    }
+    return keys.slice(0, 3);
+}
+
+function normalizeBioLinks(values) {
+    return (values ?? [])
+        .map((value) =>
+            typeof value === 'string'
+                ? value.trim().slice(0, 1000)
+                : String(value ?? '').trim().slice(0, 1000)
+        )
+        .filter(Boolean)
+        .slice(0, 3);
+}
+
+function normalizeProfileBioLinks(profile) {
+    return normalizeBioLinks(
+        Array.isArray(profile?.bioLinks) ? profile.bioLinks : []
+    );
+}
+
+function normalizeProfilePronouns(profile) {
+    return Array.isArray(profile?.pronouns)
+        ? normalizeStringArray(profile.pronouns).join(', ')
+        : String(profile?.pronouns || '');
+}
+
+function areStringArraysEqual(left, right) {
+    if (left.length !== right.length) {
+        return false;
+    }
+    return left.every((value, index) => value === right[index]);
+}
+
 export function useUserDialogSelfActions({
     profile,
     isCurrentUser,
@@ -35,8 +105,7 @@ export function useUserDialogSelfActions({
     baseProfile,
     setBaseProfile,
     actionStatusRef,
-    setActionStatus,
-    prompt
+    setActionStatus
 }) {
     const { t } = useTranslation();
 
@@ -45,7 +114,11 @@ export function useUserDialogSelfActions({
         status: 'active',
         statusDescription: ''
     });
-    const [languageDialogOpen, setLanguageDialogOpen] = useState(false);
+    const [profileDetailsDialogOpen, setProfileDetailsDialogOpen] =
+        useState(false);
+    const [profileDetailsDraft, setProfileDetailsDraft] = useState(
+        createProfileDetailsDraft
+    );
     const [languageOptions, setLanguageOptions] = useState([]);
     const [languageOptionsStatus, setLanguageOptionsStatus] = useState('idle');
     const [selectedLanguageToAdd, setSelectedLanguageToAdd] = useState('');
@@ -68,16 +141,32 @@ export function useUserDialogSelfActions({
         () => normalizeProfileLanguageRows(profile, languageOptionsMap),
         [profile, languageOptionsMap]
     );
-    const selectedLanguageKeys = useMemo(
-        () => new Set(currentLanguageRows.map((language) => language.key)),
+    const currentLanguageKeys = useMemo(
+        () => currentLanguageRows.map((language) => language.key),
         [currentLanguageRows]
+    );
+    const profileDetailsLanguageKeys = useMemo(
+        () => normalizeLanguageKeys(profileDetailsDraft.languageKeys),
+        [profileDetailsDraft.languageKeys]
+    );
+    const profileDetailsLanguageRows = useMemo(
+        () =>
+            profileDetailsLanguageKeys.map((key) => ({
+                key,
+                value: languageOptionsMap.get(key)?.value || key.toUpperCase()
+            })),
+        [languageOptionsMap, profileDetailsLanguageKeys]
+    );
+    const profileDetailsLanguageKeySet = useMemo(
+        () => new Set(profileDetailsLanguageKeys),
+        [profileDetailsLanguageKeys]
     );
     const availableLanguageOptions = useMemo(
         () =>
             languageOptions.filter(
-                (option) => !selectedLanguageKeys.has(option.key)
+                (option) => !profileDetailsLanguageKeySet.has(option.key)
             ),
-        [languageOptions, selectedLanguageKeys]
+        [languageOptions, profileDetailsLanguageKeySet]
     );
     const statusHistoryRows = useMemo(
         () => normalizeStatusHistoryRows(profile, currentUserSnapshot),
@@ -105,7 +194,7 @@ export function useUserDialogSelfActions({
     useEffect(() => {
         let active = true;
 
-        if (!languageDialogOpen || languageOptions.length) {
+        if (!profileDetailsDialogOpen || languageOptions.length) {
             return () => {
                 active = false;
             };
@@ -139,7 +228,7 @@ export function useUserDialogSelfActions({
         return () => {
             active = false;
         };
-    }, [currentEndpoint, languageDialogOpen, languageOptions.length]);
+    }, [currentEndpoint, languageOptions.length, profileDetailsDialogOpen]);
 
     function applyCurrentUserSnapshot(nextUser) {
         const displayBaseUser = mergeCurrentUserPresenceFields(
@@ -266,155 +355,145 @@ export function useUserDialogSelfActions({
         }
     }
 
-    function editSelfLanguages() {
-        if (!isCurrentUser || actionStatusRef.current !== 'idle') {
+    function editSelfProfileDetails() {
+        if (!isCurrentUser || actionStatusRef.current !== 'idle' || !profile) {
             return;
         }
 
-        setSelectedLanguageToAdd('');
-        setLanguageDialogOpen(true);
-    }
-
-    async function addSelfLanguage(languageKey) {
-        const key = normalizeLanguageKey(languageKey);
-        if (
-            !key ||
-            selectedLanguageKeys.has(key) ||
-            currentLanguageRows.length >= 3
-        ) {
-            return;
-        }
-
-        const nextUser = await runSelfProfileMutation({
-            task: () =>
-                userProfileRepository.addCurrentUserTags({
-                    userId: currentUserId,
-                    endpoint: currentEndpoint,
-                    tags: [`language_${key}`]
-                }),
-            successMessage: t('dialog.user.generated.language_added'),
-            fallbackErrorMessage: t(
-                'dialog.user.generated_toast.failed_to_add_language'
-            ),
-            onSuccess: (nextProfile) => {
-                applyCurrentUserSnapshot(nextProfile);
-                setSelectedLanguageToAdd('');
-            }
+        const bioLinks = normalizeProfileBioLinks(profile);
+        setProfileDetailsDraft({
+            languageKeys: currentLanguageRows
+                .map((language) => language.key)
+                .slice(0, 3),
+            bio: String(profile.bio || ''),
+            bioLinks: bioLinks.length ? bioLinks : [''],
+            pronouns: normalizeProfilePronouns(profile)
         });
-
-        return nextUser;
+        setSelectedLanguageToAdd('');
+        setProfileDetailsDialogOpen(true);
     }
 
-    async function removeSelfLanguage(languageKey) {
+    function addProfileDetailsLanguage(languageKey) {
         const key = normalizeLanguageKey(languageKey);
         if (!key) {
             return;
         }
+        setProfileDetailsDraft((current) => {
+            const languageKeys = normalizeLanguageKeys(current.languageKeys);
+            if (languageKeys.includes(key) || languageKeys.length >= 3) {
+                return current;
+            }
+            return {
+                ...current,
+                languageKeys: [...languageKeys, key]
+            };
+        });
+        setSelectedLanguageToAdd('');
+    }
 
-        const nextUser = await runSelfProfileMutation({
-            task: () =>
-                userProfileRepository.removeCurrentUserTags({
+    function removeProfileDetailsLanguage(languageKey) {
+        const key = normalizeLanguageKey(languageKey);
+        if (!key) {
+            return;
+        }
+        setProfileDetailsDraft((current) => ({
+            ...current,
+            languageKeys: normalizeLanguageKeys(current.languageKeys).filter(
+                (language) => language !== key
+            )
+        }));
+        setSelectedLanguageToAdd('');
+    }
+
+    async function saveSelfProfileDetails() {
+        if (!isCurrentUser || actionStatusRef.current !== 'idle' || !profile) {
+            return;
+        }
+
+        const nextLanguageKeys = normalizeLanguageKeys(
+            profileDetailsDraft.languageKeys
+        );
+        const addLanguageKeys = nextLanguageKeys.filter(
+            (key) => !currentLanguageKeys.includes(key)
+        );
+        const removeLanguageKeys = currentLanguageKeys.filter(
+            (key) => !nextLanguageKeys.includes(key)
+        );
+        const nextBio = String(profileDetailsDraft.bio || '').slice(0, 512);
+        const nextBioLinks = normalizeProfileBioLinks({
+            bioLinks: profileDetailsDraft.bioLinks
+        });
+        const nextPronouns = String(profileDetailsDraft.pronouns || '').slice(
+            0,
+            32
+        );
+        const patch = {};
+
+        if (nextBio !== String(profile.bio || '')) {
+            patch.bio = nextBio;
+        }
+        if (
+            !areStringArraysEqual(nextBioLinks, normalizeProfileBioLinks(profile))
+        ) {
+            patch.bioLinks = nextBioLinks;
+        }
+        if (nextPronouns !== normalizeProfilePronouns(profile)) {
+            patch.pronouns = nextPronouns;
+        }
+
+        if (
+            !Object.keys(patch).length &&
+            !addLanguageKeys.length &&
+            !removeLanguageKeys.length
+        ) {
+            setProfileDetailsDialogOpen(false);
+            return;
+        }
+
+        setSelfActionStatus(actionStatusRef, setActionStatus, 'self-profile');
+
+        try {
+            if (Object.keys(patch).length) {
+                const nextProfile = await userProfileRepository.updateCurrentUser({
                     userId: currentUserId,
                     endpoint: currentEndpoint,
-                    tags: [`language_${key}`]
-                }),
-            successMessage: t('dialog.user.generated.language_removed'),
-            fallbackErrorMessage: t(
-                'dialog.user.generated_toast.failed_to_remove_language'
-            ),
-            onSuccess: (nextProfile) => {
+                    params: patch
+                });
                 applyCurrentUserSnapshot(nextProfile);
-                setSelectedLanguageToAdd('');
             }
-        });
+            if (removeLanguageKeys.length) {
+                const nextProfile =
+                    await userProfileRepository.removeCurrentUserTags({
+                        userId: currentUserId,
+                        endpoint: currentEndpoint,
+                        tags: removeLanguageKeys.map((key) => `language_${key}`)
+                    });
+                applyCurrentUserSnapshot(nextProfile);
+            }
+            if (addLanguageKeys.length) {
+                const nextProfile =
+                    await userProfileRepository.addCurrentUserTags({
+                        userId: currentUserId,
+                        endpoint: currentEndpoint,
+                        tags: addLanguageKeys.map((key) => `language_${key}`)
+                    });
+                applyCurrentUserSnapshot(nextProfile);
+            }
 
-        return nextUser;
-    }
-
-    async function editSelfBio() {
-        if (!profile) {
-            return;
-        }
-
-        const result = await prompt({
-            title: t('dialog.user.generated_modal.edit_bio'),
-            inputValue: profile.bio || '',
-            multiline: true,
-            confirmText: t('common.actions.save'),
-            cancelText: t('common.actions.cancel')
-        });
-        if (result.ok) {
-            await saveCurrentUserPatch(
-                { bio: result.value },
-                {
-                    successMessage: t('dialog.user.generated.bio_updated'),
-                    errorMessage: t(
-                        'dialog.user.generated_toast.failed_to_update_bio'
+            toast.success(t('dialog.user.generated.profile_details_updated'));
+            setProfileDetailsDialogOpen(false);
+            setSelectedLanguageToAdd('');
+        } catch (error) {
+            toast.error(
+                userFacingErrorMessage(
+                    error,
+                    t(
+                        'dialog.user.generated_toast.failed_to_update_profile_details'
                     )
-                }
+                )
             );
-        }
-    }
-
-    async function editSelfBioLinks() {
-        if (!profile) {
-            return;
-        }
-
-        const result = await prompt({
-            title: t('dialog.user.generated_modal.edit_bio_links'),
-            description: t(
-                'dialog.user.generated_modal.one_link_per_line_up_to_3'
-            ),
-            inputValue: Array.isArray(profile.bioLinks)
-                ? profile.bioLinks.join('\n')
-                : '',
-            multiline: true,
-            confirmText: t('common.actions.save'),
-            cancelText: t('common.actions.cancel')
-        });
-        if (result.ok) {
-            await saveCurrentUserPatch(
-                {
-                    bioLinks: String(result.value || '')
-                        .split(/\r?\n/)
-                        .map((link) => link.trim())
-                        .filter(Boolean)
-                        .slice(0, 3)
-                },
-                {
-                    successMessage: t('dialog.user.generated.bio_links_updated'),
-                    errorMessage: t(
-                        'dialog.user.generated_toast.failed_to_update_bio_links'
-                    )
-                }
-            );
-        }
-    }
-
-    async function editSelfPronouns() {
-        if (!profile) {
-            return;
-        }
-
-        const result = await prompt({
-            title: t('dialog.user.generated_modal.edit_pronouns'),
-            inputValue: Array.isArray(profile.pronouns)
-                ? profile.pronouns.join(', ')
-                : profile.pronouns || '',
-            confirmText: t('common.actions.save'),
-            cancelText: t('common.actions.cancel')
-        });
-        if (result.ok) {
-            await saveCurrentUserPatch(
-                { pronouns: result.value },
-                {
-                    successMessage: t('dialog.user.generated.pronouns_updated'),
-                    errorMessage: t(
-                        'dialog.user.generated_toast.failed_to_update_pronouns'
-                    )
-                }
-            );
+        } finally {
+            setSelfActionStatus(actionStatusRef, setActionStatus, 'idle');
         }
     }
 
@@ -528,14 +607,18 @@ export function useUserDialogSelfActions({
         }
     }
 
-    function handleLanguageDialogOpenChange(nextOpen) {
+    function handleProfileDetailsDialogOpenChange(nextOpen) {
         if (nextOpen || actionStatusRef.current === 'idle') {
-            setLanguageDialogOpen(nextOpen);
+            setProfileDetailsDialogOpen(nextOpen);
         }
     }
 
     function closeSocialStatusDialog() {
         setSocialStatusDialogOpen(false);
+    }
+
+    function closeProfileDetailsDialog() {
+        setProfileDetailsDialogOpen(false);
     }
 
     return {
@@ -553,23 +636,24 @@ export function useUserDialogSelfActions({
             onCancel: closeSocialStatusDialog,
             onSave: saveSelfSocialStatus
         },
-        languageDialog: {
-            open: languageDialogOpen,
-            onOpenChange: handleLanguageDialogOpenChange,
-            currentLanguageRows,
+        profileDetailsDialog: {
+            open: profileDetailsDialogOpen,
+            onOpenChange: handleProfileDetailsDialogOpenChange,
+            draft: profileDetailsDraft,
+            setDraft: setProfileDetailsDraft,
+            languageRows: profileDetailsLanguageRows,
             availableLanguageOptions,
             selectedLanguageToAdd,
             languageOptionsStatus,
             onSelectedLanguageChange: setSelectedLanguageToAdd,
-            onAddLanguage: addSelfLanguage,
-            onRemoveLanguage: removeSelfLanguage
+            onAddLanguage: addProfileDetailsLanguage,
+            onRemoveLanguage: removeProfileDetailsLanguage,
+            onCancel: closeProfileDetailsDialog,
+            onSave: saveSelfProfileDetails
         },
         actions: {
             editSelfStatus,
-            editSelfLanguages,
-            editSelfBio,
-            editSelfBioLinks,
-            editSelfPronouns,
+            editSelfProfileDetails,
             toggleSelfAvatarCopying,
             toggleSelfBooping,
             toggleSelfSharedConnections,

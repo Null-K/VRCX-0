@@ -44,10 +44,7 @@ export function UserDialogHeaderActions({
     onShowAvatarAuthor,
     onOpenFallbackAvatar,
     onEditSelfStatus,
-    onEditSelfLanguages,
-    onEditSelfBio,
-    onEditSelfBioLinks,
-    onEditSelfPronouns,
+    onEditSelfProfileDetails,
     onFriendRequest,
     onInvite,
     onInviteMessage,
@@ -123,30 +120,9 @@ export function UserDialogHeaderActions({
                         <EntityActionItem
                             icon={PencilIcon}
                             disabled={actionsDisabled}
-                            onSelect={onEditSelfLanguages}
+                            onSelect={onEditSelfProfileDetails}
                         >
-                            {t('dialog.user.actions.edit_language')}
-                        </EntityActionItem>
-                        <EntityActionItem
-                            icon={PencilIcon}
-                            disabled={actionsDisabled}
-                            onSelect={onEditSelfBio}
-                        >
-                            {t('dialog.user.actions.edit_bio')}
-                        </EntityActionItem>
-                        <EntityActionItem
-                            icon={PencilIcon}
-                            disabled={actionsDisabled}
-                            onSelect={onEditSelfBioLinks}
-                        >
-                            {t('dialog.user.generated.edit_bio_links')}
-                        </EntityActionItem>
-                        <EntityActionItem
-                            icon={PencilIcon}
-                            disabled={actionsDisabled}
-                            onSelect={onEditSelfPronouns}
-                        >
-                            {t('dialog.user.actions.edit_pronouns')}
+                            {t('dialog.user.actions.edit_profile_details')}
                         </EntityActionItem>
                     </>
                 ) : null}

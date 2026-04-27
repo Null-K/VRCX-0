@@ -1,4 +1,10 @@
-import { BookmarkIcon, CheckIcon, HistoryIcon, XIcon } from 'lucide-react';
+import {
+    BookmarkIcon,
+    CheckIcon,
+    HistoryIcon,
+    PlusIcon,
+    XIcon
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { userStatusIndicatorClassName } from '@/lib/userStatus.js';
@@ -19,8 +25,20 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
-import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
+import {
+    Field,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel
+} from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
+import { ScrollArea } from '@/ui/shadcn/scroll-area';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput
+} from '@/ui/shadcn/input-group';
 import {
     Select,
     SelectContent,
@@ -29,6 +47,8 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
+import { Separator } from '@/ui/shadcn/separator';
+import { Textarea } from '@/ui/shadcn/textarea';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
@@ -315,123 +335,341 @@ export function UserSocialStatusDialog({
     );
 }
 
-export function UserLanguageDialog({
+export function UserProfileDetailsDialog({
     open,
     onOpenChange,
     actionStatus,
-    currentLanguageRows,
+    draft,
+    setDraft,
+    languageRows,
     availableLanguageOptions,
     selectedLanguageToAdd,
     languageOptionsStatus,
     onSelectedLanguageChange,
     onAddLanguage,
-    onRemoveLanguage
+    onRemoveLanguage,
+    onCancel,
+    onSave
 }) {
     const { t } = useTranslation();
 
     const busy = actionStatus !== 'idle';
+    const bioLinks = draft.bioLinks?.length ? draft.bioLinks : [''];
+    const bioLength = String(draft.bio || '').length;
+    const pronounsLength = String(draft.pronouns || '').length;
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="grid max-h-[calc(100vh-4rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-xl">
                 <DialogHeader>
                     <DialogTitle>
-                        {t('dialog.user.generated.edit_language')}
+                        {t('dialog.user.generated.edit_profile_details')}
                     </DialogTitle>
                     <DialogDescription>
                         {t(
-                            'dialog.user.generated.add_or_remove_the_languages_shown_on_your_profile'
+                            'dialog.user.generated.update_your_profile_details'
                         )}
                     </DialogDescription>
                 </DialogHeader>
-                <div className="flex flex-col gap-4">
-                    <div className="flex min-h-8 flex-wrap gap-2">
-                        {currentLanguageRows.length ? (
-                            currentLanguageRows.map((language) => (
-                                <Tooltip key={language.key}>
-                                    <TooltipTrigger asChild>
-                                        <Badge
-                                            variant="outline"
-                                            className="gap-1.5 pr-1"
+                <ScrollArea className="-mx-1 min-h-0 px-1">
+                    <FieldGroup className="gap-4 pb-3">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                            <Field>
+                                <div className="flex items-center justify-between gap-2">
+                                    <FieldLabel>
+                                        {t('dialog.user.generated.languages')}
+                                    </FieldLabel>
+                                    <span className="text-muted-foreground text-xs tabular-nums">
+                                        {languageRows.length}/3
+                                    </span>
+                                </div>
+                                <div className="flex min-h-8 flex-wrap gap-2">
+                                    {languageRows.length ? (
+                                        languageRows.map((language) => (
+                                            <Tooltip key={language.key}>
+                                                <TooltipTrigger asChild>
+                                                    <Badge
+                                                        variant="outline"
+                                                        className="max-w-full gap-1.5 pr-1"
+                                                    >
+                                                        <span className="truncate">
+                                                            {languageOptionLabel(
+                                                                language
+                                                            )}
+                                                        </span>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="icon-xs"
+                                                            disabled={busy}
+                                                            aria-label={t(
+                                                                'dialog.user.generated.remove_language'
+                                                            )}
+                                                            onClick={() =>
+                                                                onRemoveLanguage(
+                                                                    language.key
+                                                                )
+                                                            }
+                                                        >
+                                                            <XIcon data-icon="inline-start" />
+                                                        </Button>
+                                                    </Badge>
+                                                </TooltipTrigger>
+                                                <TooltipContent>
+                                                    {languageOptionLabel(
+                                                        language
+                                                    )}
+                                                </TooltipContent>
+                                            </Tooltip>
+                                        ))
+                                    ) : (
+                                        <div className="text-muted-foreground text-sm">
+                                            {t(
+                                                'dialog.user.generated.no_languages_selected'
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                                {languageRows.length < 3 ? (
+                                    <>
+                                        <Select
+                                            value={selectedLanguageToAdd}
+                                            disabled={
+                                                busy ||
+                                                languageOptionsStatus ===
+                                                    'running' ||
+                                                !availableLanguageOptions.length
+                                            }
+                                            onValueChange={(value) => {
+                                                onSelectedLanguageChange(value);
+                                                onAddLanguage(value);
+                                            }}
                                         >
-                                            <span>
-                                                {languageOptionLabel(language)}
-                                            </span>
-                                            <Button
+                                            <SelectTrigger
+                                                className="w-full"
+                                                size="sm"
+                                            >
+                                                <SelectValue
+                                                    placeholder={
+                                                        languageOptionsStatus ===
+                                                        'running'
+                                                            ? t(
+                                                                  'dialog.user.generated.loading_languages'
+                                                              )
+                                                            : t(
+                                                                  'dialog.user.generated.select_language'
+                                                              )
+                                                    }
+                                                />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectGroup>
+                                                    {availableLanguageOptions.map(
+                                                        (option) => (
+                                                            <SelectItem
+                                                                key={option.key}
+                                                                value={
+                                                                    option.key
+                                                                }
+                                                                textValue={languageOptionLabel(
+                                                                    option
+                                                                )}
+                                                            >
+                                                                {languageOptionLabel(
+                                                                    option
+                                                                )}
+                                                            </SelectItem>
+                                                        )
+                                                    )}
+                                                </SelectGroup>
+                                            </SelectContent>
+                                        </Select>
+                                        {languageOptionsStatus === 'error' ? (
+                                            <FieldDescription>
+                                                {t(
+                                                    'dialog.user.generated.vrchat_language_list_unavailable_using_local_language_codes'
+                                                )}
+                                            </FieldDescription>
+                                        ) : null}
+                                    </>
+                                ) : null}
+                            </Field>
+                            <Field>
+                                <div className="flex items-center justify-between gap-2">
+                                    <FieldLabel htmlFor="user-profile-pronouns">
+                                        {t('dialog.user.generated.pronouns')}
+                                    </FieldLabel>
+                                    <span className="text-muted-foreground text-xs tabular-nums">
+                                        {pronounsLength}/32
+                                    </span>
+                                </div>
+                                <Input
+                                    id="user-profile-pronouns"
+                                    value={draft.pronouns}
+                                    placeholder={t(
+                                        'dialog.pronouns.pronouns_placeholder'
+                                    )}
+                                    maxLength={32}
+                                    disabled={busy}
+                                    onChange={(event) => {
+                                        setDraft((current) => ({
+                                            ...current,
+                                            pronouns:
+                                                event.target.value.slice(0, 32)
+                                        }));
+                                    }}
+                                />
+                            </Field>
+                        </div>
+                        <Separator className="-my-1" />
+                        <Field>
+                            <div className="flex items-center justify-between gap-2">
+                                <FieldLabel>
+                                    {t('dialog.user.generated.bio_links')}
+                                </FieldLabel>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-muted-foreground text-xs tabular-nums">
+                                        {bioLinks.length}/3
+                                    </span>
+                                    {bioLinks.length < 3 ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="xs"
+                                            disabled={busy}
+                                            onClick={() => {
+                                                setDraft((current) => ({
+                                                    ...current,
+                                                    bioLinks: [
+                                                        ...(current.bioLinks
+                                                            ?.length
+                                                            ? current.bioLinks
+                                                            : ['']),
+                                                        ''
+                                                    ].slice(0, 3)
+                                                }));
+                                            }}
+                                        >
+                                            <PlusIcon data-icon="inline-start" />
+                                            {t(
+                                                'dialog.user.generated.add_bio_link'
+                                            )}
+                                        </Button>
+                                    ) : null}
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                {bioLinks.map((link, index) => (
+                                    <InputGroup key={index}>
+                                        <InputGroupInput
+                                            value={link}
+                                            placeholder={`https://example.com/${index + 1}`}
+                                            maxLength={1000}
+                                            disabled={busy}
+                                            onChange={(event) => {
+                                                const nextValue =
+                                                    event.target.value.slice(
+                                                        0,
+                                                        1000
+                                                    );
+                                                setDraft((current) => {
+                                                    const nextBioLinks = [
+                                                        ...(current.bioLinks
+                                                            ?.length
+                                                            ? current.bioLinks
+                                                            : [''])
+                                                    ];
+                                                    nextBioLinks[index] =
+                                                        nextValue;
+                                                    return {
+                                                        ...current,
+                                                        bioLinks: nextBioLinks
+                                                            .slice(0, 3)
+                                                    };
+                                                });
+                                            }}
+                                        />
+                                        <InputGroupAddon align="inline-end">
+                                            <InputGroupButton
                                                 type="button"
-                                                variant="ghost"
                                                 size="icon-xs"
-                                                disabled={busy}
-                                                aria-label={`Remove ${languageOptionLabel(language)}`}
-                                                onClick={() =>
-                                                    onRemoveLanguage(
-                                                        language.key
-                                                    )
+                                                disabled={
+                                                    busy || bioLinks.length <= 1
                                                 }
+                                                aria-label={t(
+                                                    'dialog.user.generated.remove_bio_link'
+                                                )}
+                                                onClick={() => {
+                                                    setDraft((current) => {
+                                                        const nextBioLinks = [
+                                                            ...(current.bioLinks
+                                                                ?.length
+                                                                ? current.bioLinks
+                                                                : [''])
+                                                        ];
+                                                        nextBioLinks.splice(
+                                                            index,
+                                                            1
+                                                        );
+                                                        return {
+                                                            ...current,
+                                                            bioLinks:
+                                                                nextBioLinks
+                                                                    .length
+                                                                    ? nextBioLinks
+                                                                    : ['']
+                                                        };
+                                                    });
+                                                }}
                                             >
                                                 <XIcon data-icon="inline-start" />
-                                            </Button>
-                                        </Badge>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        {languageOptionLabel(language)}
-                                    </TooltipContent>
-                                </Tooltip>
-                            ))
-                        ) : (
-                            <div className="text-muted-foreground text-sm">
-                                {t(
-                                    'dialog.user.generated.no_languages_selected'
-                                )}
-                            </div>
-                        )}
-                    </div>
-                    <Select
-                        value={selectedLanguageToAdd}
-                        disabled={
-                            busy ||
-                            languageOptionsStatus === 'running' ||
-                            currentLanguageRows.length >= 3 ||
-                            !availableLanguageOptions.length
-                        }
-                        onValueChange={(value) => {
-                            onSelectedLanguageChange(value);
-                            onAddLanguage(value);
-                        }}
-                    >
-                        <SelectTrigger className="w-full" size="sm">
-                            <SelectValue
-                                placeholder={
-                                    currentLanguageRows.length >= 3
-                                        ? 'Maximum 3 languages'
-                                        : languageOptionsStatus === 'running'
-                                          ? 'Loading languages'
-                                          : 'Select language'
-                                }
-                            />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                {availableLanguageOptions.map((option) => (
-                                    <SelectItem
-                                        key={option.key}
-                                        value={option.key}
-                                        textValue={languageOptionLabel(option)}
-                                    >
-                                        {languageOptionLabel(option)}
-                                    </SelectItem>
+                                            </InputGroupButton>
+                                        </InputGroupAddon>
+                                    </InputGroup>
                                 ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
-                    {languageOptionsStatus === 'error' ? (
-                        <div className="text-muted-foreground text-xs">
-                            {t(
-                                'dialog.user.generated.vrchat_language_list_unavailable_using_local_language_codes'
-                            )}
-                        </div>
-                    ) : null}
-                </div>
+                            </div>
+                        </Field>
+                        <Separator className="-my-1" />
+                        <Field>
+                            <div className="flex items-center justify-between gap-2">
+                                <FieldLabel htmlFor="user-profile-bio">
+                                    {t('dialog.user.generated.bio')}
+                                </FieldLabel>
+                                <FieldDescription className="text-xs">
+                                    {bioLength}/512
+                                </FieldDescription>
+                            </div>
+                            <Textarea
+                                id="user-profile-bio"
+                                rows={6}
+                                value={draft.bio}
+                                placeholder={t('dialog.bio.bio_placeholder')}
+                                maxLength={512}
+                                disabled={busy}
+                                className="field-sizing-fixed max-h-56 min-h-36 resize-y overflow-y-auto"
+                                onChange={(event) => {
+                                    setDraft((current) => ({
+                                        ...current,
+                                        bio: event.target.value.slice(0, 512)
+                                    }));
+                                }}
+                            />
+                        </Field>
+                    </FieldGroup>
+                </ScrollArea>
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={onCancel}
+                    >
+                        {t('common.actions.cancel')}
+                    </Button>
+                    <Button type="button" disabled={busy} onClick={onSave}>
+                        {t('common.actions.save')}
+                    </Button>
+                </DialogFooter>
             </DialogContent>
         </Dialog>
     );

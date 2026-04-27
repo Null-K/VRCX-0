@@ -305,7 +305,7 @@ export function UserDialogContent({ userId, seedData = null, openNonce = 0 }) {
         t
     });
 
-    const { socialStatusDialog, languageDialog, actions: selfActions } =
+    const { socialStatusDialog, profileDetailsDialog, actions: selfActions } =
         useUserDialogSelfActions({
             profile,
             isCurrentUser,
@@ -315,8 +315,7 @@ export function UserDialogContent({ userId, seedData = null, openNonce = 0 }) {
             baseProfile,
             setBaseProfile,
             actionStatusRef,
-            setActionStatus,
-            prompt
+            setActionStatus
         });
 
     const {
@@ -458,10 +457,7 @@ export function UserDialogContent({ userId, seedData = null, openNonce = 0 }) {
                     void userActions.openGroupModerationForUser()
                 }
                 onEditSelfStatus={selfActions.editSelfStatus}
-                onEditSelfLanguages={selfActions.editSelfLanguages}
-                onEditSelfBio={selfActions.editSelfBio}
-                onEditSelfBioLinks={selfActions.editSelfBioLinks}
-                onEditSelfPronouns={selfActions.editSelfPronouns}
+                onEditSelfProfileDetails={selfActions.editSelfProfileDetails}
                 onToggleSelfAvatarCopying={selfActions.toggleSelfAvatarCopying}
                 onToggleSelfBooping={selfActions.toggleSelfBooping}
                 onToggleSelfSharedConnections={
@@ -476,7 +472,7 @@ export function UserDialogContent({ userId, seedData = null, openNonce = 0 }) {
             <UserDialogContentDialogs
                 actionStatus={actionStatus}
                 socialStatusDialog={socialStatusDialog}
-                languageDialog={languageDialog}
+                profileDetailsDialog={profileDetailsDialog}
                 inviteMessageDialog={{
                     request: inviteMessageRequest,
                     onOpenChange: handleInviteMessageDialogOpenChange,
