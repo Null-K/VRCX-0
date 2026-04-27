@@ -98,7 +98,6 @@ const commandArgs: Record<string, string[]> = {
     app__save_image_file: ['defaultName', 'base64Data'],
     app__focus_window: [],
     app__flash_window: [],
-    app__check_for_tauri_update: [],
     app__check_legacy_vrcx_available: [],
     app__get_legacy_vrcx_migration_status: [],
     app__request_legacy_migration: [],
@@ -133,10 +132,6 @@ const commandArgs: Record<string, string[]> = {
         'monthFolder',
         'fileName'
     ],
-    app__download_tauri_update: ['manifestUrl', 'target'],
-    app__install_tauri_update: [],
-    app__cancel_update: [],
-    app__check_update_progress: [],
     asset_bundle__get_vrchat_cache_full_location: [
         'fileId',
         'fileVersion',

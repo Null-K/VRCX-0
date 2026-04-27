@@ -7,11 +7,6 @@ use crate::error::AppError;
 use crate::state::AppState;
 
 #[tauri::command]
-pub fn app__check_for_tauri_update(state: State<'_, AppState>) -> bool {
-    state.update_manager.check_for_tauri_update()
-}
-
-#[tauri::command]
 pub fn app__check_legacy_vrcx_available(state: State<'_, AppState>) -> bool {
     state.legacy_vrcx_available
 }
@@ -52,39 +47,4 @@ pub fn app__request_legacy_migration(
         app_handle.request_restart();
         Ok(true)
     }
-}
-
-#[tauri::command]
-pub fn app__download_tauri_update(
-    app_handle: AppHandle,
-    state: State<'_, AppState>,
-    manifest_url: String,
-    target: String,
-) -> Result<(), AppError> {
-    state
-        .update_manager
-        .start_tauri_download(app_handle, manifest_url, target);
-    Ok(())
-}
-
-#[tauri::command]
-pub async fn app__install_tauri_update(
-    app_handle: AppHandle,
-    state: State<'_, AppState>,
-) -> Result<(), AppError> {
-    state
-        .update_manager
-        .install_tauri_update(app_handle)
-        .await
-        .map_err(AppError::Custom)
-}
-
-#[tauri::command]
-pub fn app__cancel_update(state: State<'_, AppState>) {
-    state.update_manager.cancel_download();
-}
-
-#[tauri::command]
-pub fn app__check_update_progress(state: State<'_, AppState>) -> i32 {
-    state.update_manager.check_progress()
 }

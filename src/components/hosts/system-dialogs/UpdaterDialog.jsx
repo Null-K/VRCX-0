@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { useTranslation } from 'react-i18next';
 import { openExternalLink } from '@/lib/entityMedia.js';
@@ -6,9 +6,8 @@ import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { backend } from '@/platform/index.js';
 import {
     canInstallUpdatesOnPlatform,
-    checkPendingInstallUpdate,
     defaultBranchForVersion,
-    downloadUpdateAndWait,
+    downloadAndInstallUpdate,
     fetchBranchReleases,
     formatReleaseDisplayVersion,
     sanitizeBranch
@@ -42,13 +41,11 @@ export function UpdaterDialog({ open, onOpenChange }) {
     );
     const canInstallUpdates = canInstallUpdatesOnPlatform(hostPlatform);
 
-    const cancelTokenRef = useRef(null);
     const [branch, setBranch] = useState(() =>
         defaultBranchForVersion(VERSION || '')
     );
     const [releases, setReleases] = useState([]);
     const [releaseVersion, setReleaseVersion] = useState('');
-    const [pendingInstallType, setPendingInstallType] = useState('');
     const [loading, setLoading] = useState(false);
     const [downloading, setDownloading] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -65,18 +62,6 @@ export function UpdaterDialog({ open, onOpenChange }) {
         let active = true;
         setLoading(true);
         setDetail('Checking update state.');
-
-        checkPendingInstallUpdate(hostPlatform)
-            .then((pendingType) => {
-                if (active) {
-                    setPendingInstallType(pendingType);
-                }
-            })
-            .catch(() => {
-                if (active) {
-                    setPendingInstallType('');
-                }
-            });
 
         fetchBranchReleases(branch, {
             hostPlatform,
@@ -124,13 +109,11 @@ export function UpdaterDialog({ open, onOpenChange }) {
         };
     }, [branch, canInstallUpdates, hostPlatform, open]);
 
-    async function handleDownload() {
+    async function handleInstallUpdate() {
         if (!canInstallUpdates || !selectedRelease || downloading) {
             return;
         }
 
-        const cancelToken = { cancelled: false };
-        cancelTokenRef.current = cancelToken;
         setDownloading(true);
         setProgress(0);
         setDetail(
@@ -139,47 +122,19 @@ export function UpdaterDialog({ open, onOpenChange }) {
             })
         );
         try {
-            await downloadUpdateAndWait(selectedRelease, {
-                onProgress: setProgress,
-                isCancelled: () => cancelToken.cancelled
+            await downloadAndInstallUpdate(selectedRelease, {
+                branch,
+                hostPlatform,
+                onProgress: setProgress
             });
-            setPendingInstallType(selectedRelease.updaterType);
-            setDetail(
-                t(
-                    'host.system_dialogs.generated_dynamic.value_is_ready_to_install',
-                    { value: selectedRelease.displayName }
-                )
-            );
-        } catch (error) {
-            setDetail(
-                userFacingErrorMessage(error, 'Failed to download update.')
-            );
-        } finally {
-            if (cancelTokenRef.current === cancelToken) {
-                cancelTokenRef.current = null;
-            }
-            setDownloading(false);
-            setProgress(0);
-        }
-    }
-
-    async function handleCancel() {
-        if (cancelTokenRef.current) {
-            cancelTokenRef.current.cancelled = true;
-        }
-        setDetail('Cancelling update download.');
-        await backend.app.CancelUpdate().catch(() => {});
-        setProgress(0);
-    }
-
-    async function handleInstall() {
-        try {
-            await backend.app.InstallTauriUpdate();
             await backend.app.RestartApplication();
         } catch (error) {
             setDetail(
                 userFacingErrorMessage(error, 'Failed to install update.')
             );
+        } finally {
+            setDownloading(false);
+            setProgress(0);
         }
     }
 
@@ -218,33 +173,42 @@ export function UpdaterDialog({ open, onOpenChange }) {
                             </TabsTrigger>
                         </TabsList>
                     </Tabs>
-                    <Select
-                        value={releaseVersion}
-                        onValueChange={setReleaseVersion}
-                        disabled={loading || downloading}
-                    >
-                        <SelectTrigger>
-                            <SelectValue
-                                placeholder={
-                                    loading
-                                        ? 'Loading releases'
-                                        : 'Select release'
-                                }
-                            />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectGroup>
-                                {releases.map((release) => (
-                                    <SelectItem
-                                        key={release.canonicalVersion}
-                                        value={release.canonicalVersion}
-                                    >
-                                        {release.displayName}
-                                    </SelectItem>
-                                ))}
-                            </SelectGroup>
-                        </SelectContent>
-                    </Select>
+                    {canInstallUpdates ? (
+                        <div className="border-input bg-background text-foreground flex h-9 w-full items-center truncate rounded-md border px-3 text-sm">
+                            {selectedRelease?.displayName ||
+                                (loading
+                                    ? 'Loading releases'
+                                    : 'Select release')}
+                        </div>
+                    ) : (
+                        <Select
+                            value={releaseVersion}
+                            onValueChange={setReleaseVersion}
+                            disabled={loading || downloading}
+                        >
+                            <SelectTrigger>
+                                <SelectValue
+                                    placeholder={
+                                        loading
+                                            ? 'Loading releases'
+                                            : 'Select release'
+                                    }
+                                />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectGroup>
+                                    {releases.map((release) => (
+                                        <SelectItem
+                                            key={release.canonicalVersion}
+                                            value={release.canonicalVersion}
+                                        >
+                                            {release.displayName}
+                                        </SelectItem>
+                                    ))}
+                                </SelectGroup>
+                            </SelectContent>
+                        </Select>
+                    )}
                     {canInstallUpdates && downloading ? (
                         <div className="flex flex-col gap-2">
                             <div className="bg-muted h-2 overflow-hidden rounded-full">
@@ -255,16 +219,9 @@ export function UpdaterDialog({ open, onOpenChange }) {
                             </div>
                             <div className="text-muted-foreground text-xs">
                                 {progress === 100
-                                    ? 'Checking hash.'
+                                    ? 'Installing update.'
                                     : `${progress}%`}
                             </div>
-                        </div>
-                    ) : null}
-                    {canInstallUpdates && pendingInstallType ? (
-                        <div className="bg-muted/30 rounded-md border p-3 text-sm">
-                            {t(
-                                'dialog.system.generated.an_update_is_downloaded_and_ready_to_install'
-                            )}
                         </div>
                     ) : null}
                     {detail ? (
@@ -277,34 +234,16 @@ export function UpdaterDialog({ open, onOpenChange }) {
                     ) : null}
                 </FieldGroup>
                 <DialogFooter>
-                    {canInstallUpdates && downloading ? (
+                    {canInstallUpdates ? (
                         <Button
                             type="button"
-                            variant="outline"
-                            onClick={() => void handleCancel()}
+                            disabled={
+                                !selectedRelease || loading || downloading
+                            }
+                            onClick={() => void handleInstallUpdate()}
                         >
-                            {t('common.actions.cancel')}
+                            {t('dialog.system.generated.install_and_restart')}
                         </Button>
-                    ) : null}
-                    {canInstallUpdates ? (
-                        <>
-                            <Button
-                                type="button"
-                                disabled={
-                                    !selectedRelease || loading || downloading
-                                }
-                                onClick={() => void handleDownload()}
-                            >
-                                {t('dialog.vrcx_updater.download')}
-                            </Button>
-                            <Button
-                                type="button"
-                                disabled={downloading || !pendingInstallType}
-                                onClick={() => void handleInstall()}
-                            >
-                                {t('dialog.system.generated.install_and_restart')}
-                            </Button>
-                        </>
                     ) : (
                         <Button
                             type="button"

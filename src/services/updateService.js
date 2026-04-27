@@ -1,5 +1,6 @@
-import { backend } from '@/platform/index.js';
-import { webRepository } from '@/repositories/index.js';
+import { check as checkTauriUpdater } from '@tauri-apps/plugin-updater';
+
+import { storageRepository, webRepository } from '@/repositories/index.js';
 import { branches } from '@/shared/constants/settings.js';
 import {
     compareReleaseVersions,
@@ -7,10 +8,8 @@ import {
     parseReleaseVersion
 } from '@/shared/utils/releaseVersion.js';
 
-const UPDATE_PROGRESS_COMPLETE = 101;
-const UPDATE_PROGRESS_ERROR = -1;
 const INSTALLABLE_PLATFORMS = new Set(['windows', 'linux']);
-let updateDownloadInFlight = null;
+let updateInstallInFlight = null;
 
 function channelIdForBranch(branch) {
     return String(sanitizeBranch(branch)).toLowerCase();
@@ -191,106 +190,115 @@ async function fetchLatestBranchRelease(branch, options = {}) {
     return releases[0] || null;
 }
 
-async function waitForUpdateDownload({
-    onProgress,
-    isCancelled,
-    isReady,
-    pollMs = 150,
-    timeoutMs = 30 * 60 * 1000
-} = {}) {
-    const startedAt = Date.now();
-
-    while (Date.now() - startedAt < timeoutMs) {
-        if (isCancelled?.()) {
-            await backend.app.CancelUpdate().catch(() => {});
-            throw new Error('Update download cancelled.');
-        }
-
-        const progress =
-            Number(await backend.app.CheckUpdateProgress().catch(() => 0)) || 0;
-        if (progress === UPDATE_PROGRESS_ERROR) {
-            throw new Error('Update download failed.');
-        }
-
-        onProgress?.(Math.max(0, Math.min(100, progress)));
-        if (progress >= UPDATE_PROGRESS_COMPLETE) {
-            const ready = isReady
-                ? await isReady()
-                : await checkPendingInstallUpdate();
-            if (ready) {
-                onProgress?.(100);
-                return true;
-            }
-        }
-
-        await new Promise((resolve) => window.setTimeout(resolve, pollMs));
-    }
-
-    throw new Error('Update download timed out.');
+async function getUpdaterProxy() {
+    const proxy = await storageRepository
+        .getString('VRCX_ProxyServer', '')
+        .catch(() => '');
+    return String(proxy || '').trim();
 }
 
-async function checkPendingInstallUpdate(hostPlatform = 'unknown') {
-    if (canInstallUpdatesOnPlatform(hostPlatform)) {
-        const hasTauriUpdate = await backend.app
-            .CheckForTauriUpdate()
-            .catch(() => false);
-        if (hasTauriUpdate) {
-            return 'tauri';
-        }
-    }
-
-    return '';
+function shouldAllowDowngradesForBranch(branch) {
+    return sanitizeBranch(branch) !== defaultBranchForVersion(VERSION || '');
 }
 
-async function downloadUpdateAndWait(release, options = {}) {
-    if (updateDownloadInFlight) {
-        throw new Error('An update download is already in progress.');
-    }
-    if (!release?.manifestUrl || !release?.target) {
-        throw new Error('Selected release has no Tauri updater manifest.');
+async function buildTauriUpdaterCheckOptions(branch, hostPlatform) {
+    if (!canInstallUpdatesOnPlatform(hostPlatform)) {
+        throw new Error(`Updates are not installable on ${hostPlatform}.`);
     }
 
-    updateDownloadInFlight = (async () => {
-        await backend.app.DownloadTauriUpdate(
-            release.manifestUrl,
-            release.target
+    const target = getUpdaterTarget(hostPlatform, branch);
+    if (!target) {
+        throw new Error('No Tauri updater target is available.');
+    }
+
+    const proxy = await getUpdaterProxy();
+    return {
+        target,
+        allowDowngrades: shouldAllowDowngradesForBranch(branch),
+        ...(proxy ? { proxy } : {})
+    };
+}
+
+async function checkInstallableUpdate(
+    branch,
+    { hostPlatform = 'unknown' } = {}
+) {
+    if (!canInstallUpdatesOnPlatform(hostPlatform)) {
+        return null;
+    }
+
+    const options = await buildTauriUpdaterCheckOptions(branch, hostPlatform);
+    return checkTauriUpdater(options);
+}
+
+async function downloadAndInstallUpdate(release, options = {}) {
+    if (updateInstallInFlight) {
+        throw new Error('An update install is already in progress.');
+    }
+    const hostPlatform = options.hostPlatform || 'unknown';
+    const branch = sanitizeBranch(options.branch || release?.channel);
+    if (!release?.target) {
+        throw new Error('Selected release has no Tauri updater target.');
+    }
+
+    updateInstallInFlight = (async () => {
+        const checkOptions = await buildTauriUpdaterCheckOptions(
+            branch,
+            hostPlatform
         );
-        await waitForUpdateDownload({
-            ...options,
-            isReady:
-                options.isReady ||
-                (() => backend.app.CheckForTauriUpdate().catch(() => false))
+        const update = await checkTauriUpdater(checkOptions);
+        if (!update) {
+            throw new Error('No Tauri update is available.');
+        }
+
+        let downloaded = 0;
+        let contentLength = 0;
+        await update.downloadAndInstall((event) => {
+            if (event.event === 'Started') {
+                downloaded = 0;
+                contentLength = Number(event.data.contentLength) || 0;
+                options.onProgress?.(0);
+                return;
+            }
+            if (event.event === 'Progress') {
+                downloaded += Number(event.data.chunkLength) || 0;
+                if (contentLength > 0) {
+                    options.onProgress?.(
+                        Math.min(
+                            100,
+                            Math.round((downloaded / contentLength) * 100)
+                        )
+                    );
+                }
+                return;
+            }
+            if (event.event === 'Finished') {
+                options.onProgress?.(100);
+            }
         });
-        return release;
+
+        return update;
     })();
 
     try {
-        return await updateDownloadInFlight;
+        return await updateInstallInFlight;
     } finally {
-        updateDownloadInFlight = null;
+        updateInstallInFlight = null;
     }
 }
 
-function isUpdateDownloadInFlight() {
-    return Boolean(updateDownloadInFlight);
-}
-
 export {
-    UPDATE_PROGRESS_COMPLETE,
-    UPDATE_PROGRESS_ERROR,
     canInstallUpdatesOnPlatform,
-    checkPendingInstallUpdate,
+    checkInstallableUpdate,
     defaultBranchForVersion,
-    downloadUpdateAndWait,
+    downloadAndInstallUpdate,
     fetchBranchReleases,
     fetchLatestBranchRelease,
     formatReleaseDisplayVersion,
     getUpdaterManifestAssetName,
     getUpdaterTarget,
     hasUpdateForBranch,
-    isUpdateDownloadInFlight,
     normalizeGitHubRelease,
     normalizeReleaseList,
-    sanitizeBranch,
-    waitForUpdateDownload
+    sanitizeBranch
 };

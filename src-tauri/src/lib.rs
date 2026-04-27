@@ -397,10 +397,9 @@ pub fn run() {
             api::app::window::app__do_funny,
             api::app::window::app__set_tray_icon_notification,
             api::app::window::app__restart_application,
-            api::app::updates::app__check_for_tauri_update,
-            api::app::updates::app__check_legacy_vrcx_available,
-            api::app::updates::app__get_legacy_vrcx_migration_status,
-            api::app::updates::app__request_legacy_migration,
+            api::app::legacy_migration::app__check_legacy_vrcx_available,
+            api::app::legacy_migration::app__get_legacy_vrcx_migration_status,
+            api::app::legacy_migration::app__request_legacy_migration,
             api::app::clipboard::app__get_clipboard,
             api::app::clipboard::app__copy_image_to_clipboard,
             api::app::window::app__set_startup,
@@ -438,10 +437,6 @@ pub fn run() {
             api::app::media::app__save_print_to_file,
             api::app::media::app__save_sticker_to_file,
             api::app::media::app__save_emoji_to_file,
-            api::app::updates::app__download_tauri_update,
-            api::app::updates::app__install_tauri_update,
-            api::app::updates::app__cancel_update,
-            api::app::updates::app__check_update_progress,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

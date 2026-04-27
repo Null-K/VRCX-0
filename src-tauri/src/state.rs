@@ -10,7 +10,6 @@ use crate::domain::log_watcher::LogWatcher;
 use crate::domain::process_monitor::ProcessMonitor;
 use crate::domain::screenshot::MetadataCacheDb;
 use crate::domain::storage::StorageService;
-use crate::domain::update::UpdateManager;
 use crate::domain::web_client::WebClient;
 use crate::error::AppError;
 
@@ -30,7 +29,6 @@ pub struct AppState {
     pub log_watcher: LogWatcher,
     pub web: WebClient,
     pub image_cache: ImageCache,
-    pub update_manager: UpdateManager,
     pub ipc: IpcServer,
     pub screenshot_cache: MetadataCacheDb,
 
@@ -55,6 +53,7 @@ impl AppState {
             image_cache: app_data.join("ImageCache"),
             app_data,
         };
+        cleanup_legacy_updater_files(&paths.app_data);
         let launched_from_autostart = std::env::args().any(|arg| arg == "--autostart");
 
         let migration_flag = paths.app_data.join("pending_vrcx_migration");
@@ -94,7 +93,6 @@ impl AppState {
         let web = WebClient::new(&storage, &db)?;
         let image_cache =
             ImageCache::new(paths.image_cache.clone(), web.cookie_jar(), web.proxy_url())?;
-        let update_manager = UpdateManager::new(paths.app_data.clone(), web.proxy_url());
         let ipc = IpcServer::new();
         let screenshot_cache = MetadataCacheDb::new(&paths.app_data.join("metadataCache.db"))
             .map_err(|e| AppError::Custom(format!("screenshot cache: {e}")))?;
@@ -110,7 +108,6 @@ impl AppState {
             log_watcher,
             web,
             image_cache,
-            update_manager,
             ipc,
             screenshot_cache,
             auto_launch,
@@ -119,6 +116,22 @@ impl AppState {
             legacy_vrcx_migration_status,
             launched_from_autostart,
         })
+    }
+}
+
+fn cleanup_legacy_updater_files(app_data: &std::path::Path) {
+    for file_name in ["update.exe", "VRCX-0_Setup.exe", "tempDownload"] {
+        let _ = std::fs::remove_file(app_data.join(file_name));
+    }
+
+    if let Ok(entries) = std::fs::read_dir(app_data) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            let file_name = path.file_name().and_then(|name| name.to_str());
+            if file_name.is_some_and(|name| name.starts_with("tempDownload-")) {
+                let _ = std::fs::remove_file(path);
+            }
+        }
     }
 }
 

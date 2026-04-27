@@ -10,9 +10,8 @@ import {
 } from '@/repositories/index.js';
 import {
     canInstallUpdatesOnPlatform,
-    checkPendingInstallUpdate,
+    checkInstallableUpdate,
     defaultBranchForVersion,
-    downloadUpdateAndWait,
     fetchLatestBranchRelease,
     formatReleaseDisplayVersion,
     hasUpdateForBranch,
@@ -810,45 +809,60 @@ async function checkForAppUpdate({ includeRegistryBackup = true } = {}) {
         'autoUpdateVRCX',
         'Auto Download'
     );
-    if (autoUpdateMode === 'Auto Install') {
-        autoUpdateMode = 'Auto Download';
+    if (
+        autoUpdateMode === 'Auto Install' ||
+        autoUpdateMode === 'Auto Download'
+    ) {
+        autoUpdateMode = 'Notify';
         await configRepository.setString('autoUpdateVRCX', autoUpdateMode);
     }
 
     if (autoUpdateMode !== 'Off') {
-        const available = await checkPendingInstallUpdate(hostPlatform);
-        if (available) {
-            useNotificationStore.getState().pushNotification({
-                level: 'info',
-                title: i18n.t(
-                    'service.background_maintenance.generated.vrcx_update_available'
-                ),
-                message: i18n.t(
-                    'service.background_maintenance.generated.update_ready_to_install'
-                )
-            });
-            useRuntimeStore.getState().setSystemHostOpen('updaterOpen', true);
-        } else {
-            try {
-                const savedBranch = await configRepository.getString(
-                    'branch',
-                    ''
-                );
-                const defaultBranch = defaultBranchForVersion(VERSION || '');
-                const sanitizedSavedBranch = sanitizeBranch(savedBranch);
-                const branch =
-                    defaultBranch !== 'Stable'
-                        ? defaultBranch
-                        : savedBranch
-                          ? sanitizedSavedBranch
-                          : defaultBranch;
-                if (branch !== savedBranch) {
-                    await configRepository.setString('branch', branch);
-                }
+        try {
+            const savedBranch = await configRepository.getString('branch', '');
+            const defaultBranch = defaultBranchForVersion(VERSION || '');
+            const sanitizedSavedBranch = sanitizeBranch(savedBranch);
+            const branch =
+                defaultBranch !== 'Stable'
+                    ? defaultBranch
+                    : savedBranch
+                      ? sanitizedSavedBranch
+                      : defaultBranch;
+            if (branch !== savedBranch) {
+                await configRepository.setString('branch', branch);
+            }
 
+            if (canInstallUpdates) {
+                const update = await checkInstallableUpdate(branch, {
+                    hostPlatform
+                });
+                if (update) {
+                    const displayVersion = formatReleaseDisplayVersion(
+                        update.version
+                    );
+                    const message = i18n.t(
+                        'service.background_maintenance_service.generated_dynamic.version_value_is_available_on_the_value_branch',
+                        { value: displayVersion, value2: branch }
+                    );
+                    useNotificationStore.getState().pushNotification({
+                        level: 'info',
+                        title: i18n.t(
+                            'service.background_maintenance.generated.vrcx_update_available'
+                        ),
+                        message
+                    });
+                    useRuntimeStore.getState().setUpdateLoopState({
+                        lastUpdaterCheckAt: new Date().toISOString(),
+                        lastUpdaterCheckDetail: message
+                    });
+                    useRuntimeStore
+                        .getState()
+                        .setSystemHostOpen('updaterOpen', true);
+                }
+            } else {
                 const latestRelease = await fetchLatestBranchRelease(branch, {
                     hostPlatform,
-                    requireInstallerAsset: canInstallUpdates
+                    requireInstallerAsset: false
                 });
                 if (
                     latestRelease &&
@@ -861,61 +875,29 @@ async function checkForAppUpdate({ includeRegistryBackup = true } = {}) {
                     const displayVersion = formatReleaseDisplayVersion(
                         latestRelease.canonicalVersion
                     );
+                    const message = i18n.t(
+                        'service.background_maintenance_service.generated_dynamic.version_value_is_available_on_the_value_branch',
+                        { value: displayVersion, value2: branch }
+                    );
                     useNotificationStore.getState().pushNotification({
                         level: 'info',
                         title: i18n.t(
                             'service.background_maintenance.generated.vrcx_update_available'
                         ),
-                        message: i18n.t('service.background_maintenance_service.generated_dynamic.version_value_is_available_on_the_value_branch', { value: displayVersion, value2: branch })
+                        message
                     });
-
-                    if (!canInstallUpdates) {
-                        useRuntimeStore
-                            .getState()
-                            .setSystemHostOpen('updaterOpen', true);
-                    } else if (autoUpdateMode === 'Auto Download') {
-                        useRuntimeStore.getState().setUpdateLoopState({
-                            lastUpdaterCheckAt: new Date().toISOString(),
-                            lastUpdaterCheckDetail: i18n.t(
-                                'service.background_maintenance.generated.downloading_version',
-                                { version: displayVersion }
-                            )
-                        });
-                        await downloadUpdateAndWait(latestRelease, {
-                            onProgress: (progress) => {
-                                useRuntimeStore.getState().setUpdateLoopState({
-                                    lastUpdaterCheckAt:
-                                        new Date().toISOString(),
-                                    lastUpdaterCheckDetail: i18n.t(
-                                        'service.background_maintenance.generated.downloading_version_progress',
-                                        {
-                                            version: displayVersion,
-                                            progress
-                                        }
-                                    )
-                                });
-                            }
-                        });
-                        useNotificationStore.getState().pushNotification({
-                            level: 'info',
-                            title: i18n.t(
-                                'service.background_maintenance.generated.vrcx_update_downloaded'
-                            ),
-                            message: i18n.t('service.background_maintenance_service.generated_dynamic.version_value_is_ready_to_install', { value: displayVersion })
-                        });
-                        useRuntimeStore
-                            .getState()
-                            .setSystemHostOpen('updaterOpen', true);
-                    }
+                    useRuntimeStore
+                        .getState()
+                        .setSystemHostOpen('updaterOpen', true);
                 }
-            } catch (error) {
-                console.warn('Failed to check for VRCX-0 updates:', error);
-                useRuntimeStore.getState().setUpdateLoopState({
-                    lastUpdaterCheckAt: new Date().toISOString(),
-                    lastUpdaterCheckDetail:
-                        error instanceof Error ? error.message : String(error)
-                });
             }
+        } catch (error) {
+            console.warn('Failed to check for VRCX-0 updates:', error);
+            useRuntimeStore.getState().setUpdateLoopState({
+                lastUpdaterCheckAt: new Date().toISOString(),
+                lastUpdaterCheckDetail:
+                    error instanceof Error ? error.message : String(error)
+            });
         }
     }
 

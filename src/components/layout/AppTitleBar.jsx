@@ -22,7 +22,8 @@ import { backend } from '@/platform/index.js';
 import { setSidebarCollapsedPreference } from '@/services/preferencesService.js';
 import {
     canInstallUpdatesOnPlatform,
-    checkPendingInstallUpdate
+    checkInstallableUpdate,
+    defaultBranchForVersion
 } from '@/services/updateService.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
@@ -44,8 +45,8 @@ import { AppMenuBar } from './AppMenuBar.jsx';
 import { shouldShowSidePanel } from './sidePanelRoutes.js';
 import { useDirectAccessAction } from './useDirectAccessAction.js';
 
-const UPDATE_EXE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
-const UPDATE_EXE_CHECK_RETRY_MS = 5 * 60 * 1000;
+const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+const UPDATE_CHECK_RETRY_MS = 5 * 60 * 1000;
 
 function TitleBarButton({ label, className, children, onClick, ...props }) {
     return (
@@ -84,7 +85,7 @@ export function AppTitleBar() {
     const location = useLocation();
     const [isMaximized, setIsMaximized] = useState(false);
     const [quickSearchOpen, setQuickSearchOpen] = useState(false);
-    const [hasPendingUpdate, setHasPendingUpdate] = useState(false);
+    const [hasAvailableUpdate, setHasAvailableUpdate] = useState(false);
     const { openDirectAccessFromClipboard } = useDirectAccessAction();
     const isSessionReady = useSessionStore(
         (state) => state.sessionPhase === 'ready'
@@ -164,54 +165,54 @@ export function AppTitleBar() {
 
     useEffect(() => {
         if (!isSessionReady || !canInstallUpdatesOnPlatform(hostPlatform)) {
-            setHasPendingUpdate(false);
+            setHasAvailableUpdate(false);
             return undefined;
         }
 
         let active = true;
         let checking = false;
-        let lastPendingUpdateCheckAt = 0;
-        let lastPendingUpdateFailureAt = 0;
-        const refreshPendingUpdate = ({ force = false } = {}) => {
+        let lastUpdateCheckAt = 0;
+        let lastUpdateFailureAt = 0;
+        const refreshAvailableUpdate = ({ force = false } = {}) => {
             const now = Date.now();
             if (
                 checking ||
                 (!force &&
-                    (now - lastPendingUpdateCheckAt <
-                        UPDATE_EXE_CHECK_INTERVAL_MS ||
-                        now - lastPendingUpdateFailureAt <
-                            UPDATE_EXE_CHECK_RETRY_MS))
+                    (now - lastUpdateCheckAt < UPDATE_CHECK_INTERVAL_MS ||
+                        now - lastUpdateFailureAt < UPDATE_CHECK_RETRY_MS))
             ) {
                 return;
             }
 
             checking = true;
-            checkPendingInstallUpdate(hostPlatform)
+            checkInstallableUpdate(defaultBranchForVersion(VERSION || ''), {
+                hostPlatform
+            })
                 .then((value) => {
-                    lastPendingUpdateCheckAt = Date.now();
-                    lastPendingUpdateFailureAt = 0;
+                    lastUpdateCheckAt = Date.now();
+                    lastUpdateFailureAt = 0;
                     if (active) {
-                        setHasPendingUpdate(Boolean(value));
+                        setHasAvailableUpdate(Boolean(value));
                     }
                 })
                 .catch(() => {
-                    lastPendingUpdateFailureAt = Date.now();
+                    lastUpdateFailureAt = Date.now();
                 })
                 .finally(() => {
                     checking = false;
                 });
         };
 
-        refreshPendingUpdate({ force: true });
+        refreshAvailableUpdate({ force: true });
         const intervalId = window.setInterval(
-            refreshPendingUpdate,
-            UPDATE_EXE_CHECK_INTERVAL_MS
+            refreshAvailableUpdate,
+            UPDATE_CHECK_INTERVAL_MS
         );
-        window.addEventListener('focus', refreshPendingUpdate);
+        window.addEventListener('focus', refreshAvailableUpdate);
         return () => {
             active = false;
             window.clearInterval(intervalId);
-            window.removeEventListener('focus', refreshPendingUpdate);
+            window.removeEventListener('focus', refreshAvailableUpdate);
         };
     }, [hostPlatform, isSessionReady]);
 
@@ -339,7 +340,7 @@ export function AppTitleBar() {
                 </div>
                 {titleBarActionsVisible ? (
                     <div className="flex h-full shrink-0 items-center">
-                        {hasPendingUpdate ? (
+                        {hasAvailableUpdate ? (
                             <Tooltip>
                                 <TooltipTrigger asChild>
                                     <Button

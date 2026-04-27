@@ -12,7 +12,6 @@ pub mod png;
 pub mod process_monitor;
 pub mod screenshot;
 pub mod storage;
-pub mod update;
 #[cfg(target_os = "linux")]
 pub mod vrchat_paths;
 pub mod web_client;
