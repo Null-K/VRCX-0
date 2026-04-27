@@ -194,9 +194,10 @@ function UserDialogPresenceSection({ presence, presenceActions, profile, t }) {
                             endpoint={currentEndpoint}
                             hint={locationWorldTitle}
                             instanceClickAction="world"
+                            showPlayerSummary={false}
                         />
                         <InstanceActionBar
-                            className="shrink-0"
+                            className="min-w-0 flex-wrap"
                             location={visiblePresenceLocation}
                             launchLocation={visiblePresenceLocation}
                             inviteLocation={visiblePresenceLocation}
@@ -439,8 +440,8 @@ function UserDialogBioPanel({
 
     return (
         <InfoPanel title={t('dialog.user.info.bio')}>
-            <div className="flex items-start gap-2">
-                <TextScroll className="h-52 min-w-0 flex-1">{visibleBio}</TextScroll>
+            <div className="relative min-w-0">
+                <TextScroll className="h-52 min-w-0 pr-8">{visibleBio}</TextScroll>
                 {profile.bio ? (
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -448,7 +449,7 @@ function UserDialogBioPanel({
                                 type="button"
                                 size="icon-xs"
                                 variant="ghost"
-                                className="shrink-0"
+                                className="absolute top-1 right-1"
                                 disabled={bioTranslationLoading}
                                 aria-label={bioActionLabel}
                                 onClick={() => void toggleBioTranslation()}

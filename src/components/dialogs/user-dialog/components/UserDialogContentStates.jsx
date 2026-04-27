@@ -93,11 +93,11 @@ export function UserDialogProfileSkeleton({
             <div
                 aria-busy="true"
                 aria-label={label}
-                className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden lg:grid lg:grid-cols-[20rem_minmax(0,1fr)]"
+                className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden min-[880px]:grid min-[880px]:grid-cols-[20rem_minmax(0,1fr)]"
                 role="status"
             >
                 <span className="sr-only">{label}</span>
-                <div className="max-h-[42vh] min-h-0 min-w-0 shrink-0 overflow-hidden p-px lg:max-h-none lg:shrink">
+                <div className="max-h-[42vh] min-h-0 min-w-0 shrink-0 overflow-hidden p-px min-[880px]:max-h-none min-[880px]:shrink">
                     <UserDialogHeaderSkeleton />
                 </div>
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">

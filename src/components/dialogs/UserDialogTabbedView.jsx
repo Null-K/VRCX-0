@@ -412,8 +412,8 @@ export function UserDialogTabbedView({
 
     return (
         <EntityDialogScaffold className="gap-3">
-            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden lg:grid lg:grid-cols-[20rem_minmax(0,1fr)]">
-                <div className="max-h-[42vh] min-h-0 min-w-0 shrink-0 overflow-auto p-px lg:max-h-none lg:shrink lg:overflow-y-auto">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden sm:grid sm:grid-cols-[20rem_minmax(0,1fr)]">
+                <div className="max-h-[42vh] min-h-0 min-w-0 shrink-0 overflow-auto p-px sm:max-h-none sm:shrink sm:overflow-y-auto">
                     <UserDialogHeaderSection
                         actionStatus={actionStatus}
                         avatarOverrideState={avatarOverrideState}
