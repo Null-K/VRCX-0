@@ -42,8 +42,7 @@ pub fn app__request_legacy_migration(
 
     #[cfg(not(debug_assertions))]
     {
-        let flag_path = state.paths.app_data.join("pending_vrcx_migration");
-        std::fs::write(&flag_path, b"1")?;
+        crate::domain::legacy_migration::request_legacy_migration(&state.paths)?;
         app_handle.request_restart();
         Ok(true)
     }

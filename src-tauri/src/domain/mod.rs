@@ -1,9 +1,11 @@
+pub mod app_paths;
 pub mod auto_launch;
 pub mod database;
 pub mod discord_rpc;
 pub mod error_log;
 pub mod image_cache;
 pub mod ipc;
+pub mod legacy_migration;
 pub mod legacy_vrcx;
 #[cfg(target_os = "linux")]
 pub mod linux_registry;
