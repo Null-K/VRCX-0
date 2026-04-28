@@ -305,7 +305,7 @@
         "online": "ONLINE",
         "active": "ACTIVE",
         "offline": "OFFLINE",
-        "pending_offline": "Pending Offline",
+        "pending_offline": "Possibly Offline",
         "settings": {
             "display": "Display",
             "sort": "Sort",
