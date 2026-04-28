@@ -4,6 +4,7 @@ pub mod database;
 pub mod discord_rpc;
 pub mod error_log;
 pub mod image_cache;
+pub mod image_processing;
 pub mod ipc;
 pub mod legacy_migration;
 pub mod legacy_vrcx;
@@ -14,6 +15,7 @@ pub mod png;
 pub mod process_monitor;
 pub mod screenshot;
 pub mod storage;
+pub mod ugc_image_files;
 #[cfg(target_os = "linux")]
 pub mod vrchat_paths;
 pub mod web_client;

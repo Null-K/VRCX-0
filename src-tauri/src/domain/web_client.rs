@@ -10,6 +10,7 @@ use reqwest_cookie_store::{CookieStore, CookieStoreMutex, RawCookie};
 use serde_json::Value;
 
 use crate::domain::database::DatabaseService;
+use crate::domain::image_processing;
 use crate::domain::storage::StorageService;
 use crate::error::AppError;
 
@@ -362,7 +363,7 @@ impl WebClient {
             .get("imageData")
             .and_then(|v| v.as_str())
             .ok_or_else(|| AppError::Custom("missing imageData".into()))?;
-        let resized = resize_image_to_fit_limits_bytes(image_data, false)?;
+        let resized = image_processing::resize_upload_image_bytes(image_data, false)?;
 
         let mut form = Form::new().part(
             "image",
@@ -396,7 +397,7 @@ impl WebClient {
             .get("matchingDimensions")
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
-        let resized = resize_image_to_fit_limits_bytes(image_data, matching_dimensions)?;
+        let resized = image_processing::resize_upload_image_bytes(image_data, matching_dimensions)?;
 
         let mut form = Form::new().part(
             "file",
@@ -441,10 +442,10 @@ impl WebClient {
             .and_then(|v| v.as_bool())
             .unwrap_or(false)
         {
-            image_data = crop_print_base64(&image_data)?;
+            image_data = image_processing::crop_print_base64(&image_data)?;
         }
 
-        let resized = resize_print_image_bytes(&image_data)?;
+        let resized = image_processing::resize_print_image_bytes(&image_data)?;
         let mut form = Form::new().part(
             "image",
             Part::bytes(resized)
@@ -467,143 +468,6 @@ impl WebClient {
             .build()
             .map_err(|e| AppError::Custom(format!("build print upload: {e}")))
     }
-}
-
-fn resize_image_to_fit_limits_bytes(
-    base64data: &str,
-    matching_dimensions: bool,
-) -> Result<Vec<u8>, AppError> {
-    resize_image_to_limits(base64data, matching_dimensions, 2000, 2000, 10_000_000)
-}
-
-fn resize_image_to_limits(
-    base64data: &str,
-    matching_dimensions: bool,
-    max_width: u32,
-    max_height: u32,
-    max_size: usize,
-) -> Result<Vec<u8>, AppError> {
-    let raw = B64
-        .decode(base64data)
-        .map_err(|e| AppError::Custom(format!("base64 decode: {e}")))?;
-    let format = image::guess_format(&raw).ok();
-    let mut img =
-        image::load_from_memory(&raw).map_err(|e| AppError::Custom(format!("load image: {e}")))?;
-
-    if (!matching_dimensions || img.width() == img.height())
-        && matches!(format, Some(image::ImageFormat::Png))
-        && raw.len() < max_size
-        && img.width() <= max_width
-        && img.height() <= max_height
-    {
-        return Ok(raw);
-    }
-
-    if img.width() > max_width {
-        let factor = img.width() as f64 / max_width as f64;
-        let new_height = (img.height() as f64 / factor).round() as u32;
-        img = img.resize_exact(max_width, new_height, image::imageops::FilterType::Lanczos3);
-    }
-    if img.height() > max_height {
-        let factor = img.height() as f64 / max_height as f64;
-        let new_width = (img.width() as f64 / factor).round() as u32;
-        img = img.resize_exact(new_width, max_height, image::imageops::FilterType::Lanczos3);
-    }
-    if matching_dimensions && img.width() != img.height() {
-        let new_size = img.width().max(img.height());
-        let x = (new_size - img.width()) / 2;
-        let y = (new_size - img.height()) / 2;
-        let rgba = img.to_rgba8();
-        let mut padded = image::RgbaImage::new(new_size, new_size);
-        image::imageops::overlay(&mut padded, &rgba, i64::from(x), i64::from(y));
-        img = image::DynamicImage::ImageRgba8(padded);
-    }
-
-    let mut output = encode_png(&img)?;
-    for _ in 0..250 {
-        if output.len() < max_size {
-            break;
-        }
-        let (w, h) = (img.width(), img.height());
-        let (new_w, new_h) = if w > h {
-            let new_w = w.saturating_sub(25);
-            let new_h = (h as f64 / (w as f64 / new_w as f64)).round() as u32;
-            (new_w, new_h)
-        } else {
-            let new_h = h.saturating_sub(25);
-            let new_w = (w as f64 / (h as f64 / new_h as f64)).round() as u32;
-            (new_w, new_h)
-        };
-        img = img.resize_exact(
-            new_w.max(1),
-            new_h.max(1),
-            image::imageops::FilterType::Lanczos3,
-        );
-        output = encode_png(&img)?;
-    }
-
-    if output.len() >= max_size {
-        return Err(AppError::Custom(
-            "Failed to get image into target filesize.".into(),
-        ));
-    }
-
-    Ok(output)
-}
-
-fn resize_print_image_bytes(base64data: &str) -> Result<Vec<u8>, AppError> {
-    let input = resize_image_to_limits(base64data, false, 1920, 1080, 10_000_000)?;
-    let mut img = image::load_from_memory(&input)
-        .map_err(|e| AppError::Custom(format!("load print image: {e}")))?;
-
-    if img.width() < 1920 || img.height() < 1080 {
-        let mut new_width = img.width();
-        let mut new_height = img.height();
-        if img.width() < 1920 {
-            new_width = 1920;
-            new_height =
-                (img.height() as f64 / (img.width() as f64 / new_width as f64)).round() as u32;
-        }
-        if img.height() < 1080 {
-            new_height = 1080;
-            new_width =
-                (img.width() as f64 / (img.height() as f64 / new_height as f64)).round() as u32;
-        }
-
-        let resized =
-            img.resize_exact(new_width, new_height, image::imageops::FilterType::Lanczos3);
-        let mut canvas =
-            image::RgbaImage::from_pixel(1920, 1080, image::Rgba([255, 255, 255, 255]));
-        let x = i64::from((1920 - new_width) / 2);
-        let y = i64::from((1080 - new_height) / 2);
-        image::imageops::overlay(&mut canvas, &resized.to_rgba8(), x, y);
-        img = image::DynamicImage::ImageRgba8(canvas);
-    }
-
-    let mut bordered = image::RgbaImage::from_pixel(2048, 1440, image::Rgba([255, 255, 255, 255]));
-    image::imageops::overlay(&mut bordered, &img.to_rgba8(), 64, 69);
-    encode_png(&image::DynamicImage::ImageRgba8(bordered))
-}
-
-fn crop_print_base64(base64data: &str) -> Result<String, AppError> {
-    let raw = B64
-        .decode(base64data)
-        .map_err(|e| AppError::Custom(format!("base64 decode: {e}")))?;
-    let img =
-        image::load_from_memory(&raw).map_err(|e| AppError::Custom(format!("load image: {e}")))?;
-    if img.width() != 2048 || img.height() != 1440 {
-        return Ok(base64data.to_string());
-    }
-    let cropped = img.crop_imm(64, 69, 1920, 1080);
-    Ok(B64.encode(encode_png(&cropped)?))
-}
-
-fn encode_png(img: &image::DynamicImage) -> Result<Vec<u8>, AppError> {
-    let mut buf = Vec::new();
-    let encoder = image::codecs::png::PngEncoder::new(&mut buf);
-    img.write_with_encoder(encoder)
-        .map_err(|e| AppError::Custom(format!("png encode: {e}")))?;
-    Ok(buf)
 }
 
 #[cfg(test)]
