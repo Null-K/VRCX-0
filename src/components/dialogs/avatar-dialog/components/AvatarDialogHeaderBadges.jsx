@@ -1,6 +1,5 @@
 import {
     AppleIcon,
-    HeartIcon,
     MonitorIcon,
     SmartphoneIcon,
     UserIcon
@@ -27,7 +26,6 @@ export function AvatarDialogHeaderBadges({
     avatar,
     isCurrentAvatar,
     avatarBlocked,
-    isFavorite,
     platformInfo,
     fileAnalysis,
     contentTags,
@@ -56,12 +54,6 @@ export function AvatarDialogHeaderBadges({
             {avatarBlocked ? (
                 <Badge variant="destructive">
                     {t('dialog.avatar.generated.blocked')}
-                </Badge>
-            ) : null}
-            {isFavorite ? (
-                <Badge>
-                    <HeartIcon data-icon="inline-start" className="fill-current" />
-                    {t('dialog.avatar.generated.favorite')}
                 </Badge>
             ) : null}
             {avatar.$isCached ? (

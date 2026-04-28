@@ -26,7 +26,7 @@ import {
 import { Spinner } from '@/ui/shadcn/spinner';
 import { Textarea } from '@/ui/shadcn/textarea';
 
-export { AvatarStylesDialog } from './AvatarStylesDialog.jsx';
+export { AvatarDetailsDialog } from './AvatarDetailsDialog.jsx';
 
 const contentTagOptions = [
     { value: 'content_horror', label: 'Horror' },

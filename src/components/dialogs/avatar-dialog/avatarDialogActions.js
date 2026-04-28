@@ -250,101 +250,6 @@ export function createAvatarDialogActions({
         }
     }
 
-    async function renameAvatar() {
-        if (!canManageAvatar || actionStatusRef.current !== 'idle') {
-            return;
-        }
-
-        const result = await prompt({
-            title: t('dialog.avatar.generated_modal.rename_avatar'),
-            description: avatar.name || avatar.id,
-            inputValue: avatar.name || '',
-            confirmText: t('common.actions.save'),
-            cancelText: t('common.actions.cancel')
-        });
-        if (!result.ok) {
-            return;
-        }
-
-        actionStatusRef.current = 'rename';
-        setActionStatus('rename');
-        try {
-            const response = await avatarProfileRepository.saveAvatar({
-                avatarId: avatar.id,
-                endpoint: currentEndpoint,
-                params: {
-                    id: avatar.id,
-                    name: result.value
-                }
-            });
-            applyCurrentAvatarUpdate(
-                response.json && typeof response.json === 'object'
-                    ? response.json
-                    : { ...avatar, name: result.value }
-            );
-            toast.success(t('prompt.rename_avatar.message.success'));
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t('dialog.avatar.generated_toast.failed_to_rename_avatar')
-            );
-        } finally {
-            actionStatusRef.current = 'idle';
-            setActionStatus('idle');
-        }
-    }
-
-    async function changeAvatarDescription() {
-        if (!canManageAvatar || actionStatusRef.current !== 'idle') {
-            return;
-        }
-
-        const result = await prompt({
-            title: t('dialog.avatar.generated_modal.change_avatar_description'),
-            description: avatar.name || avatar.id,
-            inputValue: avatar.description || '',
-            multiline: true,
-            confirmText: t('common.actions.save'),
-            cancelText: t('common.actions.cancel')
-        });
-        if (!result.ok) {
-            return;
-        }
-
-        actionStatusRef.current = 'description';
-        setActionStatus('description');
-        try {
-            const response = await avatarProfileRepository.saveAvatar({
-                avatarId: avatar.id,
-                endpoint: currentEndpoint,
-                params: {
-                    id: avatar.id,
-                    description: result.value
-                }
-            });
-            applyCurrentAvatarUpdate(
-                response.json && typeof response.json === 'object'
-                    ? response.json
-                    : { ...avatar, description: result.value }
-            );
-            toast.success(
-                t('dialog.avatar.generated.avatar_description_updated')
-            );
-        } catch (error) {
-            toast.error(
-                error instanceof Error
-                    ? error.message
-                    : t(
-                          'dialog.avatar.generated_toast.failed_to_update_avatar_description'
-                      )
-            );
-        } finally {
-            actionStatusRef.current = 'idle';
-            setActionStatus('idle');
-        }
-    }
-
     async function changeAvatarContentTags() {
         if (!canManageAvatar || actionStatusRef.current !== 'idle') {
             return;
@@ -352,11 +257,11 @@ export function createAvatarDialogActions({
         setOwnerEditor('content-tags');
     }
 
-    async function changeAvatarStylesAndAuthorTags() {
+    async function editAvatarDetails() {
         if (!canManageAvatar || actionStatusRef.current !== 'idle') {
             return;
         }
-        setOwnerEditor('styles');
+        setOwnerEditor('details');
     }
 
     async function deleteAvatar() {
@@ -536,17 +441,15 @@ export function createAvatarDialogActions({
         beginAvatarGalleryUpload,
         beginAvatarImageUpload,
         changeAvatarContentTags,
-        changeAvatarDescription,
-        changeAvatarStylesAndAuthorTags,
         confirmAvatarImageUpload,
         deleteAvatar,
         deleteAvatarCache,
+        editAvatarDetails,
         editMemo,
         onFileChangeAvatarGallery,
         onFileChangeAvatarImage,
         openAvatarCacheFolder,
         refreshAvatarProfile,
-        renameAvatar,
         saveMemo,
         selectAvatar,
         selectFallbackAvatar,

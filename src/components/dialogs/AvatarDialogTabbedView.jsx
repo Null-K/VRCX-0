@@ -1,4 +1,4 @@
-import { ImageIcon } from 'lucide-react';
+import { CopyIcon, ExternalLinkIcon, ImageIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -9,17 +9,25 @@ import {
     copyTextToClipboard,
     openExternalLink
 } from '@/lib/entityMedia.js';
+import { cn } from '@/lib/utils.js';
 import { openUserDialog } from '@/services/dialogService.js';
 import { replaceVrcPackageUrl } from '@/shared/utils/urlUtils.js';
 import { useModalStore } from '@/state/modalStore.js';
+import { Button } from '@/ui/shadcn/button';
+import { Separator } from '@/ui/shadcn/separator';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger
+} from '@/ui/shadcn/tooltip';
 
 import {
-    EntityDialogHeader,
     EntityDialogScaffold,
     EntityDialogTabContent,
     EntityDialogTabs,
     EntityRawJson
 } from './EntityDialogScaffold.jsx';
+import { AvatarDialogGalleryTab } from './avatar-dialog/components/AvatarDialogGalleryTab.jsx';
 import { AvatarDialogHeaderActions } from './avatar-dialog/components/AvatarDialogHeaderActions.jsx';
 import { AvatarDialogHeaderBadges } from './avatar-dialog/components/AvatarDialogHeaderBadges.jsx';
 import { AvatarDialogInfoTab } from './avatar-dialog/components/AvatarDialogInfoTab.jsx';
@@ -34,10 +42,231 @@ function normalizeEntityId(value) {
         : String(value ?? '').trim();
 }
 
-let lastAvatarDialogTab = 'info';
-
 function resolveAvatarDialogTab(tabs, preferred, fallback = 'info') {
     return tabs.some((tab) => tab.value === preferred) ? preferred : fallback;
+}
+
+function compactAvatarId(avatarId) {
+    if (!avatarId || avatarId.length <= 22) {
+        return avatarId || '';
+    }
+    return `${avatarId.slice(0, 16)}\u2026${avatarId.slice(-4)}`;
+}
+
+function compactAvatarUrl(url) {
+    if (!url) {
+        return '';
+    }
+
+    const displayUrl = url.replace(/^https?:\/\//, '');
+    if (displayUrl.length <= 26) {
+        return displayUrl;
+    }
+
+    return `${displayUrl.slice(0, 20)}\u2026${displayUrl.slice(-4)}`;
+}
+
+function AvatarOverviewFactRow({ label, value, children }) {
+    return (
+        <div className="flex min-w-0 items-center justify-between gap-2">
+            <span className="text-muted-foreground min-w-0 truncate">
+                {label}
+            </span>
+            {children || (
+                <span className="text-muted-foreground/80 min-w-0 truncate text-right">
+                    {value || '\u2014'}
+                </span>
+            )}
+        </div>
+    );
+}
+
+function AvatarOverviewReferences({
+    avatar,
+    avatarUrl,
+    onCopyAvatarId,
+    onCopyAvatarUrl,
+    onOpenAvatarUrl,
+    t
+}) {
+    if (!avatar.id && !avatarUrl) {
+        return null;
+    }
+
+    return (
+        <div className="text-muted-foreground/80 flex min-w-0 flex-col gap-1 text-xs">
+            {avatar.id ? (
+                <AvatarOverviewFactRow label={t('dialog.avatar.info.id')}>
+                    <span className="flex min-w-0 items-center justify-end gap-1">
+                        <span
+                            className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"
+                            title={avatar.id}
+                        >
+                            {compactAvatarId(avatar.id)}
+                        </span>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    aria-label={t('dialog.avatar.info.copy_id')}
+                                    size="icon-xs"
+                                    variant="ghost"
+                                    className="shrink-0"
+                                    onClick={onCopyAvatarId}
+                                >
+                                    <CopyIcon data-icon="inline-start" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('dialog.avatar.info.copy_id')}
+                            </TooltipContent>
+                        </Tooltip>
+                    </span>
+                </AvatarOverviewFactRow>
+            ) : null}
+            {avatarUrl ? (
+                <AvatarOverviewFactRow label={t('dialog.avatar.info.url')}>
+                    <span className="flex min-w-0 items-center justify-end gap-1">
+                        <span
+                            className="text-muted-foreground/80 min-w-0 truncate font-mono text-[11px]"
+                            title={avatarUrl}
+                        >
+                            {compactAvatarUrl(avatarUrl)}
+                        </span>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    aria-label={t('common.actions.open_link')}
+                                    size="icon-xs"
+                                    variant="ghost"
+                                    className="shrink-0"
+                                    onClick={onOpenAvatarUrl}
+                                >
+                                    <ExternalLinkIcon data-icon="inline-start" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('common.actions.open_link')}
+                            </TooltipContent>
+                        </Tooltip>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button
+                                    type="button"
+                                    aria-label={t('dialog.avatar.info.copy_url')}
+                                    size="icon-xs"
+                                    variant="ghost"
+                                    className="shrink-0"
+                                    onClick={onCopyAvatarUrl}
+                                >
+                                    <CopyIcon data-icon="inline-start" />
+                                </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {t('dialog.avatar.info.copy_url')}
+                            </TooltipContent>
+                        </Tooltip>
+                    </span>
+                </AvatarOverviewFactRow>
+            ) : null}
+        </div>
+    );
+}
+
+function AvatarDialogOverviewSection({
+    avatar,
+    avatarFallbackLabel,
+    imageUrl,
+    avatarUrl,
+    badges,
+    actions,
+    onImageClick,
+    onTitleClick,
+    onAuthorClick,
+    onCopyAvatarId,
+    onCopyAvatarUrl,
+    onOpenAvatarUrl,
+    t
+}) {
+    const imageClickable = Boolean((imageUrl || avatar.imageUrl) && onImageClick);
+
+    return (
+        <aside className="flex min-h-0 min-w-0 flex-col gap-3">
+            <Button
+                type="button"
+                variant="ghost"
+                disabled={!imageClickable}
+                onClick={onImageClick}
+                className={cn(
+                    'bg-muted aspect-[4/3] h-auto w-full overflow-hidden rounded-md border p-0 disabled:pointer-events-none',
+                    imageClickable ? 'cursor-pointer' : 'cursor-default'
+                )}
+            >
+                {imageUrl ? (
+                    <img
+                        src={imageUrl}
+                        alt={avatar.name || avatar.id || avatarFallbackLabel}
+                        className="size-full object-cover"
+                    />
+                ) : (
+                    <span className="flex size-full items-center justify-center">
+                        <ImageIcon className="text-muted-foreground size-10" />
+                    </span>
+                )}
+            </Button>
+
+            <div className="flex min-w-0 flex-col gap-2">
+                <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={!avatar.name}
+                    className="hover:text-primary h-auto min-w-0 justify-start overflow-hidden p-0 text-left text-lg leading-tight font-semibold whitespace-normal disabled:pointer-events-none disabled:opacity-100"
+                    onClick={avatar.name ? onTitleClick : undefined}
+                >
+                    <span className="line-clamp-2 min-w-0 break-words">
+                        {avatar.name || avatarFallbackLabel}
+                    </span>
+                </Button>
+                {avatar.authorName ? (
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        disabled={!avatar.authorId}
+                        className="text-muted-foreground hover:text-primary h-auto max-w-full min-w-0 justify-start overflow-hidden p-0 text-left font-mono text-sm disabled:pointer-events-none disabled:opacity-100"
+                        onClick={avatar.authorId ? onAuthorClick : undefined}
+                    >
+                        <span className="truncate">{avatar.authorName}</span>
+                    </Button>
+                ) : null}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">{actions}</div>
+
+            {badges ? (
+                <div className="flex flex-wrap gap-1.5">{badges}</div>
+            ) : null}
+
+            {avatar.description ? (
+                <>
+                    <Separator />
+                    <div className="text-muted-foreground max-h-28 overflow-auto text-sm break-words whitespace-pre-wrap">
+                        {avatar.description}
+                    </div>
+                </>
+            ) : null}
+
+            <Separator />
+            <AvatarOverviewReferences
+                avatar={avatar}
+                avatarUrl={avatarUrl}
+                onCopyAvatarId={onCopyAvatarId}
+                onCopyAvatarUrl={onCopyAvatarUrl}
+                onOpenAvatarUrl={onOpenAvatarUrl}
+                t={t}
+            />
+        </aside>
+    );
 }
 
 export function AvatarDialogTabbedView({
@@ -48,7 +277,6 @@ export function AvatarDialogTabbedView({
     actionStatus,
     avatarBlocked,
     isCurrentAvatar,
-    isFavorite,
     canManageAvatar,
     canSelectAvatar,
     canSelectFallbackAvatar,
@@ -63,10 +291,8 @@ export function AvatarDialogTabbedView({
     onOpenCache,
     onDeleteCache,
     onUploadGallery,
-    onRename,
-    onChangeDescription,
+    onEditDetails,
     onChangeContentTags,
-    onChangeStylesAndAuthorTags,
     onChangeImage,
     onCreateImposter,
     onDeleteImposter,
@@ -75,21 +301,13 @@ export function AvatarDialogTabbedView({
 }) {
     const { t } = useTranslation();
 
-    const [activeTab, setActiveTab] = useState(() => lastAvatarDialogTab);
+    const [activeTab, setActiveTab] = useState('info');
     const [galleryIndex, setGalleryIndex] = useState(0);
     const openImagePreview = useModalStore((state) => state.openImagePreview);
     const avatarFallbackLabel = t('view.favorites.generated.avatar_fallback');
-    const tabs = [
-        { value: 'info', label: t('dialog.avatar.info.header') },
-        { value: 'json', label: t('dialog.avatar.json.header') }
-    ];
-
-    function changeTab(tab) {
-        lastAvatarDialogTab = resolveAvatarDialogTab(tabs, tab);
-        setActiveTab(lastAvatarDialogTab);
-    }
-
-    const avatarUrl = avatar.id ? `https://vrchat.com/home/avatar/${avatar.id}` : '';
+    const avatarUrl = avatar.id
+        ? `https://vrchat.com/home/avatar/${avatar.id}`
+        : '';
     const packageUrl = replaceVrcPackageUrl(
         avatar.unityPackageUrl || avatar.unityPackage?.url || ''
     );
@@ -128,6 +346,24 @@ export function AvatarDialogTabbedView({
     const imposterVersion = normalizeEntityId(
         imposterPackage?.impostorizerVersion
     );
+    const hasGalleryTab =
+        galleryImages.length > 0 || listings.length > 0 || canManageAvatar;
+    const tabs = [
+        { value: 'info', label: t('dialog.avatar.info.header') },
+        ...(hasGalleryTab
+            ? [
+                  {
+                      value: 'gallery',
+                      label: t('dialog.avatar.info.gallery')
+                  }
+              ]
+            : []),
+        { value: 'json', label: t('dialog.avatar.json.header') }
+    ];
+
+    function changeTab(tab) {
+        setActiveTab(resolveAvatarDialogTab(tabs, tab));
+    }
 
     useEffect(() => {
         setGalleryIndex((index) =>
@@ -137,7 +373,12 @@ export function AvatarDialogTabbedView({
 
     useEffect(() => {
         setGalleryIndex(0);
+        setActiveTab('info');
     }, [avatar.id]);
+
+    useEffect(() => {
+        setActiveTab((tab) => resolveAvatarDialogTab(tabs, tab));
+    }, [hasGalleryTab]);
 
     async function copyAvatarText(text, label) {
         await copyTextToClipboard(text);
@@ -182,124 +423,142 @@ export function AvatarDialogTabbedView({
     }
 
     return (
-        <EntityDialogScaffold>
-            <EntityDialogHeader
-                imageUrl={imageUrl}
-                imageAlt={avatar.name || avatar.id || avatarFallbackLabel}
-                imagePlaceholder={
-                    <ImageIcon className="text-muted-foreground size-8" />
-                }
-                onImageClick={
-                    imageUrl || avatar.imageUrl ? openPrimaryImagePreview : null
-                }
-                title={avatar.name || avatarFallbackLabel}
-                onTitleClick={
-                    avatar.name
-                        ? () =>
-                              void copyAvatarText(
-                                  avatar.name,
-                                  t('dialog.avatar.info.name')
-                              )
-                        : undefined
-                }
-                subtitle={avatar.authorName || ''}
-                onSubtitleClick={avatar.authorId ? openAvatarAuthor : undefined}
-                description={avatar.description}
-                detail={detail}
-                badges={
-                    <AvatarDialogHeaderBadges
+        <EntityDialogScaffold className="gap-3">
+            <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-hidden min-[880px]:grid min-[880px]:grid-cols-[20rem_minmax(0,1fr)]">
+                <div className="max-h-[44vh] min-h-0 min-w-0 shrink-0 overflow-auto p-px min-[880px]:max-h-none min-[880px]:shrink min-[880px]:overflow-y-auto">
+                    <AvatarDialogOverviewSection
                         avatar={avatar}
-                        isCurrentAvatar={isCurrentAvatar}
-                        avatarBlocked={avatarBlocked}
-                        isFavorite={isFavorite}
-                        platformInfo={platformInfo}
-                        fileAnalysis={fileAnalysis}
-                        contentTags={contentTags}
-                        authorTags={authorTags}
-                        hasImposter={hasImposter}
-                        imposterVersion={imposterVersion}
-                        onOpenCache={onOpenCache}
+                        avatarFallbackLabel={avatarFallbackLabel}
+                        imageUrl={imageUrl}
+                        avatarUrl={avatarUrl}
+                        onImageClick={
+                            imageUrl || avatar.imageUrl
+                                ? openPrimaryImagePreview
+                                : null
+                        }
+                        onTitleClick={
+                            avatar.name
+                                ? () =>
+                                      void copyAvatarText(
+                                          avatar.name,
+                                          t('dialog.avatar.info.name')
+                                      )
+                                : undefined
+                        }
+                        onAuthorClick={openAvatarAuthor}
+                        onCopyAvatarId={() =>
+                            void copyAvatarText(
+                                avatar.id,
+                                t('dialog.avatar.info.id')
+                            )
+                        }
+                        onCopyAvatarUrl={() =>
+                            void copyAvatarText(
+                                avatarUrl,
+                                t('dialog.avatar.info.url')
+                            )
+                        }
+                        onOpenAvatarUrl={() => openExternalLink(avatarUrl)}
+                        t={t}
+                        badges={
+                            <AvatarDialogHeaderBadges
+                                avatar={avatar}
+                                isCurrentAvatar={isCurrentAvatar}
+                                avatarBlocked={avatarBlocked}
+                                platformInfo={platformInfo}
+                                fileAnalysis={fileAnalysis}
+                                contentTags={contentTags}
+                                authorTags={authorTags}
+                                hasImposter={hasImposter}
+                                imposterVersion={imposterVersion}
+                                onOpenCache={onOpenCache}
+                            />
+                        }
+                        actions={
+                            <AvatarDialogHeaderActions
+                                avatar={avatar}
+                                state={{
+                                    actionStatus,
+                                    avatarBlocked,
+                                    isCurrentAvatar
+                                }}
+                                capabilities={{
+                                    canManageAvatar,
+                                    canSelectAvatar,
+                                    canSelectFallbackAvatar,
+                                    hasImposter
+                                }}
+                                links={{ packageUrl }}
+                                actions={{
+                                    onDeleteCache,
+                                    onSelect,
+                                    onRefresh,
+                                    onOpenLink: openExternalLink,
+                                    onSelectFallback,
+                                    onReleaseStatus,
+                                    onEditDetails,
+                                    onChangeContentTags,
+                                    onChangeImage,
+                                    onRegenerateImposter,
+                                    onDeleteImposter,
+                                    onCreateImposter,
+                                    onAvatarBlock,
+                                    onDelete
+                                }}
+                            />
+                        }
                     />
-                }
-                actions={
-                    <AvatarDialogHeaderActions
-                        avatar={avatar}
-                        state={{
-                            actionStatus,
-                            avatarBlocked,
-                            isCurrentAvatar
-                        }}
-                        capabilities={{
-                            canManageAvatar,
-                            canSelectAvatar,
-                            canSelectFallbackAvatar,
-                            hasImposter
-                        }}
-                        links={{ avatarUrl, packageUrl }}
-                        actions={{
-                            onDeleteCache,
-                            onSelect,
-                            onRefresh,
-                            onCopyText: copyAvatarText,
-                            onOpenLink: openExternalLink,
-                            onSelectFallback,
-                            onReleaseStatus,
-                            onRename,
-                            onChangeDescription,
-                            onChangeContentTags,
-                            onChangeStylesAndAuthorTags,
-                            onChangeImage,
-                            onRegenerateImposter,
-                            onDeleteImposter,
-                            onCreateImposter,
-                            onAvatarBlock,
-                            onDelete
-                        }}
-                    />
-                }
-            />
-            <EntityDialogTabs
-                value={activeTab}
-                onValueChange={changeTab}
-                tabs={tabs}
-            >
-                <AvatarDialogInfoTab
-                    avatar={avatar}
-                    memo={memo}
-                    canManageAvatar={canManageAvatar}
-                    actionStatus={actionStatus}
-                    media={{
-                        galleryImages,
-                        currentGalleryImage,
-                        galleryIndex,
-                        listings
-                    }}
-                    tags={{
-                        localTags,
-                        contentTags,
-                        authorTags,
-                        otherTags
-                    }}
-                    platformInfo={platformInfo}
-                    onOpenAuthor={openAvatarAuthor}
-                    onOpenGalleryPreview={openGalleryPreview}
-                    onGalleryIndexChange={setGalleryIndex}
-                    onUploadGallery={onUploadGallery}
-                    onSaveMemo={onSaveMemo}
-                />
-                <EntityDialogTabContent value="json">
-                    <EntityRawJson
-                        value={{
-                            avatar,
-                            memo,
-                            avatarBlocked,
-                            galleryImages,
-                            platformInfo,
-                            fileAnalysis
-                        }}
-                    />
-                </EntityDialogTabContent>
-            </EntityDialogTabs>
+                </div>
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+                    <EntityDialogTabs
+                        value={activeTab}
+                        onValueChange={changeTab}
+                        tabs={tabs}
+                    >
+                        <AvatarDialogInfoTab
+                            avatar={avatar}
+                            memo={memo}
+                            detail={detail}
+                            tags={{
+                                localTags,
+                                contentTags,
+                                authorTags,
+                                otherTags
+                            }}
+                            platformInfo={platformInfo}
+                            onOpenAuthor={openAvatarAuthor}
+                            onSaveMemo={onSaveMemo}
+                        />
+                        {hasGalleryTab ? (
+                            <AvatarDialogGalleryTab
+                                canManageAvatar={canManageAvatar}
+                                actionStatus={actionStatus}
+                                media={{
+                                    galleryImages,
+                                    currentGalleryImage,
+                                    galleryIndex,
+                                    listings
+                                }}
+                                onOpenGalleryPreview={openGalleryPreview}
+                                onGalleryIndexChange={setGalleryIndex}
+                                onUploadGallery={onUploadGallery}
+                            />
+                        ) : null}
+                        <EntityDialogTabContent value="json">
+                            <EntityRawJson
+                                value={{
+                                    avatar,
+                                    memo,
+                                    avatarBlocked,
+                                    galleryImages,
+                                    platformInfo,
+                                    fileAnalysis
+                                }}
+                            />
+                        </EntityDialogTabContent>
+                    </EntityDialogTabs>
+                </div>
+            </div>
         </EntityDialogScaffold>
     );
 }

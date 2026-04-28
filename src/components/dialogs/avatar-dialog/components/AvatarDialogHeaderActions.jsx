@@ -1,13 +1,10 @@
 import {
     BanIcon,
     CheckCircleIcon,
-    CopyIcon,
     DownloadIcon,
-    ExternalLinkIcon,
     ImageIcon,
     PencilIcon,
     RefreshCwIcon,
-    Share2Icon,
     Trash2Icon,
     UserIcon
 } from 'lucide-react';
@@ -38,19 +35,16 @@ export function AvatarDialogHeaderActions({
         canSelectFallbackAvatar,
         hasImposter
     } = capabilities;
-    const { avatarUrl, packageUrl } = links;
+    const { packageUrl } = links;
     const {
         onDeleteCache,
         onSelect,
         onRefresh,
-        onCopyText,
         onOpenLink,
         onSelectFallback,
         onReleaseStatus,
-        onRename,
-        onChangeDescription,
+        onEditDetails,
         onChangeContentTags,
-        onChangeStylesAndAuthorTags,
         onChangeImage,
         onRegenerateImposter,
         onDeleteImposter,
@@ -61,20 +55,6 @@ export function AvatarDialogHeaderActions({
 
     return (
         <>
-            {avatar.$isCached ? (
-                <Button
-                    type="button"
-                    size="icon-lg"
-                    variant="outline"
-                    className="rounded-full"
-                    aria-label={t('dialog.avatar.actions.delete_cache_tooltip')}
-                    disabled={actionStatus === 'cache'}
-                    onClick={onDeleteCache}
-                >
-                    <Trash2Icon data-icon="inline-start" />
-                </Button>
-            ) : null}
-            <FavoriteActionMenu kind="avatar" entityId={avatar.id} entity={avatar} />
             <Button
                 type="button"
                 size="icon-lg"
@@ -85,7 +65,16 @@ export function AvatarDialogHeaderActions({
             >
                 <CheckCircleIcon data-icon="inline-start" />
             </Button>
-            <EntityActionDropdown busy={actionStatus !== 'idle'} dangerous={avatarBlocked}>
+            <FavoriteActionMenu
+                kind="avatar"
+                entityId={avatar.id}
+                entity={avatar}
+                iconOnly
+            />
+            <EntityActionDropdown
+                busy={actionStatus !== 'idle'}
+                dangerous={avatarBlocked}
+            >
                 <EntityActionItem
                     icon={RefreshCwIcon}
                     disabled={actionStatus === 'refresh'}
@@ -93,56 +82,39 @@ export function AvatarDialogHeaderActions({
                 >
                     {t('common.actions.refresh')}
                 </EntityActionItem>
-                {avatarUrl ? (
-                    <>
-                        <EntityActionItem
-                            icon={Share2Icon}
-                            onSelect={() =>
-                                void onCopyText(
-                                    avatarUrl,
-                                    t('dialog.avatar.info.copy_url')
-                                )
-                            }
-                        >
-                            {t('dialog.avatar.actions.share')}
-                        </EntityActionItem>
-                        <EntityActionItem
-                            icon={ExternalLinkIcon}
-                            onSelect={() => onOpenLink(avatarUrl)}
-                        >
-                            {t('common.actions.open_link')}
-                        </EntityActionItem>
-                        <EntityActionItem
-                            icon={CopyIcon}
-                            onSelect={() =>
-                                void onCopyText(
-                                    avatar.id,
-                                    t('dialog.avatar.info.copy_id')
-                                )
-                            }
-                        >
-                            {t('dialog.avatar.info.copy_id')}
-                        </EntityActionItem>
-                    </>
-                ) : null}
-                <EntityActionSeparator />
                 <EntityActionItem
                     icon={UserIcon}
-                    disabled={!canSelectFallbackAvatar || actionStatus === 'fallback'}
+                    disabled={
+                        !canSelectFallbackAvatar || actionStatus === 'fallback'
+                    }
                     onSelect={onSelectFallback}
                 >
                     {t('dialog.avatar.actions.select_fallback')}
                 </EntityActionItem>
-                {canManageAvatar && packageUrl ? (
-                    <EntityActionItem
-                        icon={DownloadIcon}
-                        onSelect={() => onOpenLink(packageUrl)}
-                    >
-                        {t('dialog.avatar.actions.download_package')}
-                    </EntityActionItem>
-                ) : null}
                 {canManageAvatar ? (
                     <>
+                        <EntityActionSeparator />
+                        <EntityActionItem
+                            icon={PencilIcon}
+                            disabled={actionStatus !== 'idle'}
+                            onSelect={onEditDetails}
+                        >
+                            {t('dialog.avatar.actions.edit_details')}
+                        </EntityActionItem>
+                        <EntityActionItem
+                            icon={ImageIcon}
+                            disabled={actionStatus === 'image-upload'}
+                            onSelect={onChangeImage}
+                        >
+                            {t('dialog.avatar.actions.change_image')}
+                        </EntityActionItem>
+                        <EntityActionItem
+                            icon={PencilIcon}
+                            disabled={actionStatus === 'tags'}
+                            onSelect={onChangeContentTags}
+                        >
+                            {t('dialog.avatar.actions.change_content_tags')}
+                        </EntityActionItem>
                         <EntityActionItem
                             icon={UserIcon}
                             disabled={actionStatus === 'release-status'}
@@ -158,73 +130,35 @@ export function AvatarDialogHeaderActions({
                                 ? t('dialog.avatar.actions.make_private')
                                 : t('dialog.avatar.actions.make_public')}
                         </EntityActionItem>
-                        <EntityActionItem
-                            icon={PencilIcon}
-                            disabled={actionStatus === 'rename'}
-                            onSelect={onRename}
-                        >
-                            {t('dialog.avatar.actions.rename')}
-                        </EntityActionItem>
-                        <EntityActionItem
-                            icon={PencilIcon}
-                            disabled={actionStatus === 'description'}
-                            onSelect={onChangeDescription}
-                        >
-                            {t('dialog.avatar.actions.change_description')}
-                        </EntityActionItem>
-                        <EntityActionItem
-                            icon={PencilIcon}
-                            disabled={actionStatus === 'tags'}
-                            onSelect={onChangeContentTags}
-                        >
-                            {t('dialog.avatar.actions.change_content_tags')}
-                        </EntityActionItem>
-                        <EntityActionItem
-                            icon={PencilIcon}
-                            disabled={actionStatus === 'styles'}
-                            onSelect={onChangeStylesAndAuthorTags}
-                        >
-                            {t('dialog.avatar.actions.change_styles_author_tags')}
-                        </EntityActionItem>
-                        <EntityActionItem
-                            icon={ImageIcon}
-                            disabled={actionStatus === 'image-upload'}
-                            onSelect={onChangeImage}
-                        >
-                            {t('dialog.avatar.actions.change_image')}
-                        </EntityActionItem>
-                        <EntityActionSeparator />
-                        {hasImposter ? (
-                            <>
-                                <EntityActionItem
-                                    icon={RefreshCwIcon}
-                                    destructive
-                                    disabled={actionStatus === 'imposter'}
-                                    onSelect={onRegenerateImposter}
-                                >
-                                    {t(
-                                        'dialog.avatar.actions.regenerate_impostor'
-                                    )}
-                                </EntityActionItem>
-                                <EntityActionItem
-                                    icon={Trash2Icon}
-                                    destructive
-                                    disabled={actionStatus === 'imposter'}
-                                    onSelect={onDeleteImposter}
-                                >
-                                    {t('dialog.avatar.actions.delete_impostor')}
-                                </EntityActionItem>
-                            </>
-                        ) : (
-                            <EntityActionItem
-                                icon={UserIcon}
-                                disabled={actionStatus === 'imposter'}
-                                onSelect={onCreateImposter}
-                            >
-                                {t('dialog.avatar.actions.create_impostor')}
-                            </EntityActionItem>
-                        )}
                     </>
+                ) : null}
+                {canManageAvatar || !isCurrentAvatar ? (
+                    <EntityActionSeparator />
+                ) : null}
+                {canManageAvatar && packageUrl ? (
+                    <EntityActionItem
+                        icon={DownloadIcon}
+                        onSelect={() => onOpenLink(packageUrl)}
+                    >
+                        {t('dialog.avatar.actions.download_package')}
+                    </EntityActionItem>
+                ) : null}
+                {canManageAvatar && hasImposter ? (
+                    <EntityActionItem
+                        icon={RefreshCwIcon}
+                        disabled={actionStatus === 'imposter'}
+                        onSelect={onRegenerateImposter}
+                    >
+                        {t('dialog.avatar.actions.regenerate_impostor')}
+                    </EntityActionItem>
+                ) : canManageAvatar ? (
+                    <EntityActionItem
+                        icon={UserIcon}
+                        disabled={actionStatus === 'imposter'}
+                        onSelect={onCreateImposter}
+                    >
+                        {t('dialog.avatar.actions.create_impostor')}
+                    </EntityActionItem>
                 ) : null}
                 {!isCurrentAvatar ? (
                     <EntityActionItem
@@ -238,17 +172,40 @@ export function AvatarDialogHeaderActions({
                             : t('dialog.avatar.actions.block')}
                     </EntityActionItem>
                 ) : null}
-                {canManageAvatar ? (
+                {avatar.$isCached || canManageAvatar ? (
                     <>
                         <EntityActionSeparator />
-                        <EntityActionItem
-                            icon={Trash2Icon}
-                            destructive
-                            disabled={actionStatus === 'delete'}
-                            onSelect={onDelete}
-                        >
-                            {t('common.actions.delete')}
-                        </EntityActionItem>
+                        {avatar.$isCached ? (
+                            <EntityActionItem
+                                icon={Trash2Icon}
+                                disabled={actionStatus === 'cache'}
+                                onSelect={onDeleteCache}
+                            >
+                                {t(
+                                    'dialog.avatar.actions.delete_cache_tooltip'
+                                )}
+                            </EntityActionItem>
+                        ) : null}
+                        {canManageAvatar && hasImposter ? (
+                            <EntityActionItem
+                                icon={Trash2Icon}
+                                destructive
+                                disabled={actionStatus === 'imposter'}
+                                onSelect={onDeleteImposter}
+                            >
+                                {t('dialog.avatar.actions.delete_impostor')}
+                            </EntityActionItem>
+                        ) : null}
+                        {canManageAvatar ? (
+                            <EntityActionItem
+                                icon={Trash2Icon}
+                                destructive
+                                disabled={actionStatus === 'delete'}
+                                onSelect={onDelete}
+                            >
+                                {t('common.actions.delete')}
+                            </EntityActionItem>
+                        ) : null}
                     </>
                 ) : null}
             </EntityActionDropdown>

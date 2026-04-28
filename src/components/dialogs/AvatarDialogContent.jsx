@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState as AppEmptyState } from '@/components/layout/PageScaffold.jsx';
 import { ImageCropDialog } from '@/components/media/ImageCropDialog.jsx';
@@ -13,7 +13,6 @@ import {
     IMAGE_UPLOAD_ACCEPT
 } from '@/shared/utils/imageUpload.js';
 import { useDialogStore } from '@/state/dialogStore.js';
-import { useFavoriteStore } from '@/state/favoriteStore.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { Input } from '@/ui/shadcn/input';
@@ -28,7 +27,7 @@ import { createAvatarDialogActions } from './avatar-dialog/avatarDialogActions.j
 import { AvatarDialogTabbedView } from './AvatarDialogTabbedView.jsx';
 import {
     AvatarContentTagsDialog,
-    AvatarStylesDialog
+    AvatarDetailsDialog
 } from './AvatarOwnerEditDialogs.jsx';
 
 function normalizeEntityId(value) {
@@ -60,12 +59,6 @@ export function AvatarDialogContent({ avatarId, seedData = null }) {
         (state) => state.auth.currentUserSnapshot?.currentAvatar || ''
     );
     const setAuthBootstrap = useRuntimeStore((state) => state.setAuthBootstrap);
-    const remoteFavoriteAvatarIds = useFavoriteStore(
-        (state) => state.favoriteAvatarIds
-    );
-    const localFavoriteAvatarIds = useFavoriteStore(
-        (state) => state.localAvatarFavoritesList
-    );
     const confirm = useModalStore((state) => state.confirm);
     const prompt = useModalStore((state) => state.prompt);
     const closeDialog = useDialogStore((state) => state.closeDialog);
@@ -328,26 +321,6 @@ export function AvatarDialogContent({ avatarId, seedData = null }) {
         };
     }, [currentEndpoint, normalizedAvatarId, seedData]);
 
-    const favoriteAvatarIds = useMemo(() => {
-        const ids = new Set();
-
-        for (const favoriteId of remoteFavoriteAvatarIds ?? []) {
-            const normalized = normalizeEntityId(favoriteId);
-            if (normalized) {
-                ids.add(normalized);
-            }
-        }
-
-        for (const favoriteId of localFavoriteAvatarIds ?? []) {
-            const normalized = normalizeEntityId(favoriteId);
-            if (normalized) {
-                ids.add(normalized);
-            }
-        }
-
-        return ids;
-    }, [localFavoriteAvatarIds, remoteFavoriteAvatarIds]);
-
     if (loadStatus === 'running' && !avatar) {
         return (
             <AvatarDialogEmptyState
@@ -378,7 +351,6 @@ export function AvatarDialogContent({ avatarId, seedData = null }) {
     );
     const isCurrentAvatar =
         normalizeEntityId(currentAvatarId) === normalizeEntityId(avatar.id);
-    const isFavorite = favoriteAvatarIds.has(normalizeEntityId(avatar.id));
     const canManageAvatar =
         normalizeEntityId(avatar.authorId) === normalizeEntityId(currentUserId);
     const availablePlatforms = getAvailablePlatforms(avatar.unityPackages);
@@ -469,7 +441,6 @@ export function AvatarDialogContent({ avatarId, seedData = null }) {
                 actionStatus={actionStatus}
                 avatarBlocked={avatarBlocked}
                 isCurrentAvatar={isCurrentAvatar}
-                isFavorite={isFavorite}
                 canManageAvatar={canManageAvatar}
                 canSelectAvatar={canSelectAvatar}
                 canSelectFallbackAvatar={canSelectFallbackAvatar}
@@ -486,12 +457,8 @@ export function AvatarDialogContent({ avatarId, seedData = null }) {
                 onOpenCache={() => void avatarActions.openAvatarCacheFolder()}
                 onDeleteCache={() => void avatarActions.deleteAvatarCache()}
                 onUploadGallery={() => avatarActions.beginAvatarGalleryUpload()}
-                onRename={() => void avatarActions.renameAvatar()}
-                onChangeDescription={() => void avatarActions.changeAvatarDescription()}
+                onEditDetails={() => void avatarActions.editAvatarDetails()}
                 onChangeContentTags={() => void avatarActions.changeAvatarContentTags()}
-                onChangeStylesAndAuthorTags={() =>
-                    void avatarActions.changeAvatarStylesAndAuthorTags()
-                }
                 onChangeImage={() => void avatarActions.beginAvatarImageUpload()}
                 onCreateImposter={() => void avatarActions.updateAvatarImposter('create')}
                 onDeleteImposter={() => void avatarActions.updateAvatarImposter('delete')}
@@ -512,11 +479,11 @@ export function AvatarDialogContent({ avatarId, seedData = null }) {
                     applyCurrentAvatarUpdate(nextAvatar)
                 }
             />
-            <AvatarStylesDialog
-                open={ownerEditor === 'styles'}
+            <AvatarDetailsDialog
+                open={ownerEditor === 'details'}
                 avatar={avatar}
                 endpoint={currentEndpoint}
-                onOpenChange={(open) => setOwnerEditor(open ? 'styles' : null)}
+                onOpenChange={(open) => setOwnerEditor(open ? 'details' : null)}
                 onSavedCurrentAvatar={(nextAvatar) =>
                     applyCurrentAvatarUpdate(nextAvatar)
                 }
