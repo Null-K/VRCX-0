@@ -44,10 +44,10 @@ describe('userDialogViewData', () => {
             'instance-history',
             'groups',
             'worlds',
+            'avatars',
             'activity',
             'json'
         ]);
-        expect(resolveTabValue(currentUserTabs, 'avatars')).toBe('info');
     });
 
     it('prepares visible list rows from remote data, search, selection, and sort choices', () => {
