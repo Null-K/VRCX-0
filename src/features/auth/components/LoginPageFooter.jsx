@@ -27,13 +27,6 @@ export function LoginPageFooter({ onOpenGithub, onOpenDiscord }) {
                     {t('view.login.footer.discord')}
                 </Button>
             </div>
-            <span className="justify-self-end">
-                {t('view.login.footer.builtForPlayers')}
-            </span>
-            <span aria-hidden="true">|</span>
-            <span className="justify-self-start">
-                {t('view.login.footer.deviceStorage')}
-            </span>
         </div>
     );
 }

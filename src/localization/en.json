@@ -382,8 +382,6 @@
                 "removing": "Removing..."
             },
             "footer": {
-                "builtForPlayers": "Built for VRChat players",
-                "deviceStorage": "Everything stays on your device",
                 "github": "GitHub",
                 "discord": "Discord"
             },
