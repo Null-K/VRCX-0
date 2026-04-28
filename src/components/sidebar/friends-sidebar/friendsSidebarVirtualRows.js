@@ -5,15 +5,14 @@ import {
     resolveCurrentUserStateBucket
 } from './friendsSidebarModel.js';
 
-function pushSection(nextRows, { id, title, count, open, children = [] }) {
+function pushSection(nextRows, { id, title, count, open }) {
     nextRows.push({
         type: 'section',
         key: `section:${id}`,
         id,
         title,
         count,
-        open,
-        children
+        open
     });
 }
 
@@ -131,45 +130,45 @@ export function buildFriendsSidebarVirtualRows({
     pushSection(nextRows, {
         id: 'me',
         title: t('side_panel.me'),
-        open: openGroups.me,
-        children: openGroups.me
-            ? buildCurrentUserRows({
-                  currentUser,
-                  currentUserId,
-                  gameState,
-                  prefs
-              })
-            : []
+        open: openGroups.me
     });
+    if (openGroups.me) {
+        nextRows.push(
+            ...buildCurrentUserRows({
+                currentUser,
+                currentUserId,
+                gameState,
+                prefs
+            })
+        );
+    }
 
     const pushSameInstance = () => {
         if (!sameInstanceGroups.length) {
             return;
         }
-        const children = [];
+        pushSection(nextRows, {
+            id: 'sameInstance',
+            title: t('side_panel.same_instance'),
+            count: sameInstanceGroups.length,
+            open: openGroups.sameInstance
+        });
         if (openGroups.sameInstance) {
             sameInstanceGroups.forEach((group, index) => {
-                children.push({
+                nextRows.push({
                     type: 'instance-header',
                     key: `instance:${group.location}:${index}`,
                     location: group.location,
                     count: group.rows.length
                 });
                 pushFriendRows(
-                    children,
+                    nextRows,
                     `sameInstance:${group.location}:${index}`,
                     group.rows,
                     { currentUserId, isGroupByInstance: true }
                 );
             });
         }
-        pushSection(nextRows, {
-            id: 'sameInstance',
-            title: t('side_panel.same_instance'),
-            count: sameInstanceGroups.length,
-            open: openGroups.sameInstance,
-            children
-        });
     };
     const pushFavorites = () => {
         if (!favoriteRows.length) {
@@ -179,16 +178,18 @@ export function buildFriendsSidebarVirtualRows({
             id: 'favorites',
             title: t('side_panel.favorite'),
             count: favoriteRows.length,
-            open: openGroups.favorites,
-            children: openGroups.favorites
-                ? buildFavoriteRows({
-                      currentUserId,
-                      favoriteGroupSections,
-                      favoriteRows,
-                      prefs
-                  })
-                : []
+            open: openGroups.favorites
         });
+        if (openGroups.favorites) {
+            nextRows.push(
+                ...buildFavoriteRows({
+                    currentUserId,
+                    favoriteGroupSections,
+                    favoriteRows,
+                    prefs
+                })
+            );
+        }
     };
 
     if (prefs.isSameInstanceAboveFavorites) {
@@ -203,31 +204,37 @@ export function buildFriendsSidebarVirtualRows({
         id: 'online',
         title: t('side_panel.online'),
         count: onlineRows.length,
-        open: openGroups.online,
-        children: openGroups.online
-            ? buildFriendRows('online', onlineRows, { currentUserId })
-            : []
+        open: openGroups.online
     });
+    if (openGroups.online) {
+        nextRows.push(
+            ...buildFriendRows('online', onlineRows, { currentUserId })
+        );
+    }
 
     pushSection(nextRows, {
         id: 'active',
         title: t('side_panel.active'),
         count: activeRows.length,
-        open: openGroups.active,
-        children: openGroups.active
-            ? buildFriendRows('active', activeRows, { currentUserId })
-            : []
+        open: openGroups.active
     });
+    if (openGroups.active) {
+        nextRows.push(
+            ...buildFriendRows('active', activeRows, { currentUserId })
+        );
+    }
 
     pushSection(nextRows, {
         id: 'offline',
         title: t('side_panel.offline'),
         count: offlineRows.length,
-        open: openGroups.offline,
-        children: openGroups.offline
-            ? buildFriendRows('offline', offlineRows, { currentUserId })
-            : []
+        open: openGroups.offline
     });
+    if (openGroups.offline) {
+        nextRows.push(
+            ...buildFriendRows('offline', offlineRows, { currentUserId })
+        );
+    }
 
     if (!rowsLength && loadStatus !== 'running') {
         pushSkeletonRows(nextRows, 'empty', 4);

@@ -18,7 +18,6 @@ import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { Button } from '@/ui/shadcn/button';
 import {
     Collapsible,
-    CollapsibleContent,
     CollapsibleTrigger
 } from '@/ui/shadcn/collapsible';
 import {
@@ -38,16 +37,7 @@ const GROUP_FOOTER_ROW_SIZE = 16;
 function estimateGroupSidebarRowSize(row) {
     switch (row?.type) {
         case 'group-header':
-            return (
-                GROUP_HEADER_ROW_SIZE +
-                (!row.isCollapsed
-                    ? (row.children || []).reduce(
-                          (total, child) =>
-                              total + estimateGroupSidebarRowSize(child),
-                          0
-                      )
-                    : 0)
-            );
+            return GROUP_HEADER_ROW_SIZE;
         case 'message':
         case 'skeleton':
             return GROUP_MESSAGE_ROW_SIZE;
@@ -58,7 +48,7 @@ function estimateGroupSidebarRowSize(row) {
     }
 }
 
-function GroupHeaderRow({ children, row, onToggleGroup }) {
+function GroupHeaderRow({ row, onToggleGroup }) {
     const isOpen = !row.isCollapsed;
 
     return (
@@ -89,7 +79,6 @@ function GroupHeaderRow({ children, row, onToggleGroup }) {
                     />
                 </Button>
             </CollapsibleTrigger>
-            <CollapsibleContent>{children}</CollapsibleContent>
         </Collapsible>
     );
 }
@@ -451,13 +440,6 @@ export function GroupsSidebar() {
         groups.forEach(([groupId, groupRows], index) => {
             const name = resolveGroupName(groupRows[0], groupId);
             const isCollapsed = collapsedGroups.has(groupId);
-            const children = isCollapsed
-                ? []
-                : groupRows.map((instance, instanceIndex) => ({
-                      type: 'group-instance',
-                      key: `group:${groupId}:${resolveLocation(instance)}:${instanceIndex}`,
-                      instance
-                  }));
             nextRows.push({
                 type: 'group-header',
                 key: `group:${groupId}`,
@@ -465,9 +447,17 @@ export function GroupsSidebar() {
                 name,
                 count: groupRows.length,
                 isCollapsed,
-                first: index === 0,
-                children
+                first: index === 0
             });
+            if (!isCollapsed) {
+                groupRows.forEach((instance, instanceIndex) => {
+                    nextRows.push({
+                        type: 'group-instance',
+                        key: `group:${groupId}:${resolveLocation(instance)}:${instanceIndex}`,
+                        instance
+                    });
+                });
+            }
         });
 
         if (!groups.length) {
@@ -497,10 +487,8 @@ export function GroupsSidebar() {
         return nextRows;
     }, [collapsedGroups, error, groups, status]);
 
-    const { viewportRef, virtualItems, totalSize } = useVirtualSidebarRows(
-        virtualRows,
-        estimateGroupSidebarRowSize
-    );
+    const { measureElement, viewportRef, virtualItems, totalSize } =
+        useVirtualSidebarRows(virtualRows, estimateGroupSidebarRowSize);
 
     function renderVirtualRow(row) {
         switch (row?.type) {
@@ -509,11 +497,7 @@ export function GroupsSidebar() {
                     <GroupHeaderRow
                         row={row}
                         onToggleGroup={toggleGroup}
-                    >
-                        {(row.children || []).map((child) => (
-                            <div key={child.key}>{renderVirtualRow(child)}</div>
-                        ))}
-                    </GroupHeaderRow>
+                    />
                 );
             case 'message':
                 return (
@@ -558,6 +542,9 @@ export function GroupsSidebar() {
                     {virtualItems.map((item) => (
                         <div
                             key={item.key}
+                            ref={(element) =>
+                                measureElement(item.key, element)
+                            }
                             className="absolute top-0 left-0 w-full"
                             style={{ transform: `translateY(${item.start}px)` }}
                         >

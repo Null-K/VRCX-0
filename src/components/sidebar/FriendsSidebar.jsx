@@ -463,16 +463,12 @@ export function FriendsSidebar({ prefs }) {
         t
     ]);
 
-    const { viewportRef, virtualItems, totalSize } = useVirtualSidebarRows(
-        virtualRows,
-        estimateFriendSidebarRowSize
-    );
+    const { measureElement, viewportRef, virtualItems, totalSize } =
+        useVirtualSidebarRows(virtualRows, estimateFriendSidebarRowSize);
     const visibleLocationMetadataEntries = useMemo(
         () =>
             virtualItems
-                .flatMap((item) =>
-                    item.row?.children ? item.row.children : [item.row]
-                )
+                .map((item) => item.row)
                 .map((row) => buildSidebarLocationMetadataEntry(row))
                 .filter(Boolean),
         [virtualItems]
@@ -514,6 +510,9 @@ export function FriendsSidebar({ prefs }) {
                     {virtualItems.map((item) => (
                         <div
                             key={item.key}
+                            ref={(element) =>
+                                measureElement(item.key, element)
+                            }
                             className="absolute top-0 left-0 w-full"
                             style={{ transform: `translateY(${item.start}px)` }}
                         >

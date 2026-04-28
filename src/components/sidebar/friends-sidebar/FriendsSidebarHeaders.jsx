@@ -4,7 +4,6 @@ import { cn } from '@/lib/utils.js';
 import { Button } from '@/ui/shadcn/button';
 import {
     Collapsible,
-    CollapsibleContent,
     CollapsibleTrigger
 } from '@/ui/shadcn/collapsible';
 
@@ -20,16 +19,7 @@ const SIDEBAR_FOOTER_ROW_SIZE = 16;
 export function estimateFriendSidebarRowSize(row) {
     switch (row?.type) {
         case 'section':
-            return (
-                SECTION_HEADER_ROW_SIZE +
-                (row.open
-                    ? (row.children || []).reduce(
-                          (total, child) =>
-                              total + estimateFriendSidebarRowSize(child),
-                          0
-                      )
-                    : 0)
-            );
+            return SECTION_HEADER_ROW_SIZE;
         case 'instance-header':
             return INSTANCE_HEADER_ROW_SIZE;
         case 'favorite-group-header':
@@ -45,7 +35,6 @@ export function estimateFriendSidebarRowSize(row) {
 }
 
 export function FriendSectionHeader({
-    children,
     id,
     title,
     count,
@@ -85,7 +74,6 @@ export function FriendSectionHeader({
                     />
                 </Button>
             </CollapsibleTrigger>
-            <CollapsibleContent>{children}</CollapsibleContent>
         </Collapsible>
     );
 }
