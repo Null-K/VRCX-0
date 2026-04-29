@@ -1,6 +1,31 @@
 import { create } from 'zustand';
 
-export const useNotificationStore = create((set) => ({
+type NotificationLevel = 'info' | 'success' | 'warning' | 'error' | string;
+
+interface NotificationEntry {
+    id: string;
+    createdAt: string;
+    level: NotificationLevel;
+    title: string;
+    message: string;
+    read: boolean;
+    [key: string]: unknown;
+}
+
+type NotificationInput = Partial<NotificationEntry> & Record<string, unknown>;
+
+interface NotificationStoreState {
+    items: NotificationEntry[];
+    isPanelOpen: boolean;
+    pushNotification: (notification: NotificationInput) => void;
+    markAllRead: () => void;
+    markNotificationRead: (id: string) => void;
+    dismissNotification: (id: string) => void;
+    setPanelOpen: (isPanelOpen: unknown) => void;
+    resetNotificationState: () => void;
+}
+
+export const useNotificationStore = create<NotificationStoreState>((set) => ({
     items: [],
     isPanelOpen: false,
     pushNotification(notification) {
@@ -52,3 +77,4 @@ export const useNotificationStore = create((set) => ({
         });
     }
 }));
+export type { NotificationEntry, NotificationInput, NotificationStoreState };

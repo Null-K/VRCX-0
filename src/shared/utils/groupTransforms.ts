@@ -3,7 +3,9 @@
  * @param {object} json - API response to merge
  * @returns {object}
  */
-export function createDefaultGroupRef(json) {
+export function createDefaultGroupRef(
+    json: Record<string, unknown> = {}
+): Record<string, any> {
     return {
         id: '',
         name: '',

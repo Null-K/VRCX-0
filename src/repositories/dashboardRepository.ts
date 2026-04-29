@@ -6,7 +6,36 @@ import { normalizeNavIconKey } from '@/shared/constants/navIcons.js';
 
 import configRepository from './configRepository.js';
 
-function generateDashboardRowId() {
+type DashboardDirection = 'horizontal' | 'vertical';
+type DashboardPanel =
+    | string
+    | {
+          key: string;
+          config: Record<string, unknown>;
+      };
+
+interface DashboardRow {
+    id?: string;
+    panels: Array<DashboardPanel | null>;
+    direction: DashboardDirection;
+}
+
+interface Dashboard {
+    id: string;
+    name: string;
+    icon: string;
+    rows: DashboardRow[];
+}
+
+interface CloneRowsOptions {
+    generateMissingRowIds?: boolean;
+}
+
+function isRecord(value: unknown): value is Record<string, any> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function generateDashboardRowId(): string {
     if (
         typeof crypto !== 'undefined' &&
         crypto &&
@@ -18,14 +47,13 @@ function generateDashboardRowId() {
     return `row-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function clonePanel(panel) {
+function clonePanel(panel: unknown): DashboardPanel | null {
     if (typeof panel === 'string' && panel) {
         return panel;
     }
 
     if (
-        panel &&
-        typeof panel === 'object' &&
+        isRecord(panel) &&
         typeof panel.key === 'string' &&
         panel.key
     ) {
@@ -41,23 +69,27 @@ function clonePanel(panel) {
     return null;
 }
 
-function cloneRows(rows, { generateMissingRowIds = true } = {}) {
+function cloneRows(
+    rows: unknown,
+    { generateMissingRowIds = true }: CloneRowsOptions = {}
+): DashboardRow[] {
     if (!Array.isArray(rows)) {
         return [];
     }
 
     return rows
         .map((row) => {
-            const sourcePanels = Array.isArray(row?.panels)
-                ? row.panels.slice(0, 2)
+            const sourceRow = isRecord(row) ? row : null;
+            const sourcePanels = Array.isArray(sourceRow?.panels)
+                ? sourceRow.panels.slice(0, 2)
                 : [];
             if (!sourcePanels.length) {
                 return null;
             }
 
             const rowId =
-                typeof row?.id === 'string' && row.id.trim()
-                    ? row.id.trim()
+                typeof sourceRow?.id === 'string' && sourceRow.id.trim()
+                    ? sourceRow.id.trim()
                     : generateMissingRowIds
                       ? generateDashboardRowId()
                       : '';
@@ -65,14 +97,19 @@ function cloneRows(rows, { generateMissingRowIds = true } = {}) {
                 ...(rowId ? { id: rowId } : {}),
                 panels: sourcePanels.map(clonePanel),
                 direction:
-                    row?.direction === 'vertical' ? 'vertical' : 'horizontal'
+                    sourceRow?.direction === 'vertical'
+                        ? 'vertical'
+                        : 'horizontal'
             };
         })
-        .filter(Boolean);
+        .filter((row): row is DashboardRow => Boolean(row));
 }
 
-function sanitizeDashboard(dashboard, { generateMissingRowIds = true } = {}) {
-    if (!dashboard || typeof dashboard !== 'object') {
+function sanitizeDashboard(
+    dashboard: unknown,
+    { generateMissingRowIds = true }: CloneRowsOptions = {}
+): Dashboard | null {
+    if (!isRecord(dashboard)) {
         return null;
     }
 
@@ -98,7 +135,7 @@ function sanitizeDashboard(dashboard, { generateMissingRowIds = true } = {}) {
     };
 }
 
-async function getDashboards() {
+async function getDashboards(): Promise<Dashboard[]> {
     const stored = await configRepository.getString(
         DASHBOARD_STORAGE_KEY,
         null
@@ -108,7 +145,7 @@ async function getDashboards() {
     }
 
     try {
-        const parsed = JSON.parse(stored);
+        const parsed = JSON.parse(String(stored));
         const source = Array.isArray(parsed?.dashboards)
             ? parsed.dashboards
             : [];
@@ -122,10 +159,10 @@ async function getDashboards() {
     }
 }
 
-async function saveDashboards(dashboards = []) {
+async function saveDashboards(dashboards: unknown[] = []): Promise<Dashboard[]> {
     const sanitizedDashboards = (Array.isArray(dashboards) ? dashboards : [])
-        .map(sanitizeDashboard)
-        .filter(Boolean);
+        .map((dashboard) => sanitizeDashboard(dashboard))
+        .filter((dashboard): dashboard is Dashboard => Boolean(dashboard));
 
     await configRepository.setString(
         DASHBOARD_STORAGE_KEY,
@@ -135,7 +172,7 @@ async function saveDashboards(dashboards = []) {
     return sanitizedDashboards;
 }
 
-function generateDashboardId() {
+function generateDashboardId(): string {
     if (
         typeof crypto !== 'undefined' &&
         crypto &&
@@ -147,14 +184,17 @@ function generateDashboardId() {
     return `dashboard-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function generateNextDashboardName(dashboards = [], baseName = 'Dashboard') {
+function generateNextDashboardName(
+    dashboards: unknown[] = [],
+    baseName = 'Dashboard'
+): string {
     const normalizedBaseName =
         typeof baseName === 'string' && baseName.trim()
             ? baseName.trim()
             : 'Dashboard';
     const existingNames = new Set(
         (Array.isArray(dashboards) ? dashboards : [])
-            .map((dashboard) => dashboard?.name)
+            .map((dashboard) => (isRecord(dashboard) ? dashboard.name : ''))
             .filter((name) => typeof name === 'string' && name)
     );
 

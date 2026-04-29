@@ -1,11 +1,57 @@
 import { create } from 'zustand';
 
-const initialState = {
+type DialogKind = string;
+
+interface DialogBreadcrumb {
+    kind?: DialogKind;
+    entityId?: string;
+    title?: string;
+    label?: string;
+    description?: string;
+    payload?: unknown;
+    [key: string]: unknown;
+}
+
+interface ActiveDialog {
+    kind: DialogKind;
+    entityId: string;
+    title: string;
+    description?: string;
+    payload?: unknown;
+    crumb?: DialogBreadcrumb;
+    [key: string]: unknown;
+}
+
+interface DialogMetadataPatch {
+    kind?: unknown;
+    entityId?: unknown;
+    title?: unknown;
+    description?: unknown;
+}
+
+interface DialogStoreState {
+    activeDialog: ActiveDialog | null;
+    breadcrumbs: DialogBreadcrumb[];
+    openDialog: (dialog: ActiveDialog | null) => void;
+    setDialog: (dialog: ActiveDialog | null) => void;
+    setDialogTrail: (
+        dialog: ActiveDialog | null,
+        breadcrumbs: DialogBreadcrumb[] | unknown
+    ) => void;
+    updateEntityDialogMetadata: (patch?: DialogMetadataPatch) => void;
+    closeDialog: () => void;
+    setBreadcrumbs: (breadcrumbs: DialogBreadcrumb[]) => void;
+    pushBreadcrumb: (crumb: DialogBreadcrumb) => void;
+    popToBreadcrumb: (index: number) => void;
+    clearDialogState: () => void;
+}
+
+const initialState: Pick<DialogStoreState, 'activeDialog' | 'breadcrumbs'> = {
     activeDialog: null,
     breadcrumbs: []
 };
 
-function dialogFromBreadcrumb(crumb) {
+function dialogFromBreadcrumb(crumb: DialogBreadcrumb): ActiveDialog | null {
     if (!crumb?.kind || !crumb?.entityId) {
         return null;
     }
@@ -19,14 +65,18 @@ function dialogFromBreadcrumb(crumb) {
     };
 }
 
-function isSameEntity(left, rightKind, rightEntityId) {
+function isSameEntity(
+    left: DialogBreadcrumb | ActiveDialog | null,
+    rightKind: string,
+    rightEntityId: string
+): boolean {
     return (
         left?.kind === rightKind &&
         String(left?.entityId ?? '').trim() === rightEntityId
     );
 }
 
-export const useDialogStore = create((set) => ({
+export const useDialogStore = create<DialogStoreState>((set) => ({
     ...initialState,
     openDialog(dialog) {
         set((state) => ({
@@ -117,3 +167,10 @@ export const useDialogStore = create((set) => ({
         set(initialState);
     }
 }));
+export type {
+    ActiveDialog,
+    DialogBreadcrumb,
+    DialogKind,
+    DialogMetadataPatch,
+    DialogStoreState
+};

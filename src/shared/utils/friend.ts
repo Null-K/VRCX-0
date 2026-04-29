@@ -9,8 +9,21 @@ import {
 } from './compare.js';
 import { sortStatus } from './friendStatus.js';
 
-function getFriendsSortFunction(sortMethods) {
-    const sorts = [];
+type FriendSortMethod =
+    | 'Sort Alphabetically'
+    | 'Sort Private to Bottom'
+    | 'Sort by Status'
+    | 'Sort by Last Active'
+    | 'Sort by Last Seen'
+    | 'Sort by Time in Instance'
+    | 'Sort by Location'
+    | 'None';
+
+type FriendSortItem = Record<string, any>;
+type FriendComparator = (a: FriendSortItem, b: FriendSortItem) => number;
+
+function getFriendsSortFunction(sortMethods: FriendSortMethod[]): FriendComparator {
+    const sorts: FriendComparator[] = [];
     for (const sortMethod of sortMethods) {
         switch (sortMethod) {
             case 'Sort Alphabetically':
@@ -61,7 +74,7 @@ function getFriendsSortFunction(sortMethods) {
         }
     }
 
-    return (a, b) => {
+    return (a: FriendSortItem, b: FriendSortItem) => {
         let res = 0;
         for (const sort of sorts) {
             res = sort(a, b);
@@ -73,7 +86,7 @@ function getFriendsSortFunction(sortMethods) {
     };
 }
 
-function isFriendOnline(friend) {
+function isFriendOnline(friend: FriendSortItem | undefined): boolean {
     if (typeof friend === 'undefined' || typeof friend.ref === 'undefined') {
         return false;
     }
@@ -87,3 +100,4 @@ function isFriendOnline(friend) {
 }
 
 export { getFriendsSortFunction, sortStatus, isFriendOnline };
+export type { FriendSortItem, FriendSortMethod };

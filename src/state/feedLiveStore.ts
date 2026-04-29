@@ -1,11 +1,27 @@
 import { create } from 'zustand';
 
-const initialState = {
+interface FeedLiveEntry {
+    sequence: number;
+    ownerUserId: string;
+    entry: Record<string, unknown>;
+}
+
+interface FeedLiveStoreState {
+    version: number;
+    entries: FeedLiveEntry[];
+    pushEntry: (
+        entry: Record<string, unknown> | null | undefined,
+        options?: { ownerUserId?: string }
+    ) => void;
+    resetFeedLive: () => void;
+}
+
+const initialState: Pick<FeedLiveStoreState, 'version' | 'entries'> = {
     version: 0,
     entries: []
 };
 
-export const useFeedLiveStore = create((set) => ({
+export const useFeedLiveStore = create<FeedLiveStoreState>((set) => ({
     ...initialState,
     pushEntry(entry, { ownerUserId = '' } = {}) {
         if (!entry || typeof entry !== 'object') {
@@ -27,3 +43,4 @@ export const useFeedLiveStore = create((set) => ({
         set(initialState);
     }
 }));
+export type { FeedLiveEntry, FeedLiveStoreState };

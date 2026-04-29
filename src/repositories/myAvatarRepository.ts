@@ -12,8 +12,44 @@ import { executeVrchatRequest } from './vrchatRequest.js';
 const PAGE_SIZE = 50;
 const MAX_OFFSET = 5000;
 
+type AvatarRecord = Record<string, any>;
+
+interface AvatarRequestOptions {
+    endpoint?: string;
+}
+
+interface MyAvatarsOptions extends AvatarRequestOptions {
+    currentUserId?: string;
+    currentAvatarId?: string;
+    previousAvatarSwapTime?: number;
+}
+
+interface AvatarTagEntry {
+    tag: string;
+    color?: string | null;
+}
+
+interface UpdateAvatarTagsInput {
+    avatarId?: unknown;
+    previousTags?: AvatarTagEntry[];
+    nextTags?: AvatarTagEntry[];
+}
+
+interface SaveAvatarInput extends AvatarRequestOptions {
+    avatarId?: unknown;
+    params?: Record<string, unknown>;
+}
+
+interface AvatarIdInput extends AvatarRequestOptions {
+    avatarId?: unknown;
+}
+
+interface AvatarStylesInput extends AvatarRequestOptions {
+    force?: boolean;
+}
+
 async function execute(
-    path,
+    path: string,
     { endpoint = '', method = 'GET', params = null } = {}
 ) {
     return executeVrchatRequest(path, {
@@ -26,11 +62,19 @@ async function execute(
     });
 }
 
-async function executeGet(path, params = {}, { endpoint = '' } = {}) {
+async function executeGet(
+    path: string,
+    params: Record<string, unknown> = {},
+    { endpoint = '' }: AvatarRequestOptions = {}
+) {
     return execute(path, { endpoint, method: 'GET', params });
 }
 
-async function executePut(path, params = {}, { endpoint = '' } = {}) {
+async function executePut(
+    path: string,
+    params: Record<string, unknown> = {},
+    { endpoint = '' }: AvatarRequestOptions = {}
+) {
     return execute(path, { endpoint, method: 'PUT', params });
 }
 
@@ -58,8 +102,8 @@ async function getMyAvatars({
     currentUserId = '',
     currentAvatarId = '',
     previousAvatarSwapTime = 0
-} = {}) {
-    const avatars = [];
+}: MyAvatarsOptions = {}) {
+    const avatars: AvatarRecord[] = [];
 
     if (currentUserId) {
         await userSessionRepository.ensureUserTables(currentUserId);
@@ -86,7 +130,7 @@ async function getMyAvatars({
             : Promise.resolve(new Map())
     ]);
 
-    return avatars.map((avatar) => {
+    return avatars.map((avatar: AvatarRecord) => {
         const nextAvatar = {
             ...avatar,
             $tags: tagsMap.get(avatar.id) || [],
@@ -110,7 +154,7 @@ async function updateAvatarTags({
     avatarId,
     previousTags = [],
     nextTags = []
-}) {
+}: UpdateAvatarTagsInput) {
     const normalizedAvatarId =
         typeof avatarId === 'string' ? avatarId.trim() : '';
     if (!normalizedAvatarId) {
@@ -171,7 +215,11 @@ async function updateAvatarTags({
     return Array.from(nextMap.values());
 }
 
-async function saveAvatar({ avatarId, endpoint = '', params = {} }) {
+async function saveAvatar({
+    avatarId,
+    endpoint = '',
+    params = {}
+}: SaveAvatarInput) {
     const normalizedAvatarId =
         typeof avatarId === 'string' ? avatarId.trim() : '';
     if (!normalizedAvatarId) {
@@ -190,7 +238,7 @@ async function saveAvatar({ avatarId, endpoint = '', params = {} }) {
     return response.json;
 }
 
-async function createImpostor({ avatarId, endpoint = '' } = {}) {
+async function createImpostor({ avatarId, endpoint = '' }: AvatarIdInput = {}) {
     const normalizedAvatarId =
         typeof avatarId === 'string' ? avatarId.trim() : '';
     if (!normalizedAvatarId) {
@@ -210,7 +258,10 @@ async function createImpostor({ avatarId, endpoint = '' } = {}) {
     return response.json;
 }
 
-async function getAvailableAvatarStyles({ endpoint = '', force = false } = {}) {
+async function getAvailableAvatarStyles({
+    endpoint = '',
+    force = false
+}: AvatarStylesInput = {}) {
     return fetchCachedData({
         queryKey: queryKeys.avatarStyles(endpoint),
         policy: entityQueryPolicies.avatarStyles,

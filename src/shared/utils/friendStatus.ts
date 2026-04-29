@@ -1,4 +1,6 @@
-function sortStatus(a, b) {
+type FriendStatus = 'join me' | 'active' | 'ask me' | 'busy' | 'offline';
+
+function sortStatus(a: FriendStatus | string, b: FriendStatus | string): number {
     switch (b) {
         case 'join me':
             switch (a) {
@@ -53,3 +55,4 @@ function sortStatus(a, b) {
 }
 
 export { sortStatus };
+export type { FriendStatus };

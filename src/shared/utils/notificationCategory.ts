@@ -1,6 +1,12 @@
 import dayjs from '@/lib/dayjs.js';
 
-const FRIEND_TYPES = new Set([
+type NotificationCategory = 'friend' | 'group' | 'other';
+type NotificationLike = {
+    created_at?: string | number | null;
+    createdAt?: string | number | null;
+};
+
+const FRIEND_TYPES = new Set<string>([
     'friendRequest',
     'ignoredFriendRequest',
     'invite',
@@ -10,14 +16,14 @@ const FRIEND_TYPES = new Set([
     'boop'
 ]);
 const GROUP_TYPES_PREFIX = ['group.', 'moderation.'];
-const GROUP_EXACT_TYPES = new Set(['groupChange', 'event.announcement']);
+const GROUP_EXACT_TYPES = new Set<string>(['groupChange', 'event.announcement']);
 
 /**
  * Determine the category of a notification type.
  * @param {string} type
  * @returns {'friend'|'group'|'other'}
  */
-function getNotificationCategory(type) {
+function getNotificationCategory(type: string): NotificationCategory {
     if (!type) return 'other';
     if (FRIEND_TYPES.has(type)) return 'friend';
     if (
@@ -33,7 +39,7 @@ function getNotificationCategory(type) {
  * @param {object} n - A notification with created_at or createdAt field
  * @returns {number}
  */
-function getNotificationTs(n) {
+function getNotificationTs(n: NotificationLike): number {
     const raw = n.created_at ?? n.createdAt;
     if (typeof raw === 'number') return raw > 1e12 ? raw : raw * 1000;
     if (raw === null || raw === undefined || raw === '') return 0;
@@ -48,3 +54,4 @@ export {
     getNotificationCategory,
     getNotificationTs
 };
+export type { NotificationCategory, NotificationLike };

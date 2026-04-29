@@ -1,10 +1,30 @@
-import { ActivityType, StatusDisplayType } from '../constants/discord';
+import {
+    ActivityType,
+    StatusDisplayType,
+    type ActivityTypeValue,
+    type StatusDisplayTypeValue
+} from '../constants/discord';
+
+type TranslateFn = (key: string) => string;
+
+interface RpcWorldConfig {
+    activityType: ActivityTypeValue;
+    statusDisplayType: StatusDisplayTypeValue;
+    appId: string;
+    bigIcon: string;
+}
+
+interface StatusInfo {
+    statusName: string;
+    statusImage: string;
+    hidePrivate: boolean;
+}
 
 /**
  * RPC world configuration table.
  * Maps worldId → { activityType, statusDisplayType, appId, bigIcon }.
  */
-const RPC_WORLD_CONFIGS = new Map([
+const RPC_WORLD_CONFIGS = new Map<string, RpcWorldConfig>([
     // PyPyDance
     [
         'wrld_f20326da-f1ac-45fc-a062-609723b097b1',
@@ -140,7 +160,7 @@ const POPCORN_PALACE_WORLD_IDS = new Set([
  * @param {string} worldId
  * @returns {{ activityType: number, statusDisplayType: number, appId: string, bigIcon: string } | null}
  */
-export function getRpcWorldConfig(worldId) {
+export function getRpcWorldConfig(worldId: string): RpcWorldConfig | null {
     const config = RPC_WORLD_CONFIGS.get(worldId);
     if (!config) {
         return null;
@@ -153,7 +173,7 @@ export function getRpcWorldConfig(worldId) {
  * @param {string} worldId
  * @returns {boolean}
  */
-export function isPopcornPalaceWorld(worldId) {
+export function isPopcornPalaceWorld(worldId: string): boolean {
     return POPCORN_PALACE_WORLD_IDS.has(worldId);
 }
 
@@ -165,7 +185,12 @@ export function isPopcornPalaceWorld(worldId) {
  * @param {Function} t - i18n translate function
  * @returns {string} Platform label string (e.g. ' (VR)', ' (PC)'), or empty string
  */
-export function getPlatformLabel(platform, isGameRunning, isGameNoVR, t) {
+export function getPlatformLabel(
+    platform: string,
+    isGameRunning: boolean,
+    isGameNoVR: boolean,
+    t: TranslateFn
+): string {
     if (isGameRunning) {
         return isGameNoVR
             ? ` (${t('view.settings.discord_presence.rpc.desktop')})`
@@ -192,7 +217,11 @@ export function getPlatformLabel(platform, isGameRunning, isGameNoVR, t) {
  * @param {Function} t - i18n translate function
  * @returns {{ statusName: string, statusImage: string, hidePrivate: boolean }}
  */
-export function getStatusInfo(status, discordHideInvite, t) {
+export function getStatusInfo(
+    status: string,
+    discordHideInvite: boolean,
+    t: TranslateFn
+): StatusInfo {
     switch (status) {
         case 'active':
             return {
@@ -226,3 +255,4 @@ export function getStatusInfo(status, discordHideInvite, t) {
             };
     }
 }
+export type { RpcWorldConfig, StatusInfo, TranslateFn };

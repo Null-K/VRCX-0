@@ -1,12 +1,15 @@
 import { sortStatus } from './friendStatus.js';
 
+type ComparableRecord = Record<string, any>;
+type Comparator = (a: ComparableRecord, b: ComparableRecord) => number;
+
 /**
  *
  * @param {object} a
  * @param {object} b
  * @returns
  */
-function compareByName(a, b) {
+function compareByName(a: ComparableRecord, b: ComparableRecord): number {
     if (typeof a.name !== 'string' || typeof b.name !== 'string') {
         return 0;
     }
@@ -19,7 +22,7 @@ function compareByName(a, b) {
  * @param {object} b
  * @returns
  */
-function compareByCreatedAt(a, b) {
+function compareByCreatedAt(a: ComparableRecord, b: ComparableRecord): number {
     if (typeof a.created_at !== 'string' || typeof b.created_at !== 'string') {
         return 0;
     }
@@ -40,7 +43,10 @@ function compareByCreatedAt(a, b) {
  * @param {object} b
  * @returns
  */
-function compareByCreatedAtAscending(a, b) {
+function compareByCreatedAtAscending(
+    a: ComparableRecord,
+    b: ComparableRecord
+): number {
     const A = a.created_at;
     const B = b.created_at;
     if (A < B) {
@@ -58,7 +64,7 @@ function compareByCreatedAtAscending(a, b) {
  * @param {object} b
  * @returns
  */
-function compareByUpdatedAt(a, b) {
+function compareByUpdatedAt(a: ComparableRecord, b: ComparableRecord): number {
     if (typeof a.updated_at !== 'string' || typeof b.updated_at !== 'string') {
         return 0;
     }
@@ -79,7 +85,7 @@ function compareByUpdatedAt(a, b) {
  * @param {object} b
  * @returns
  */
-function compareByDisplayName(a, b) {
+function compareByDisplayName(a: ComparableRecord, b: ComparableRecord): number {
     if (
         typeof a.displayName !== 'string' ||
         typeof b.displayName !== 'string'
@@ -95,7 +101,7 @@ function compareByDisplayName(a, b) {
  * @param {object} b
  * @returns
  */
-function compareById(a, b) {
+function compareById(a: ComparableRecord, b: ComparableRecord): number {
     if (typeof a.id !== 'string' || typeof b.id !== 'string') {
         return 0;
     }
@@ -108,7 +114,7 @@ function compareById(a, b) {
  * @param {object} b
  * @returns
  */
-function compareByMemberCount(a, b) {
+function compareByMemberCount(a: ComparableRecord, b: ComparableRecord): number {
     if (
         typeof a.memberCount !== 'number' ||
         typeof b.memberCount !== 'number'
@@ -124,7 +130,7 @@ function compareByMemberCount(a, b) {
  * @param {object} b
  * @returns
  */
-function compareByPrivate(a, b) {
+function compareByPrivate(a: ComparableRecord, b: ComparableRecord): number {
     if (typeof a.ref === 'undefined' || typeof b.ref === 'undefined') {
         return 0;
     }
@@ -144,7 +150,7 @@ function compareByPrivate(a, b) {
  * @param {object} b
  * @returns
  */
-function compareByStatus(a, b) {
+function compareByStatus(a: ComparableRecord, b: ComparableRecord): number {
     if (typeof a.ref === 'undefined' || typeof b.ref === 'undefined') {
         return 0;
     }
@@ -163,7 +169,7 @@ function compareByStatus(a, b) {
  * @param {object} b
  * @returns
  */
-function compareByLastActive(a, b) {
+function compareByLastActive(a: ComparableRecord, b: ComparableRecord): number {
     if (a.state === 'online' && b.state === 'online') {
         if (
             a.ref?.$online_for &&
@@ -178,7 +184,10 @@ function compareByLastActive(a, b) {
     return compareByActivityField(a, b, 'last_activity');
 }
 
-function compareByLastActiveRef(a, b) {
+function compareByLastActiveRef(
+    a: ComparableRecord,
+    b: ComparableRecord
+): number {
     if (a.state === 'online' && b.state === 'online') {
         if (a.$online_for && b.$online_for && a.$online_for === b.$online_for) {
             return a.last_login < b.last_login ? 1 : -1;
@@ -194,7 +203,7 @@ function compareByLastActiveRef(a, b) {
  * @param {object} b
  * @returns
  */
-function compareByLastSeen(a, b) {
+function compareByLastSeen(a: ComparableRecord, b: ComparableRecord): number {
     return compareByActivityField(a, b, '$lastSeen');
 }
 
@@ -205,7 +214,11 @@ function compareByLastSeen(a, b) {
  * @param {string} field
  * @returns
  */
-function compareByActivityField(a, b, field) {
+function compareByActivityField(
+    a: ComparableRecord,
+    b: ComparableRecord,
+    field: string
+): number {
     if (typeof a.ref === 'undefined' || typeof b.ref === 'undefined') {
         return 0;
     }
@@ -233,7 +246,7 @@ function compareByActivityField(a, b, field) {
  * @param {object} b
  * @returns
  */
-function compareByLocationAt(a, b) {
+function compareByLocationAt(a: ComparableRecord, b: ComparableRecord): number {
     if (a.location === 'traveling' && b.location === 'traveling') {
         return 0;
     }
@@ -258,7 +271,7 @@ function compareByLocationAt(a, b) {
  * @param {object} b
  * @returns
  */
-function compareByLocation(a, b) {
+function compareByLocation(a: ComparableRecord, b: ComparableRecord): number {
     if (typeof a.ref === 'undefined' || typeof b.ref === 'undefined') {
         return 0;
     }
@@ -275,7 +288,7 @@ function compareByLocation(a, b) {
  * @param {object} b
  * @returns
  */
-function compareByFriendOrder(a, b) {
+function compareByFriendOrder(a: ComparableRecord, b: ComparableRecord): number {
     if (typeof a === 'undefined' || typeof b === 'undefined') {
         return 0;
     }
@@ -299,3 +312,4 @@ export {
     compareByLocation,
     compareByFriendOrder
 };
+export type { ComparableRecord, Comparator };

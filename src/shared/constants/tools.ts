@@ -1,4 +1,58 @@
-const toolCategories = [
+type ToolCategoryKey =
+    | 'image'
+    | 'shortcuts'
+    | 'group'
+    | 'system'
+    | 'user'
+    | 'other';
+
+type ToolAction =
+    | { type: 'route'; routeName: 'screenshot-metadata' | 'gallery' }
+    | {
+          type: 'app-api';
+          method: string;
+          successMessageKey: string;
+          errorMessageKey: string;
+      }
+    | {
+          type: 'store-action';
+          target: 'advancedSettings' | 'launch' | 'vrcx';
+          method:
+              | 'showVRChatConfig'
+              | 'showLaunchOptions'
+              | 'showRegistryBackupDialog';
+      }
+    | { type: 'dialog'; dialogKey: string };
+
+interface ToolCategory {
+    key: ToolCategoryKey;
+    labelKey: string;
+}
+
+interface ToolDefinition {
+    key: string;
+    category: ToolCategoryKey;
+    iconKey: string;
+    navIcon: string;
+    titleKey: string;
+    descriptionKey: string;
+    navEligible: boolean;
+    requiredCapability?: string;
+    requiredCapabilityMode?: 'supported';
+    action: ToolAction;
+}
+
+interface ToolNavDefinition {
+    key: string;
+    icon: string;
+    tooltip: string;
+    labelKey: string;
+    routeName: string | null;
+    action: { type: 'tool'; toolKey: string } | null;
+    defaultHidden: boolean;
+}
+
+const toolCategories: ToolCategory[] = [
     { key: 'image', labelKey: 'view.tools.pictures.header' },
     { key: 'shortcuts', labelKey: 'view.tools.shortcuts.header' },
     { key: 'group', labelKey: 'view.tools.group.header' },
@@ -7,7 +61,7 @@ const toolCategories = [
     { key: 'other', labelKey: 'view.tools.other.header' }
 ];
 
-const toolDefinitions = [
+const toolDefinitions: ToolDefinition[] = [
     {
         key: 'screenshot-metadata',
         category: 'image',
@@ -229,11 +283,11 @@ const toolDefinitions = [
     }
 ];
 
-const toolDefinitionMap = new Map(
+const toolDefinitionMap = new Map<string, ToolDefinition>(
     toolDefinitions.map((tool) => [tool.key, tool])
 );
 
-const toolNavDefinitions = toolDefinitions
+const toolNavDefinitions: ToolNavDefinition[] = toolDefinitions
     .filter((tool) => tool.navEligible)
     .map((tool) => ({
         key: `tool-${tool.key}`,
@@ -252,10 +306,10 @@ const toolNavDefinitions = toolDefinitions
     }));
 
 const defaultHiddenToolNavKeys = toolNavDefinitions.map((tool) => tool.key);
-const isToolNavKey = (key) =>
+const isToolNavKey = (key: unknown): key is string =>
     typeof key === 'string' && key.startsWith('tool-');
 
-function getToolsByCategory(categoryKey) {
+function getToolsByCategory(categoryKey: ToolCategoryKey): ToolDefinition[] {
     return toolDefinitions.filter((tool) => tool.category === categoryKey);
 }
 
@@ -267,4 +321,11 @@ export {
     toolDefinitionMap,
     toolNavDefinitions,
     getToolsByCategory
+};
+export type {
+    ToolAction,
+    ToolCategory,
+    ToolCategoryKey,
+    ToolDefinition,
+    ToolNavDefinition
 };

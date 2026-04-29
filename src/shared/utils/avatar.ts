@@ -1,13 +1,33 @@
 import { replaceBioSymbols } from './base/string';
 import { getPlatformInfo } from './avatarPlatform.js';
 
+interface AvatarImageArgs {
+    json: {
+        versions: Array<{ created_at?: string }>;
+        name?: string;
+        ownerId?: string;
+    };
+    params: {
+        fileId: string;
+    };
+}
+
+interface CachedAvatarImage {
+    ownerId?: string;
+    avatarName: string;
+    fileCreatedAt?: string;
+}
+
 /**
  *
  * @param {object} args
  * @param {Map} cachedAvatarNames
  * @returns
  */
-function storeAvatarImage(args, cachedAvatarNames) {
+function storeAvatarImage(
+    args: AvatarImageArgs,
+    cachedAvatarNames: Map<string, CachedAvatarImage>
+): CachedAvatarImage {
     const refCreatedAt = args.json.versions[0];
     const fileCreatedAt = refCreatedAt.created_at;
     const fileId = args.params.fileId;
@@ -32,7 +52,7 @@ function storeAvatarImage(args, cachedAvatarNames) {
  * @param {string} avatar
  * @returns {string|null}
  */
-function parseAvatarUrl(avatar) {
+function parseAvatarUrl(avatar: string): string | null {
     const url = new URL(avatar);
     const urlPath = url.pathname;
     if (urlPath.substring(5, 13) === '/avatar/') {
@@ -48,7 +68,10 @@ function parseAvatarUrl(avatar) {
  * @param sdkUnityVersion
  * @returns {boolean}
  */
-function compareUnityVersion(unitySortNumber, sdkUnityVersion) {
+function compareUnityVersion(
+    unitySortNumber: string,
+    sdkUnityVersion: string
+): boolean {
     if (!sdkUnityVersion) {
         console.error('No sdkUnityVersion provided');
         return false;

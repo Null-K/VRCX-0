@@ -1,11 +1,17 @@
-const VRChatScreenshotResolutions = [
+interface VRChatResolution {
+    name: string;
+    width: number | '';
+    height: number | '';
+}
+
+const VRChatScreenshotResolutions: VRChatResolution[] = [
     { name: '1280x720 (720p)', width: 1280, height: 720 },
     { name: '1920x1080 (1080p Default)', width: '', height: '' },
     { name: '2560x1440 (1440p)', width: 2560, height: 1440 },
     { name: '3840x2160 (4K)', width: 3840, height: 2160 }
 ];
 
-const VRChatCameraResolutions = [
+const VRChatCameraResolutions: VRChatResolution[] = [
     { name: '1280x720 (720p)', width: 1280, height: 720 },
     { name: '1920x1080 (1080p Default)', width: '', height: '' },
     { name: '2560x1440 (1440p)', width: 2560, height: 1440 },
@@ -28,7 +34,9 @@ const branches = {
         name: 'Alpha',
         urlReleases: GITHUB_RELEASES_URL
     }
-};
+} as const;
+
+type ReleaseBranchKey = keyof typeof branches;
 
 const TABLE_MAX_SIZE_MIN = 100;
 const TABLE_MAX_SIZE_MAX = 10000;
@@ -50,3 +58,4 @@ export {
     DEFAULT_MAX_TABLE_SIZE,
     DEFAULT_SEARCH_LIMIT
 };
+export type { ReleaseBranchKey, VRChatResolution };

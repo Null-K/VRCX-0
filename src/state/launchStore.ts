@@ -1,6 +1,33 @@
 import { create } from 'zustand';
 
-const emptyLaunchDialog = {
+interface LaunchDialogState {
+    open: boolean;
+    loading: boolean;
+    tag: string;
+    shortName: string;
+    launchToken: string;
+    createdInstance: unknown;
+    worldName: string;
+}
+
+interface LaunchDialogOptions {
+    createdInstance?: unknown;
+    worldName?: unknown;
+}
+
+interface LaunchStoreState {
+    launchDialog: LaunchDialogState;
+    showLaunchDialog: (
+        tag: unknown,
+        shortName?: unknown,
+        launchToken?: unknown,
+        options?: LaunchDialogOptions
+    ) => void;
+    closeLaunchDialog: () => void;
+    setLaunchDialogOpen: (open: unknown) => void;
+}
+
+const emptyLaunchDialog: LaunchDialogState = {
     open: false,
     loading: false,
     tag: '',
@@ -10,7 +37,7 @@ const emptyLaunchDialog = {
     worldName: ''
 };
 
-export const useLaunchStore = create((set) => ({
+export const useLaunchStore = create<LaunchStoreState>((set) => ({
     launchDialog: emptyLaunchDialog,
     showLaunchDialog(tag, shortName = '', launchToken = '', options = {}) {
         set({
@@ -47,3 +74,4 @@ export const useLaunchStore = create((set) => ({
         }));
     }
 }));
+export type { LaunchDialogOptions, LaunchDialogState, LaunchStoreState };

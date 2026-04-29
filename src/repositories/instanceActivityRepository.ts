@@ -2,13 +2,39 @@ import { parseLocation } from '@/shared/utils/locationParser.js';
 
 import sqliteRepository from './sqliteRepository.js';
 
-function normalizeString(value) {
+type SQLiteLikeRow = Record<string, any> | unknown[];
+
+interface InstanceActivityRow {
+    id: unknown;
+    created_at: unknown;
+    type: string;
+    display_name: unknown;
+    location: string;
+    user_id: unknown;
+    time: number;
+}
+
+interface WorldSummary {
+    id: string;
+    authorId?: unknown;
+    authorName?: unknown;
+    created_at?: unknown;
+    description?: unknown;
+    imageUrl?: unknown;
+    name?: string;
+    releaseStatus?: unknown;
+    thumbnailImageUrl?: unknown;
+    updated_at?: unknown;
+    version?: unknown;
+}
+
+function normalizeString(value: unknown): string {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-function normalizeInstanceActivityRow(row) {
+function normalizeInstanceActivityRow(row: SQLiteLikeRow): InstanceActivityRow {
     if (Array.isArray(row)) {
         return {
             id: row[0] ?? '',
@@ -32,7 +58,7 @@ function normalizeInstanceActivityRow(row) {
     };
 }
 
-function normalizeWorldCacheRow(row) {
+function normalizeWorldCacheRow(row: SQLiteLikeRow): WorldSummary {
     if (Array.isArray(row)) {
         return {
             id: row[0] ?? '',
@@ -65,7 +91,7 @@ function normalizeWorldCacheRow(row) {
     };
 }
 
-function isValidActivityLocation(location) {
+function isValidActivityLocation(location: unknown): boolean {
     const normalizedLocation = normalizeString(location);
     if (!normalizedLocation) {
         return false;
@@ -73,7 +99,7 @@ function isValidActivityLocation(location) {
     return !parseLocation(normalizedLocation).isTraveling;
 }
 
-async function getAvailableDates(userId) {
+async function getAvailableDates(userId: unknown): Promise<unknown[]> {
     const normalizedUserId = normalizeString(userId);
     if (!normalizedUserId) {
         return [];
@@ -100,7 +126,10 @@ async function getAvailableDates(userId) {
         : [];
 }
 
-async function getInstanceActivityRows(startDate, endDate) {
+async function getInstanceActivityRows(
+    startDate: string,
+    endDate: string
+): Promise<InstanceActivityRow[]> {
     const rows = await sqliteRepository.query(
         `SELECT *
          FROM gamelog_join_leave
@@ -124,7 +153,9 @@ async function getInstanceActivityRows(startDate, endDate) {
         : [];
 }
 
-async function getWorldSummariesByIds(worldIds) {
+async function getWorldSummariesByIds(
+    worldIds: unknown
+): Promise<Record<string, WorldSummary>> {
     const ids = Array.from(
         new Set(
             (Array.isArray(worldIds) ? worldIds : [])
@@ -136,7 +167,7 @@ async function getWorldSummariesByIds(worldIds) {
         return {};
     }
 
-    const params = {};
+    const params: Record<string, string> = {};
     const placeholders = ids.map((id, index) => {
         const key = `@worldId${index}`;
         params[key] = id;
@@ -150,7 +181,7 @@ async function getWorldSummariesByIds(worldIds) {
         params
     );
 
-    const map = {};
+    const map: Record<string, WorldSummary> = {};
     if (Array.isArray(rows)) {
         for (const row of rows) {
             const world = normalizeWorldCacheRow(row);

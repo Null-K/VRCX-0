@@ -5,24 +5,47 @@ import { safeJsonParse } from './baseRepository.js';
 import configRepository from './configRepository.js';
 import webRepository from './webRepository.js';
 
+type ProviderConfig = {
+    enabled: boolean;
+    providerList: string[];
+    selectedProvider: string;
+};
+
+type ProviderItem = Record<string, unknown>;
+
+interface SaveConfigInput {
+    enabled: boolean;
+    providerList: unknown;
+    selectedProvider?: unknown;
+}
+
+interface SearchInput {
+    provider: unknown;
+    query: unknown;
+}
+
 const DEFAULT_PROVIDER = 'https://api.avtrdb.com/v3/avatar/search/vrcx';
 const AVATAR_SEARCH_PROVIDER_PREFERENCE_KEYS = [
     'avatarRemoteDatabase',
     'VRCX_avatarRemoteDatabaseProviderList',
     'VRCX_avatarRemoteDatabaseProvider'
 ];
-const LEGACY_PROVIDER_URLS = new Map([
+const LEGACY_PROVIDER_URLS = new Map<string, string | null>([
     ['https://avtr.just-h.party/vrcx_search.php', null],
     ['https://api.avtrdb.com/v1/avatar/search/vrcx', DEFAULT_PROVIDER],
     ['https://api.avtrdb.com/v2/avatar/search/vrcx', DEFAULT_PROVIDER]
 ]);
 
-function normalizeString(value) {
+function normalizeString(value: unknown): string {
     return typeof value === 'string' ? value.trim() : '';
 }
 
-function pick(value, ...keys) {
-    if (!value || typeof value !== 'object') {
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function pick(value: unknown, ...keys: string[]): unknown {
+    if (!isRecord(value)) {
         return undefined;
     }
 
@@ -35,12 +58,12 @@ function pick(value, ...keys) {
     return undefined;
 }
 
-function normalizeProviderList(values) {
+function normalizeProviderList(values: unknown): string[] {
     if (!Array.isArray(values)) {
         return [DEFAULT_PROVIDER];
     }
 
-    const providers = [];
+    const providers: string[] = [];
     for (const rawValue of values) {
         const value = normalizeString(rawValue);
         if (!value) {
@@ -61,14 +84,14 @@ function normalizeProviderList(values) {
     return Array.from(new Set(providers));
 }
 
-function buildProviderSearchUrl(providerUrl, query) {
+function buildProviderSearchUrl(providerUrl: string, query: string): string {
     const url = new URL(providerUrl);
     url.searchParams.set('search', query);
     url.searchParams.set('n', '5000');
     return url.toString();
 }
 
-function parseResponse(data) {
+function parseResponse(data: unknown): unknown {
     if (typeof data === 'string') {
         return safeJsonParse(data, null);
     }
@@ -76,11 +99,11 @@ function parseResponse(data) {
     return data;
 }
 
-function publishAvatarSearchProviderConfig(config) {
+function publishAvatarSearchProviderConfig(config: ProviderConfig): void {
     publishPreferenceChanged('VRCX_avatarRemoteDatabaseProviderList', config);
 }
 
-function normalizeAvatarProviderItem(avatar) {
+function normalizeAvatarProviderItem(avatar: ProviderItem): Record<string, any> {
     const normalized = avatarProfileRepository.normalize({
         ...avatar,
         id: pick(avatar, 'id', 'Id', '_id', 'avatarId', 'AvatarId'),
@@ -110,8 +133,8 @@ function normalizeAvatarProviderItem(avatar) {
     };
 }
 
-async function getConfig() {
-    const [enabled, providerListValue, selectedProviderValue] =
+async function getConfig(): Promise<ProviderConfig> {
+    const [enabled, providerListValue, rawSelectedProviderValue] =
         await Promise.all([
             configRepository.getBool('avatarRemoteDatabase', true),
             configRepository.getString(
@@ -120,21 +143,25 @@ async function getConfig() {
             ),
             configRepository.getString('VRCX_avatarRemoteDatabaseProvider', '')
         ]);
+    const selectedProviderValue = normalizeString(rawSelectedProviderValue);
 
-    let parsedProviderList = safeJsonParse(providerListValue, null);
-    if (!Array.isArray(parsedProviderList)) {
-        parsedProviderList = [DEFAULT_PROVIDER];
-    }
+    let parsedProviderList: unknown = safeJsonParse(
+        String(providerListValue ?? ''),
+        null
+    );
+    let parsedProviders = Array.isArray(parsedProviderList)
+        ? parsedProviderList
+        : [DEFAULT_PROVIDER];
 
     if (
         selectedProviderValue &&
-        !parsedProviderList.includes(selectedProviderValue)
+        !parsedProviders.includes(selectedProviderValue)
     ) {
-        parsedProviderList = [...parsedProviderList, selectedProviderValue];
+        parsedProviders = [...parsedProviders, selectedProviderValue];
     }
 
-    const providerList = normalizeProviderList(parsedProviderList);
-    if (JSON.stringify(providerList) !== JSON.stringify(parsedProviderList)) {
+    const providerList = normalizeProviderList(parsedProviders);
+    if (JSON.stringify(providerList) !== JSON.stringify(parsedProviders)) {
         await configRepository.setString(
             'VRCX_avatarRemoteDatabaseProviderList',
             JSON.stringify(providerList)
@@ -155,14 +182,20 @@ async function getConfig() {
     };
 }
 
-async function saveConfig({ enabled, providerList, selectedProvider = '' }) {
+async function saveConfig({
+    enabled,
+    providerList,
+    selectedProvider = ''
+}: SaveConfigInput): Promise<ProviderConfig> {
     const normalizedProviderList = normalizeProviderList(providerList);
     const persistedSelectedProvider =
         normalizeString(selectedProvider) ||
-        (await configRepository.getString(
-            'VRCX_avatarRemoteDatabaseProvider',
-            ''
-        ));
+        normalizeString(
+            await configRepository.getString(
+                'VRCX_avatarRemoteDatabaseProvider',
+                ''
+            )
+        );
     const resolvedSelectedProvider = normalizedProviderList.includes(
         persistedSelectedProvider
     )
@@ -194,7 +227,7 @@ async function saveConfig({ enabled, providerList, selectedProvider = '' }) {
     return savedConfig;
 }
 
-async function saveSelectedProvider(provider) {
+async function saveSelectedProvider(provider: unknown): Promise<string> {
     const normalizedProvider = normalizeString(provider);
     if (!normalizedProvider) {
         return '';
@@ -210,8 +243,8 @@ async function saveSelectedProvider(provider) {
     return normalizedProvider;
 }
 
-async function getVrcxId() {
-    let id = await configRepository.getString('id', '');
+async function getVrcxId(): Promise<string> {
+    let id = normalizeString(await configRepository.getString('id', ''));
     if (!id) {
         id = globalThis.crypto?.randomUUID?.() || '';
         if (id) {
@@ -221,7 +254,7 @@ async function getVrcxId() {
     return id;
 }
 
-async function search({ provider, query }) {
+async function search({ provider, query }: SearchInput) {
     const normalizedProvider = normalizeString(provider);
     const normalizedQuery = normalizeString(query);
     if (!normalizedProvider) {
@@ -257,7 +290,9 @@ async function search({ provider, query }) {
 
     const avatars = new Map();
     for (const item of json) {
-        const avatar = normalizeAvatarProviderItem(item);
+        const avatar = normalizeAvatarProviderItem(
+            isRecord(item) ? item : {}
+        );
         if (avatar.id && !avatars.has(avatar.id)) {
             avatars.set(avatar.id, avatar);
         }

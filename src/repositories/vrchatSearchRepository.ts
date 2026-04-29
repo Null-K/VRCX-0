@@ -1,13 +1,26 @@
-import { executeVrchatRequest } from './vrchatRequest.js';
+import {
+    executeVrchatRequest,
+    type QueryParams,
+    type VrchatRequestResponse
+} from './vrchatRequest.js';
 
-function normalizeParams(params = {}) {
+interface SearchRequestOptions {
+    endpoint?: string;
+}
+
+function normalizeParams(params: QueryParams = {}): QueryParams {
     if (!params || typeof params !== 'object') {
         return {};
     }
     return { ...params };
 }
 
-async function executeGet(path, params = {}, extra = {}, options = {}) {
+async function executeGet<TJson = unknown>(
+    path: string,
+    params: QueryParams = {},
+    extra: Record<string, unknown> = {},
+    options: SearchRequestOptions = {}
+): Promise<VrchatRequestResponse<TJson>> {
     const normalizedParams = normalizeParams(params);
     return executeVrchatRequest(path, {
         endpoint: options.endpoint,
@@ -21,11 +34,15 @@ async function executeGet(path, params = {}, extra = {}, options = {}) {
     });
 }
 
-async function getConfig(params = {}) {
+async function getConfig(params: QueryParams = {}) {
     return executeGet('config', params);
 }
 
-async function getWorlds(params = {}, option, options = {}) {
+async function getWorlds(
+    params: QueryParams = {},
+    option?: unknown,
+    options: SearchRequestOptions = {}
+) {
     const path =
         typeof option === 'undefined' || option === null
             ? 'worlds'
@@ -33,19 +50,28 @@ async function getWorlds(params = {}, option, options = {}) {
     return executeGet(path, params, { option }, options);
 }
 
-async function getUsers(params = {}, options = {}) {
+async function getUsers(
+    params: QueryParams = {},
+    options: SearchRequestOptions = {}
+) {
     return executeGet('users', params, {}, options);
 }
 
-async function getGroups(params = {}) {
+async function getGroups(params: QueryParams = {}) {
     return executeGet('groups', params);
 }
 
-async function getGroupsStrictSearch(params = {}, options = {}) {
+async function getGroupsStrictSearch(
+    params: QueryParams = {},
+    options: SearchRequestOptions = {}
+) {
     return executeGet('groups/strictsearch', params, {}, options);
 }
 
-async function getInstanceFromShortName(shortName, options = {}) {
+async function getInstanceFromShortName(
+    shortName: unknown,
+    options: SearchRequestOptions = {}
+) {
     return executeGet(
         `instances/s/${encodeURIComponent(String(shortName || '').trim())}`,
         {},
