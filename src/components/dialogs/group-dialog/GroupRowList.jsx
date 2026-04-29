@@ -7,14 +7,13 @@ import {
     UserIcon
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { convertFileUrlToImageUrl } from '@/lib/entityMedia.js';
 import { openUserDialog } from '@/services/dialogService.js';
 import { Button } from '@/ui/shadcn/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
-import { GroupListState } from './GroupListState.jsx';
 import {
     getGroupRoleNameMap,
     getGroupRowImage,
@@ -22,6 +21,7 @@ import {
     getGroupRowRawImage,
     groupRowsEmptyTitle
 } from './groupDialogUtils.js';
+import { GroupListState } from './GroupListState.jsx';
 
 function PostList({
     rows,
@@ -101,9 +101,7 @@ function PostList({
                                     type="button"
                                     size="icon-sm"
                                     variant="ghost"
-                                    aria-label={t(
-                                        'common.actions.edit'
-                                    )}
+                                    aria-label={t('common.actions.edit')}
                                     onClick={() => onEditPost?.(post)}
                                 >
                                     <PencilIcon data-icon="inline-start" />
@@ -113,9 +111,7 @@ function PostList({
                                     size="icon-sm"
                                     variant="ghost"
                                     className="text-destructive"
-                                    aria-label={t(
-                                        'common.actions.delete'
-                                    )}
+                                    aria-label={t('common.actions.delete')}
                                     onClick={() => onDeletePost?.(post)}
                                 >
                                     <MessageSquareIcon data-icon="inline-start" />
@@ -162,10 +158,7 @@ function PhotoGalleryRows({ rows, loading, error, onPreviewImage }) {
 
     if (loading) {
         return (
-            <GroupListState
-                title={t('dialog.group.gallery.header')}
-                loading
-            />
+            <GroupListState title={t('dialog.group.gallery.header')} loading />
         );
     }
     if (error) {
@@ -177,7 +170,7 @@ function PhotoGalleryRows({ rows, loading, error, onPreviewImage }) {
         );
     }
     if (!galleryEntries.length) {
-        return (<GroupListState title={t('dialog.group.gallery.header')} />);
+        return <GroupListState title={t('dialog.group.gallery.header')} />;
     }
 
     return (
@@ -268,7 +261,9 @@ export function RowList({
         return <GroupListState title={groupRowsEmptyTitle(kind)} loading />;
     }
     if (error) {
-        return <GroupListState title={groupRowsEmptyTitle(kind)} error={error} />;
+        return (
+            <GroupListState title={groupRowsEmptyTitle(kind)} error={error} />
+        );
     }
     if (kind === 'photos') {
         return (
@@ -358,7 +353,8 @@ export function RowList({
                                     row.visibility !== 'visible' ? (
                                         <EyeIcon data-icon="inline-start" />
                                     ) : null}
-                                    {row?.isSubscribedToAnnouncements === false ? (
+                                    {row?.isSubscribedToAnnouncements ===
+                                    false ? (
                                         <MessageSquareIcon data-icon="inline-start" />
                                     ) : null}
                                     {row?.managerNotes ? (

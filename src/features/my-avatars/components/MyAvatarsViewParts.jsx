@@ -50,7 +50,7 @@ export function SortButton({ column, label, descFirst = false }) {
         <Button
             type="button"
             variant="ghost"
-            className="text-muted-foreground hover:text-primary h-auto min-w-0 max-w-full gap-1 p-0 text-left text-xs tracking-wide uppercase"
+            className="text-muted-foreground hover:text-primary h-auto max-w-full min-w-0 gap-1 p-0 text-left text-xs tracking-wide uppercase"
             onClick={() => {
                 if (!direction && descFirst) {
                     column.toggleSorting(true);
@@ -144,7 +144,7 @@ export function AvatarActionsDropdown({
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 align="end"
-                className="w-max min-w-52 max-w-[90vw]"
+                className="w-max max-w-[90vw] min-w-52"
             >
                 <AvatarActionMenuItems
                     avatar={avatar}
@@ -260,7 +260,9 @@ export function MyAvatarFilterPopover({
                                         aria-label={label}
                                         className="w-full min-w-0 justify-center px-2"
                                     >
-                                        <span className="truncate">{label}</span>
+                                        <span className="truncate">
+                                            {label}
+                                        </span>
                                     </ToggleGroupItem>
                                 );
                             })}
@@ -327,10 +329,7 @@ export function MyAvatarFilterPopover({
     );
 }
 
-export function GridSettingsMenu({
-    gridDensity,
-    onGridDensityChange
-}) {
+export function GridSettingsMenu({ gridDensity, onGridDensityChange }) {
     const { t } = useTranslation();
 
     return (

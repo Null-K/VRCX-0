@@ -1,8 +1,4 @@
-import {
-    DndContext,
-    closestCenter,
-    useDroppable
-} from '@dnd-kit/core';
+import { DndContext, closestCenter, useDroppable } from '@dnd-kit/core';
 import {
     SortableContext,
     useSortable,
@@ -122,11 +118,7 @@ function NavItemRow({
                 <NavIconSelect
                     value={icon}
                     fallbackIcon={fallbackIcon}
-                    ariaLabel={customNavActionLabel(
-                        t,
-                        'icon_for_value',
-                        label
-                    )}
+                    ariaLabel={customNavActionLabel(t, 'icon_for_value', label)}
                     onValueChange={(onValue) => onIconChange(onValue)}
                 />
             ) : null}
@@ -344,7 +336,9 @@ export function CustomNavDialogLayoutEditor({
                                                             entry.name
                                                         )}
                                                         onClick={() =>
-                                                            onFolderDelete(index)
+                                                            onFolderDelete(
+                                                                index
+                                                            )
                                                         }
                                                     >
                                                         <FolderXIcon data-icon="inline-start" />
@@ -478,9 +472,7 @@ export function CustomNavDialogLayoutEditor({
                                                         DEFAULT_NAV_ICON_KEY
                                                 )
                                             }
-                                            onHide={() =>
-                                                onHideItem(entry.key)
-                                            }
+                                            onHide={() => onHideItem(entry.key)}
                                             onEditDashboard={() =>
                                                 onEditDashboard(entry.key)
                                             }

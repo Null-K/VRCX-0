@@ -1,14 +1,17 @@
 import { LockIcon } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
-import { Button } from '@/ui/shadcn/button';
 import avatarProfileRepository from '@/repositories/avatarProfileRepository.js';
-import { avatarSearchProviderRepository, localFavoritesRepository } from '@/repositories/index.js';
+import {
+    avatarSearchProviderRepository,
+    localFavoritesRepository
+} from '@/repositories/index.js';
 import { openAvatarDialog, openUserDialog } from '@/services/dialogService.js';
 import { extractFileId } from '@/shared/utils/fileUtils.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
+import { Button } from '@/ui/shadcn/button';
 
 import { normalizeFeedId as normalizeId } from '../feedRows.js';
 
@@ -300,7 +303,9 @@ export const AvatarInfoLine = memo(function AvatarInfoLine({
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : t('view.feed.generated_toast.failed_to_resolve_avatar_author')
+                        : t(
+                              'view.feed.generated_toast.failed_to_resolve_avatar_author'
+                          )
                 );
                 return;
             }
@@ -329,7 +334,9 @@ export const AvatarInfoLine = memo(function AvatarInfoLine({
         }
 
         if (nextOwnerId === normalizedUserId) {
-            toast.warning(t('view.feed.generated.avatar_is_private_or_not_found'));
+            toast.warning(
+                t('view.feed.generated.avatar_is_private_or_not_found')
+            );
             return;
         }
 

@@ -1,8 +1,7 @@
 import { CopyIcon, Trash2Icon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/ui/shadcn/button';
 
+import { Button } from '@/ui/shadcn/button';
 import { Switch } from '@/ui/shadcn/switch';
 
 function FavoritesContentHeader({

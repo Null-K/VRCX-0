@@ -1,6 +1,6 @@
 import { ArrowDownIcon, ArrowUpIcon, Trash2Icon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { InstanceActionBar } from '@/components/instances/InstanceActionBar.jsx';
 import { Location } from '@/components/Location.jsx';
 import { LocationWorld } from '@/components/LocationWorld.jsx';
@@ -14,7 +14,6 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
-
 import {
     Table,
     TableBody,
@@ -23,6 +22,7 @@ import {
     TableHeader,
     TableRow
 } from '@/ui/shadcn/table';
+
 import {
     rowDuration,
     rowLocation,
@@ -142,10 +142,7 @@ export function PreviousInstancesListTable({
                         <SelectContent>
                             <SelectGroup>
                                 {[10, 25, 50, 100].map((size) => (
-                                    <SelectItem
-                                        key={size}
-                                        value={String(size)}
-                                    >
+                                    <SelectItem key={size} value={String(size)}>
                                         {size}
                                     </SelectItem>
                                 ))}
@@ -215,7 +212,9 @@ export function PreviousInstancesListTable({
                                                 type="button"
                                                 variant="ghost"
                                                 className="hover:bg-muted absolute inset-0 h-full w-full rounded-none p-0"
-                                                onClick={() => onOpenDetails(row)}
+                                                onClick={() =>
+                                                    onOpenDetails(row)
+                                                }
                                             >
                                                 <span className="sr-only">
                                                     {t(
@@ -269,9 +268,7 @@ export function PreviousInstancesListTable({
                                                         onOpenLocation(row)
                                                     }
                                                 >
-                                                    {t(
-                                                        'common.actions.open'
-                                                    )}
+                                                    {t('common.actions.open')}
                                                 </Button>
                                                 <Button
                                                     type="button"
@@ -295,9 +292,7 @@ export function PreviousInstancesListTable({
                                                     }
                                                 >
                                                     <Trash2Icon data-icon="inline-start" />
-                                                    {t(
-                                                        'common.actions.delete'
-                                                    )}
+                                                    {t('common.actions.delete')}
                                                 </Button>
                                             </div>
                                         </TableCell>

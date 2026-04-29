@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { configRepository } from '@/repositories/index.js';
 import { accessTypeLocaleKeyMap } from '@/shared/constants/accessType.js';
@@ -26,7 +26,11 @@ import {
 } from '@/ui/shadcn/select';
 import { Separator } from '@/ui/shadcn/separator';
 
-import { CheckRow, MultiCheckList, StatusEditor } from './ToolsDialogControls.jsx';
+import {
+    CheckRow,
+    MultiCheckList,
+    StatusEditor
+} from './ToolsDialogControls.jsx';
 import {
     instanceTypes,
     normalizeAutoAcceptMode,
@@ -62,10 +66,12 @@ export function AutoChangeStatusDialog({ open, onOpenChange }) {
         value: group.key,
         label: group.displayName || group.name || group.key
     }));
-    const localGroupOptions = (localFriendFavoriteGroups || []).map((group) => ({
-        value: `local:${group}`,
-        label: group
-    }));
+    const localGroupOptions = (localFriendFavoriteGroups || []).map(
+        (group) => ({
+            value: `local:${group}`,
+            label: group
+        })
+    );
     const groupOptions = [...remoteGroupOptions, ...localGroupOptions].filter(
         (group) => group.value
     );
@@ -335,7 +341,10 @@ export function AutoChangeStatusDialog({ open, onOpenChange }) {
                                 )
                             }
                             onDescChange={(value) =>
-                                void saveValue('autoStateChangeAloneDesc', value)
+                                void saveValue(
+                                    'autoStateChangeAloneDesc',
+                                    value
+                                )
                             }
                         />
                         <StatusEditor

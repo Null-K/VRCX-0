@@ -179,7 +179,8 @@ export function buildCurrentUserGameStatePresencePatch(gameState, currentUser) {
     }
 
     return buildPresencePatch({
-        location: currentLocation === 'traveling' ? 'traveling' : targetLocation,
+        location:
+            currentLocation === 'traveling' ? 'traveling' : targetLocation,
         travelingToLocation:
             currentLocation === 'traveling' ? currentDestination : '',
         worldId: gameState.currentWorldId,
@@ -204,7 +205,9 @@ export function buildCurrentUserApiPresencePatch(
         presence.instance
     );
     const location = preferVisibleLocation(directLocation, presenceLocation);
-    const directTraveling = normalizeLocationValue(presence.travelingToLocation);
+    const directTraveling = normalizeLocationValue(
+        presence.travelingToLocation
+    );
     const presenceTraveling = buildPresenceLocationTag(
         presence.travelingToWorld,
         presence.travelingToInstance

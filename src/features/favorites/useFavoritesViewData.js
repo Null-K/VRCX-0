@@ -1,9 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import {
-    normalizeFavoriteSearchValue as normalizeSearchValue
-} from './favoritesItems.js';
+import { normalizeFavoriteSearchValue as normalizeSearchValue } from './favoritesItems.js';
 import {
     buildFavoriteAvatarHistoryGroups,
     buildFavoriteAvatarHistoryItems,
@@ -54,7 +52,10 @@ export function useFavoritesViewData({
         return index;
     }, [favoritesSortOrder]);
 
-    const pageConfig = useMemo(() => getFavoritesPageConfig(kind, t), [kind, t]);
+    const pageConfig = useMemo(
+        () => getFavoritesPageConfig(kind, t),
+        [kind, t]
+    );
 
     const remoteGroups = useMemo(() => {
         return buildFavoriteRemoteGroups({
@@ -261,7 +262,7 @@ export function useFavoritesViewData({
         kind !== 'avatar' ||
         Boolean(
             currentUserSnapshot?.$isVRCPlus ||
-                currentUserSnapshot?.tags?.includes?.('system_supporter')
+            currentUserSnapshot?.tags?.includes?.('system_supporter')
         );
 
     return {

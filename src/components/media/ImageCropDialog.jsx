@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import {
     computeAspectCrop,
     cropImageFileToAspect,
@@ -144,7 +144,7 @@ export function ImageCropDialog({
                             <canvas
                                 ref={canvasRef}
                                 role="img"
-                                aria-label={"Selected upload preview"}
+                                aria-label={'Selected upload preview'}
                                 className="h-full w-full object-cover"
                             />
                         ) : null}

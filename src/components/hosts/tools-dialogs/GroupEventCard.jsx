@@ -6,9 +6,9 @@ import {
     StarIcon
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import dayjs from '@/lib/dayjs.js';
 import { convertFileUrlToImageUrl } from '@/lib/entityMedia.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
@@ -17,13 +17,13 @@ import { toolsRepository } from '@/repositories/index.js';
 import { openGroupDialog } from '@/services/dialogService.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { Button } from '@/ui/shadcn/button';
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger
-} from '@/ui/shadcn/popover';
+import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 
-import { getEndpoint, getEventGroupId, getEventId } from './toolsDialogUtils.js';
+import {
+    getEndpoint,
+    getEventGroupId,
+    getEventId
+} from './toolsDialogUtils.js';
 
 async function getCalendarIcs(event, t) {
     const groupId = getEventGroupId(event);
@@ -41,7 +41,9 @@ async function getCalendarIcs(event, t) {
             .trimStart();
         if (!normalizedContent.startsWith('BEGIN:VCALENDAR')) {
             toast.error(
-                t('dialog.tools.generated.failed_to_download_ics_file_invalid_icalendar_content')
+                t(
+                    'dialog.tools.generated.failed_to_download_ics_file_invalid_icalendar_content'
+                )
             );
             return '';
         }
@@ -50,7 +52,9 @@ async function getCalendarIcs(event, t) {
         toast.error(
             userFacingErrorMessage(
                 error,
-                t('host.tools_dialogs.generated_toast.failed_to_download_ics_file')
+                t(
+                    'host.tools_dialogs.generated_toast.failed_to_download_ics_file'
+                )
             )
         );
         return '';
@@ -98,7 +102,9 @@ async function copyEventLink(event, t) {
         toast.error(
             userFacingErrorMessage(
                 error,
-                t('host.tools_dialogs.generated_toast.failed_to_copy_event_link')
+                t(
+                    'host.tools_dialogs.generated_toast.failed_to_copy_event_link'
+                )
             )
         );
     }

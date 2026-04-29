@@ -95,8 +95,7 @@ vi.mock('react-i18next', () => {
     const translations = {
         'component.location.generated_toast.failed_to_send_self_invite':
             'Failed to send self invite',
-        'component.region_code_badge.generated_dynamic.region_value':
-            'Region',
+        'component.region_code_badge.generated_dynamic.region_value': 'Region',
         'dialog.new_instance.access_type_group': 'Group',
         'dialog.new_instance.access_type_public': 'Public',
         'dialog.new_instance.instance_id': 'Instance ID',
@@ -139,11 +138,16 @@ vi.mock('@/ui/shadcn/tooltip', async () => {
     const React = await import('react');
 
     return {
-        Tooltip: ({ children }) => React.createElement(React.Fragment, null, children),
+        Tooltip: ({ children }) =>
+            React.createElement(React.Fragment, null, children),
         TooltipTrigger: ({ children }) =>
             React.createElement(React.Fragment, null, children),
         TooltipContent: ({ children }) =>
-            React.createElement('span', { 'data-tooltip-content': true }, children)
+            React.createElement(
+                'span',
+                { 'data-tooltip-content': true },
+                children
+            )
     };
 });
 

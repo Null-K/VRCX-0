@@ -48,12 +48,8 @@ export function WorldDialogTabPanels({ handlers, helpers, state, t }) {
         world,
         worldDialogShortName
     } = state;
-    const {
-        onChangeTab,
-        onOpenAuthor,
-        onPreviousInstancesChange,
-        onSaveMemo
-    } = handlers;
+    const { onChangeTab, onOpenAuthor, onPreviousInstancesChange, onSaveMemo } =
+        handlers;
     const { formatDate } = helpers;
 
     return (
@@ -114,7 +110,7 @@ export function WorldDialogTabPanels({ handlers, helpers, state, t }) {
                             return (
                                 <div
                                     key={instance.id}
-                                    className="bg-muted/10 rounded-md border px-2.5 py-2 text-sm transition-colors hover:bg-muted/25"
+                                    className="bg-muted/10 hover:bg-muted/25 rounded-md border px-2.5 py-2 text-sm transition-colors"
                                 >
                                     <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                                         <div className="min-w-0 flex-1">

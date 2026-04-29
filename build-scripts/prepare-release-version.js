@@ -58,10 +58,11 @@ function syncVersionToManifests(buildVersion) {
     );
 
     const cargoToml = fs.readFileSync(cargoTomlPath, 'utf8');
-    const cargoVersionPattern =
-        /(^\[package\][\s\S]*?^version\s*=\s*)"[^"]+"/m;
+    const cargoVersionPattern = /(^\[package\][\s\S]*?^version\s*=\s*)"[^"]+"/m;
     if (!cargoVersionPattern.test(cargoToml)) {
-        throw new Error('Failed to update src-tauri/Cargo.toml package version');
+        throw new Error(
+            'Failed to update src-tauri/Cargo.toml package version'
+        );
     }
     fs.writeFileSync(
         cargoTomlPath,
@@ -76,7 +77,9 @@ function syncVersionToManifests(buildVersion) {
     const lockVersionPattern =
         /(\[\[package\]\]\r?\nname = "vrcx-0"\r?\nversion = )"[^"]+"/;
     if (!lockVersionPattern.test(cargoLock)) {
-        throw new Error('Failed to update src-tauri/Cargo.lock package version');
+        throw new Error(
+            'Failed to update src-tauri/Cargo.lock package version'
+        );
     }
     fs.writeFileSync(
         cargoLockPath,

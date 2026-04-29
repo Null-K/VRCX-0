@@ -50,7 +50,12 @@ function persistAvatarWearTransition(transition) {
             ? avatarLocalRepository.addAvatarToHistory(userId, historyAvatarId)
             : Promise.resolve(),
         previousAvatarId
-            ? persistAvatarWearTime(userId, previousAvatarId, startedAt, endedAt)
+            ? persistAvatarWearTime(
+                  userId,
+                  previousAvatarId,
+                  startedAt,
+                  endedAt
+              )
             : Promise.resolve()
     ]).catch((error) => {
         console.warn('Failed to update avatar wear time:', error);
@@ -208,8 +213,9 @@ function getCurrentAvatarLiveWearTime(avatarId, baseTimeSpent = 0) {
     if (
         !normalizedAvatarId ||
         runtimeState.gameState.isGameRunning !== true ||
-        normalizeAvatarId(runtimeState.auth.currentUserSnapshot?.currentAvatar) !==
-            normalizedAvatarId
+        normalizeAvatarId(
+            runtimeState.auth.currentUserSnapshot?.currentAvatar
+        ) !== normalizedAvatarId
     ) {
         return Number(baseTimeSpent) || 0;
     }

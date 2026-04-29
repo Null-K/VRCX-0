@@ -1,6 +1,6 @@
 import { NetworkIcon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { getLanguageName, languageCodes } from '@/localization/index.js';
 import { Button } from '@/ui/shadcn/button';
 import {

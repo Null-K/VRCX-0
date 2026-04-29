@@ -1,4 +1,10 @@
-import { EyeIcon, ImageIcon, RefreshCwIcon, Trash2Icon, UploadIcon } from 'lucide-react';
+import {
+    EyeIcon,
+    ImageIcon,
+    RefreshCwIcon,
+    Trash2Icon,
+    UploadIcon
+} from 'lucide-react';
 
 import { formatDateFilter } from '@/lib/dateTime.js';
 import { getPrintFileName } from '@/shared/utils/gallery.js';
@@ -50,8 +56,7 @@ export function GalleryPrintsTab({
                                 variant="outline"
                                 size="sm"
                                 disabled={
-                                    !isVrcPlusSupporter ||
-                                    Boolean(uploadingTab)
+                                    !isVrcPlusSupporter || Boolean(uploadingTab)
                                 }
                                 onClick={() => onBeginUpload('prints')}
                             >
@@ -170,7 +175,9 @@ export function GalleryPrintsTab({
                                                     }
                                                 >
                                                     <EyeIcon data-icon="inline-start" />
-                                                    {t('view.tools.generated.preview')}
+                                                    {t(
+                                                        'view.tools.generated.preview'
+                                                    )}
                                                 </Button>
                                                 <Button
                                                     variant="destructive"

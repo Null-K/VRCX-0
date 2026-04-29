@@ -34,10 +34,13 @@ export function SettingsSystemTab({
             : t('view.settings.general.application.startup');
     const startupDescription =
         hostPlatform === 'linux'
-            ? t('view.settings.general.application.startup_system_description', {
-                  defaultValue:
-                      'Creates a desktop autostart entry that launches VRCX-0 with --autostart.'
-              })
+            ? t(
+                  'view.settings.general.application.startup_system_description',
+                  {
+                      defaultValue:
+                          'Creates a desktop autostart entry that launches VRCX-0 with --autostart.'
+                  }
+              )
             : '';
 
     return (
@@ -48,7 +51,8 @@ export function SettingsSystemTab({
                         {t('view.settings.general.general.header')}
                     </CardTitle>
                     <CardDescription>
-                        {t('view.settings.general.general.version')}: {versionText}
+                        {t('view.settings.general.general.version')}:{' '}
+                        {versionText}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col">
@@ -122,9 +126,7 @@ export function SettingsSystemTab({
                 </CardHeader>
                 <CardContent className="flex flex-col">
                     <div className="text-muted-foreground rounded-lg border p-4 text-sm">
-                        <p>
-                            {t('view.settings.general.legal_notice.info')}
-                        </p>
+                        <p>{t('view.settings.general.legal_notice.info')}</p>
                         <p>
                             {t(
                                 'view.settings.general.legal_notice.disclaimer1'

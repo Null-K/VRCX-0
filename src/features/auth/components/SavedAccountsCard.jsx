@@ -1,6 +1,6 @@
 import { Trash2Icon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { userImage } from '@/lib/entityMedia.js';
 import { Avatar, AvatarFallback, AvatarImage } from '@/ui/shadcn/avatar';
 import { Button } from '@/ui/shadcn/button';
@@ -44,9 +44,10 @@ export function SavedAccountsCard({
                         {accounts.map((entry) => {
                             const hasStoredCredentials = Boolean(
                                 entry.loginParams?.username &&
-                                    entry.loginParams?.password
+                                entry.loginParams?.password
                             );
-                            const isRelogging = activeSavedUserId === entry.user.id;
+                            const isRelogging =
+                                activeSavedUserId === entry.user.id;
                             const avatarUrl = userImage(entry.user, true, '64');
 
                             return (
@@ -67,10 +68,15 @@ export function SavedAccountsCard({
                                     >
                                         <Avatar size="lg">
                                             {avatarUrl ? (
-                                                <AvatarImage src={avatarUrl} alt="" />
+                                                <AvatarImage
+                                                    src={avatarUrl}
+                                                    alt=""
+                                                />
                                             ) : null}
                                             <AvatarFallback>
-                                                {getSavedAccountFallback(entry.user)}
+                                                {getSavedAccountFallback(
+                                                    entry.user
+                                                )}
                                             </AvatarFallback>
                                         </Avatar>
                                         <div className="min-w-0 flex-1">
@@ -78,7 +84,8 @@ export function SavedAccountsCard({
                                                 {getUserDisplayName(entry.user)}
                                             </div>
                                             <div className="text-muted-foreground truncate text-xs">
-                                                {entry.user.username || entry.user.id}
+                                                {entry.user.username ||
+                                                    entry.user.id}
                                             </div>
                                             {entry.loginParams.endpoint ? (
                                                 <div className="text-muted-foreground truncate text-xs">

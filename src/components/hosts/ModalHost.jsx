@@ -153,7 +153,9 @@ export function ModalHost() {
                             onChange={(event) =>
                                 updatePromptValue(event.target.value)
                             }
-                            placeholder={t('dialog.tools.generated.prompt_value')}
+                            placeholder={t(
+                                'dialog.tools.generated.prompt_value'
+                            )}
                             className="min-h-32"
                         />
                     ) : (
@@ -163,14 +165,18 @@ export function ModalHost() {
                             onChange={(event) =>
                                 updatePromptValue(event.target.value)
                             }
-                            placeholder={t('dialog.tools.generated.prompt_value')}
+                            placeholder={t(
+                                'dialog.tools.generated.prompt_value'
+                            )}
                         />
                     )}
                     <DialogFooter>
                         <Button
                             type="button"
                             variant="outline"
-                            onClick={() => handlePromptCancel(promptDialog.value)}
+                            onClick={() =>
+                                handlePromptCancel(promptDialog.value)
+                            }
                         >
                             {promptDialog.cancelText}
                         </Button>

@@ -1,6 +1,6 @@
-import { cn } from '@/lib/utils';
-import { EmptyState as AppEmptyState } from '@/components/layout/PageScaffold.jsx';
 import { EntityDialogScaffold } from '@/components/dialogs/EntityDialogScaffold.jsx';
+import { EmptyState as AppEmptyState } from '@/components/layout/PageScaffold.jsx';
+import { cn } from '@/lib/utils';
 import { Card } from '@/ui/shadcn/card';
 import { Skeleton } from '@/ui/shadcn/skeleton';
 import { Spinner } from '@/ui/shadcn/spinner';

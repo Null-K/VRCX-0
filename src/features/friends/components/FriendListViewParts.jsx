@@ -4,8 +4,8 @@ import {
     ArrowUpIcon,
     ChevronDownIcon
 } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { EmptyState } from '@/components/layout/PageScaffold.jsx';
 import { Button } from '@/ui/shadcn/button';
 import {

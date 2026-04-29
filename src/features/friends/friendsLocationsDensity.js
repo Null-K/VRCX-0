@@ -66,9 +66,9 @@ const DENSITY_CONFIGS = Object.freeze({
     })
 });
 
-const DENSITY_VALUES = new Set(FRIENDS_LOCATIONS_DENSITY_OPTIONS.map(
-    (option) => option.value
-));
+const DENSITY_VALUES = new Set(
+    FRIENDS_LOCATIONS_DENSITY_OPTIONS.map((option) => option.value)
+);
 
 export function sanitizeFriendsLocationsDensity(value) {
     const normalizedValue = typeof value === 'string' ? value.trim() : '';

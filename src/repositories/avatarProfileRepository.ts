@@ -63,7 +63,9 @@ function normalizeArray(values: unknown): string[] {
         .filter(Boolean);
 }
 
-function normalizeLocalTags(values: unknown): Array<{ tag: string; color: string | null }> {
+function normalizeLocalTags(
+    values: unknown
+): Array<{ tag: string; color: string | null }> {
     if (!Array.isArray(values)) {
         return [];
     }

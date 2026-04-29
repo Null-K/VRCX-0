@@ -71,7 +71,9 @@ function normalizeBioLinks(values) {
         .map((value) =>
             typeof value === 'string'
                 ? value.trim().slice(0, 1000)
-                : String(value ?? '').trim().slice(0, 1000)
+                : String(value ?? '')
+                      .trim()
+                      .slice(0, 1000)
         )
         .filter(Boolean)
         .slice(0, 3);
@@ -433,7 +435,10 @@ export function useUserDialogSelfActions({
             patch.bio = nextBio;
         }
         if (
-            !areStringArraysEqual(nextBioLinks, normalizeProfileBioLinks(profile))
+            !areStringArraysEqual(
+                nextBioLinks,
+                normalizeProfileBioLinks(profile)
+            )
         ) {
             patch.bioLinks = nextBioLinks;
         }
@@ -454,11 +459,12 @@ export function useUserDialogSelfActions({
 
         try {
             if (Object.keys(patch).length) {
-                const nextProfile = await userProfileRepository.updateCurrentUser({
-                    userId: currentUserId,
-                    endpoint: currentEndpoint,
-                    params: patch
-                });
+                const nextProfile =
+                    await userProfileRepository.updateCurrentUser({
+                        userId: currentUserId,
+                        endpoint: currentEndpoint,
+                        params: patch
+                    });
                 applyCurrentUserSnapshot(nextProfile);
             }
             if (removeLanguageKeys.length) {
@@ -515,7 +521,9 @@ export function useUserDialogSelfActions({
         await saveCurrentUserPatch(
             { isBoopingEnabled: profile?.isBoopingEnabled === false },
             {
-                successMessage: t('dialog.user.generated.booping_setting_updated'),
+                successMessage: t(
+                    'dialog.user.generated.booping_setting_updated'
+                ),
                 errorMessage: t(
                     'dialog.user.generated_toast.failed_to_update_booping_setting'
                 )

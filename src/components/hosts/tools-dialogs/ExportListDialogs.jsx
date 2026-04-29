@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { myAvatarRepository } from '@/repositories/index.js';
 import { useFriendRosterStore } from '@/state/friendRosterStore.js';
@@ -106,7 +106,9 @@ export function ExportFriendsListDialog({ open, onOpenChange }) {
                 toast.error(
                     userFacingErrorMessage(
                         error,
-                        t('host.tools_dialogs.generated_toast.failed_to_export_friends_list')
+                        t(
+                            'host.tools_dialogs.generated_toast.failed_to_export_friends_list'
+                        )
                     )
                 )
             );
@@ -176,7 +178,9 @@ export function ExportAvatarsListDialog({ open, onOpenChange }) {
                 toast.error(
                     userFacingErrorMessage(
                         error,
-                        t('host.tools_dialogs.generated_toast.failed_to_export_avatar_list')
+                        t(
+                            'host.tools_dialogs.generated_toast.failed_to_export_avatar_list'
+                        )
                     )
                 )
             )

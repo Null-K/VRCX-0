@@ -1,6 +1,6 @@
 import { isValidElement } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { formatDateFilter, timeToText } from '@/lib/dateTime.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { Alert, AlertDescription } from '@/ui/shadcn/alert';
@@ -98,7 +98,9 @@ export function AvatarDialogInfoTab({
                 />
                 <EntityInfoBlock
                     label={t('dialog.avatar.info.version')}
-                    value={avatar.version ? String(avatar.version) : EMPTY_VALUE}
+                    value={
+                        avatar.version ? String(avatar.version) : EMPTY_VALUE
+                    }
                 />
                 <EntityInfoBlock
                     label={t('dialog.avatar.info.time_spent')}
@@ -108,10 +110,7 @@ export function AvatarDialogInfoTab({
                             : EMPTY_VALUE
                     }
                 />
-                <EntityInfoBlock
-                    label={t('dialog.avatar.info.platform')}
-                    full
-                >
+                <EntityInfoBlock label={t('dialog.avatar.info.platform')} full>
                     <span className="block text-xs whitespace-normal">
                         {platformSummary || EMPTY_VALUE}
                     </span>
@@ -127,10 +126,7 @@ export function AvatarDialogInfoTab({
                     </EntityInfoBlock>
                 ) : null}
                 {contentTags.length ? (
-                    <EntityInfoBlock
-                        label={t('dialog.avatar.info.tags')}
-                        full
-                    >
+                    <EntityInfoBlock label={t('dialog.avatar.info.tags')} full>
                         <AvatarDialogTagList
                             tags={contentTags}
                             trimPrefix="content_"

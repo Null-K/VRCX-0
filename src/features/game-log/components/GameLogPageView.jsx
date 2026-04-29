@@ -188,7 +188,7 @@ export function GameLogPageView({
                                 <DataTableScrollArea>
                                     <DataTableColumnDndProvider table={table}>
                                         <Table
-                                            className="table-fixed min-w-full"
+                                            className="min-w-full table-fixed"
                                             style={getDataTableSizingStyle(
                                                 table
                                             )}
@@ -196,9 +196,7 @@ export function GameLogPageView({
                                             <DataTableColumnSizeColGroup
                                                 table={table}
                                             />
-                                            <DataTableHeader
-                                                table={table}
-                                            />
+                                            <DataTableHeader table={table} />
                                             <TableBody>
                                                 {table
                                                     .getRowModel()

@@ -8,8 +8,8 @@ import {
     SunIcon
 } from 'lucide-react';
 
-import { cn } from '@/lib/utils';
 import { openExternalLink } from '@/lib/entityMedia.js';
+import { cn } from '@/lib/utils';
 import { links } from '@/shared/constants/link.js';
 import { THEME_COLORS } from '@/shared/constants/themes.js';
 import { Button } from '@/ui/shadcn/button';
@@ -73,7 +73,7 @@ function ThemeColorSwatchItem({ themeColor, selected, t }) {
                     value={themeColor.key}
                     aria-label={label}
                     className={cn(
-                        'group/theme-color size-6 !gap-0 !p-0 !pr-0 !pl-0 justify-center rounded-sm bg-transparent hover:bg-transparent focus:bg-transparent focus:text-current data-highlighted:bg-transparent data-highlighted:text-current [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden'
+                        'group/theme-color size-6 justify-center !gap-0 rounded-sm bg-transparent !p-0 !pr-0 !pl-0 hover:bg-transparent focus:bg-transparent focus:text-current data-highlighted:bg-transparent data-highlighted:text-current [&_[data-slot=dropdown-menu-radio-item-indicator]]:hidden'
                     )}
                     onSelect={(event) => {
                         event.preventDefault();
@@ -82,9 +82,9 @@ function ThemeColorSwatchItem({ themeColor, selected, t }) {
                     <span
                         aria-hidden="true"
                         className={cn(
-                            'size-3.5 rounded-sm border border-foreground/10 transition-transform group-hover/theme-color:scale-125 group-data-[highlighted]/theme-color:scale-125',
+                            'border-foreground/10 size-3.5 rounded-sm border transition-transform group-hover/theme-color:scale-125 group-data-[highlighted]/theme-color:scale-125',
                             selected &&
-                                'border-ring ring-1 ring-ring ring-offset-1 ring-offset-background'
+                                'border-ring ring-ring ring-offset-background ring-1 ring-offset-1'
                         )}
                         data-theme-color-swatch
                         style={{ backgroundColor: themeColor.swatch }}
@@ -259,7 +259,9 @@ function AppNavFooter({
                 <SidebarMenuItem>
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <SidebarMenuButton tooltip={t('nav_tooltip.manage')}>
+                            <SidebarMenuButton
+                                tooltip={t('nav_tooltip.manage')}
+                            >
                                 <span className="relative inline-flex size-4 items-center justify-center">
                                     <SettingsIcon />
                                 </span>
@@ -275,7 +277,9 @@ function AppNavFooter({
                                 <img
                                     className="size-6 cursor-pointer"
                                     src={vrcxLogo}
-                                    alt={t('view.settings.advanced.advanced.vrcx_settings.header')}
+                                    alt={t(
+                                        'view.settings.advanced.advanced.vrcx_settings.header'
+                                    )}
                                     onClick={() =>
                                         void openExternalLink(links.github)
                                     }
@@ -289,7 +293,9 @@ function AppNavFooter({
                                     }
                                 >
                                     <span className="flex items-center gap-1 truncate text-sm font-medium">
-                                        {t('view.settings.advanced.advanced.vrcx_settings.header')}
+                                        {t(
+                                            'view.settings.advanced.advanced.vrcx_settings.header'
+                                        )}
                                         <HeartIcon
                                             data-icon="inline-end"
                                             className="text-primary fill-current stroke-none"
@@ -354,7 +360,8 @@ function AppNavFooter({
                                             <DropdownMenuCheckboxItem
                                                 key={option.value}
                                                 checked={
-                                                    tableDensity === option.value
+                                                    tableDensity ===
+                                                    option.value
                                                 }
                                                 onSelect={() => {
                                                     void onSetTableDensity(

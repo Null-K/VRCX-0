@@ -42,7 +42,7 @@ export function FeedTableShell({
                 <DataTableScrollArea>
                     <DataTableColumnDndProvider table={table}>
                         <Table
-                            className="table-fixed min-w-full"
+                            className="min-w-full table-fixed"
                             style={getDataTableSizingStyle(table)}
                         >
                             <DataTableColumnSizeColGroup table={table} />
@@ -58,11 +58,11 @@ export function FeedTableShell({
                                                     {row
                                                         .getVisibleCells()
                                                         .map((cell) => (
-                                                    <ResizableTableCell
-                                                        key={cell.id}
-                                                        cell={cell}
-                                                        className="px-2 py-1"
-                                                    />
+                                                            <ResizableTableCell
+                                                                key={cell.id}
+                                                                cell={cell}
+                                                                className="px-2 py-1"
+                                                            />
                                                         ))}
                                                 </DataTableColumnSortableContext>
                                             </TableRow>
@@ -102,13 +102,19 @@ export function FeedTableShell({
                                         {loadStatus === 'running' ? (
                                             <span className="inline-flex items-center gap-2">
                                                 <Spinner />
-                                                {t('view.feed.generated.loading_feed_rows')}
+                                                {t(
+                                                    'view.feed.generated.loading_feed_rows'
+                                                )}
                                             </span>
                                         ) : favoritesOnly &&
                                           !isFavoritesLoaded ? (
-                                            t('view.feed.generated.favorites_are_still_hydrating')
+                                            t(
+                                                'view.feed.generated.favorites_are_still_hydrating'
+                                            )
                                         ) : loadStatus === 'error' ? (
-                                            t('view.feed.generated.feed_query_failed')
+                                            t(
+                                                'view.feed.generated.feed_query_failed'
+                                            )
                                         ) : (
                                             t(
                                                 'view.feed.generated.no_feed_rows_match_the_current_filters'

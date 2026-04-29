@@ -1,10 +1,5 @@
 import { Button } from '@/ui/shadcn/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle
-} from '@/ui/shadcn/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import { Switch } from '@/ui/shadcn/switch';
 
 import { Field } from '../SettingsField.jsx';
@@ -119,10 +114,7 @@ export function SettingsAdvancedCacheCard({
                             cacheStats.assetBundleCacheSize || 'Not refreshed'
                         ]
                     ].map(([label, value]) => (
-                        <div
-                            key={label}
-                            className="flex justify-between gap-3"
-                        >
+                        <div key={label} className="flex justify-between gap-3">
                             <span>{label}</span>
                             <span className="font-mono">{value}</span>
                         </div>

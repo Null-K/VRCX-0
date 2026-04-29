@@ -233,9 +233,7 @@ export function MyAvatarsPageView({
                 onContentTagsSaved={(nextAvatar) => {
                     applyAvatarUpdate(nextAvatar);
                     setDetail(
-                        t(
-                            'dialog.avatar.generated.avatar_content_tags_updated'
-                        )
+                        t('dialog.avatar.generated.avatar_content_tags_updated')
                     );
                 }}
             />

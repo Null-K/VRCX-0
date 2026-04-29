@@ -1,5 +1,5 @@
-import { cn } from '@/lib/utils.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
+import { cn } from '@/lib/utils.js';
 import {
     Empty,
     EmptyContent,
@@ -20,9 +20,7 @@ export function PageScaffold({
         <div
             className={cn(
                 'flex h-full min-h-0 min-w-0 flex-col overflow-hidden',
-                embedded
-                    ? 'p-3'
-                    : 'x-container x-container--auto-height p-4',
+                embedded ? 'p-3' : 'x-container x-container--auto-height p-4',
                 embedded ? embeddedClassName : '',
                 className
             )}

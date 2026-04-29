@@ -6,13 +6,13 @@ import {
     openUserDialog,
     openWorldDialog
 } from '@/services/dialogService.js';
+import i18n from '@/services/i18nService.js';
 import { getColourFromUserID } from '@/shared/utils/colour.js';
 import { parseLocation } from '@/shared/utils/location.js';
 import { normalizeVrchatEndpointDomain } from '@/shared/vrchatEndpoint.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useShellStore } from '@/state/shellStore.js';
-import i18n from '@/services/i18nService.js';
 
 export function convertFileUrlToImageUrl(
     url,
@@ -30,7 +30,8 @@ export function convertFileUrlToImageUrl(
         const fileId = match[1];
         const version = match[2];
         const endpoint = normalizeVrchatEndpointDomain(
-            endpointDomain || useRuntimeStore.getState().auth.currentUserEndpoint
+            endpointDomain ||
+                useRuntimeStore.getState().auth.currentUserEndpoint
         );
         return `${endpoint}/image/file_${fileId}/${version}/${resolution}`;
     }

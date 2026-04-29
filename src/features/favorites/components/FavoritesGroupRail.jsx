@@ -5,8 +5,8 @@ import {
     RefreshCcwIcon
 } from 'lucide-react';
 import { memo } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { cn } from '@/lib/utils.js';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -22,7 +22,6 @@ import {
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
 import { Input } from '@/ui/shadcn/input';
-
 import { Spinner } from '@/ui/shadcn/spinner';
 
 const VISIBILITY_OPTIONS = ['public', 'friends', 'private'];
@@ -46,7 +45,7 @@ function GroupMenu({
                         size="icon-xs"
                         variant="ghost"
                         className="rounded-full"
-                        aria-label={"History group options"}
+                        aria-label={'History group options'}
                         onClick={(event) => event.stopPropagation()}
                     >
                         <EllipsisIcon data-icon="inline-start" />
@@ -79,7 +78,7 @@ function GroupMenu({
                         size="icon-xs"
                         variant="ghost"
                         className="rounded-full"
-                        aria-label={"Remote group options"}
+                        aria-label={'Remote group options'}
                         onClick={(event) => event.stopPropagation()}
                     >
                         <MoreHorizontalIcon data-icon="inline-start" />
@@ -144,7 +143,7 @@ function GroupMenu({
                     size="icon-xs"
                     variant="ghost"
                     className="rounded-full"
-                    aria-label={"Local group options"}
+                    aria-label={'Local group options'}
                     onClick={(event) => event.stopPropagation()}
                 >
                     <EllipsisIcon data-icon="inline-start" />
@@ -222,7 +221,8 @@ const GroupRailSection = memo(function GroupRailSection({
                         >
                             <div className="min-w-0">
                                 <div className="truncate font-semibold">
-                                    {t('view.favorite.generated.group')} {index + 1}
+                                    {t('view.favorite.generated.group')}{' '}
+                                    {index + 1}
                                 </div>
                                 <div className="bg-muted mt-1 h-3 w-14 rounded" />
                             </div>

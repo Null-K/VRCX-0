@@ -1,10 +1,9 @@
 import { ArrowLeftIcon, RefreshCwIcon } from 'lucide-react';
 
+import { IMAGE_UPLOAD_ACCEPT } from '@/shared/utils/imageUpload.js';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Input } from '@/ui/shadcn/input';
-
-import { IMAGE_UPLOAD_ACCEPT } from '@/shared/utils/imageUpload.js';
 
 export function GalleryHeader({
     t,

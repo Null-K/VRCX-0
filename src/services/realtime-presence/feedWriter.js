@@ -98,20 +98,16 @@ function buildFeedBase({ type, userId, patch = {}, previous = {} }) {
 
 function publishFeedEntry(entry, databaseMethod) {
     const feedWriterByMethod = {
-        addAvatarToDatabase: feedRepository.addAvatarEntryForUser.bind(
-            feedRepository
-        ),
-        addBioToDatabase: feedRepository.addBioEntryForUser.bind(
-            feedRepository
-        ),
-        addGPSToDatabase: feedRepository.addGpsEntryForUser.bind(
-            feedRepository
-        ),
+        addAvatarToDatabase:
+            feedRepository.addAvatarEntryForUser.bind(feedRepository),
+        addBioToDatabase:
+            feedRepository.addBioEntryForUser.bind(feedRepository),
+        addGPSToDatabase:
+            feedRepository.addGpsEntryForUser.bind(feedRepository),
         addOnlineOfflineToDatabase:
             feedRepository.addOnlineOfflineEntryForUser.bind(feedRepository),
-        addStatusToDatabase: feedRepository.addStatusEntryForUser.bind(
-            feedRepository
-        )
+        addStatusToDatabase:
+            feedRepository.addStatusEntryForUser.bind(feedRepository)
     };
     const feedWriter = feedWriterByMethod[databaseMethod];
     if (!entry || typeof feedWriter !== 'function') {

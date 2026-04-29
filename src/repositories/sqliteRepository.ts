@@ -2,7 +2,13 @@ import { normalizePlatformError } from '../platform/tauri/errors.js';
 import { backend } from '../platform/tauri/index.js';
 import { notifySQLiteError } from '../shared/sqliteErrorEvents.js';
 
-export type SQLiteValue = string | number | boolean | null | Uint8Array | undefined;
+export type SQLiteValue =
+    | string
+    | number
+    | boolean
+    | null
+    | Uint8Array
+    | undefined;
 export type SQLiteParams = SQLiteValue[] | Record<string, SQLiteValue> | null;
 export type SQLiteRow = Record<string, unknown> | unknown[];
 export type SQLiteErrorCategory =
@@ -57,10 +63,7 @@ const SQLITE_ERROR_PATTERNS = [
     {
         category: 'locked',
         code: 'SQLITE_BUSY',
-        matches: [
-            'database is locked',
-            'attempt to write a readonly database'
-        ]
+        matches: ['database is locked', 'attempt to write a readonly database']
     },
     {
         category: 'io_error',
@@ -256,10 +259,7 @@ async function executeNonQuery(
     }
 }
 
-async function run(
-    sql: string,
-    args: SQLiteParams = null
-): Promise<unknown> {
+async function run(sql: string, args: SQLiteParams = null): Promise<unknown> {
     return executeNonQuery(sql, args);
 }
 

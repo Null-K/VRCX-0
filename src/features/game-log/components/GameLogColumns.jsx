@@ -341,11 +341,9 @@ export function buildGameLogColumns({
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                aria-label={
-                                    t(
-                                        'view.game_log.generated_modal.delete_game_log_row'
-                                    )
-                                }
+                                aria-label={t(
+                                    'view.game_log.generated_modal.delete_game_log_row'
+                                )}
                                 className="text-muted-foreground hover:text-destructive size-6 p-0"
                                 disabled={deletingGameLogKey === rowKey}
                                 onClick={(event) =>

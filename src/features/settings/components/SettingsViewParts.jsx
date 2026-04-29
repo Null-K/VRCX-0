@@ -1,8 +1,8 @@
 import { PlusIcon, XIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { setTablePageSizesPreference } from '@/services/preferencesService.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { Badge } from '@/ui/shadcn/badge';
@@ -28,13 +28,13 @@ import {
 } from '@/ui/shadcn/input-group';
 import { TabsContent } from '@/ui/shadcn/tabs';
 
-import { Field, FieldGroup } from './SettingsField.jsx';
 import {
     buildTablePageSizeOptions,
     filterTablePageSizeOptions,
     normalizeTablePageSizes,
     TABLE_PAGE_SIZE_DEFAULTS
 } from '../settingsValues.js';
+import { Field, FieldGroup } from './SettingsField.jsx';
 
 export function SettingsTabContent({ value, children }) {
     return (

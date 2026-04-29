@@ -18,8 +18,8 @@ export function useWorldDescriptionTranslation({ world, t }) {
         useState(false);
     const translatedDescriptionActive = Boolean(
         descriptionTranslation.worldId === worldId &&
-            descriptionTranslation.source === source &&
-            descriptionTranslation.text
+        descriptionTranslation.source === source &&
+        descriptionTranslation.text
     );
     const visibleDescription = translatedDescriptionActive
         ? descriptionTranslation.text

@@ -368,7 +368,9 @@ export function PreviousInstanceDetailsPanel({
                                                 )}
                                             </TableHead>
                                             <TableHead className="w-44">
-                                                {t('table.previous_instances.date')}
+                                                {t(
+                                                    'table.previous_instances.date'
+                                                )}
                                             </TableHead>
                                         </TableRow>
                                     </TableHeader>

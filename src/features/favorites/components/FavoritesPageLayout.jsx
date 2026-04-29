@@ -1,22 +1,28 @@
 import { useTranslation } from 'react-i18next';
-import { cn } from '@/lib/utils.js';
 
+import { cn } from '@/lib/utils.js';
 import {
     ResizableHandle,
     ResizablePanel,
     ResizablePanelGroup
 } from '@/ui/shadcn/resizable';
+
 import { FavoriteCard } from './FavoriteCard.jsx';
 import { FavoriteExportDialog } from './FavoriteExportDialog.jsx';
 import { FavoritesContentHeader } from './FavoritesContentHeader.jsx';
 import { GroupRailSection } from './FavoritesGroupRail.jsx';
-import { FavoritesEmptyState, FavoritesLoadingState } from './FavoritesStateParts.jsx';
+import {
+    FavoritesEmptyState,
+    FavoritesLoadingState
+} from './FavoritesStateParts.jsx';
 import { FavoritesToolbar } from './FavoritesToolbar.jsx';
 
 function FavoritesGroupRailPanel({ kind, groupRail }) {
     const { t } = useTranslation();
 
-    const selectedSource = groupRail.hasSearchInput ? '' : groupRail.selectedSource;
+    const selectedSource = groupRail.hasSearchInput
+        ? ''
+        : groupRail.selectedSource;
     const selectedGroupKey = groupRail.hasSearchInput
         ? ''
         : groupRail.selectedGroupKey;
@@ -110,21 +116,33 @@ function FavoritesContentPanel({ kind, content }) {
             <div className="min-h-0 min-w-0 flex-1 overflow-auto pr-2">
                 {content.favoriteLoadStatus === 'running' &&
                 !content.items.length ? (
-                    <FavoritesLoadingState title={t('view.favorite.generated.loading_favorites_baseline')} />
+                    <FavoritesLoadingState
+                        title={t(
+                            'view.favorite.generated.loading_favorites_baseline'
+                        )}
+                    />
                 ) : content.favoriteLoadStatus === 'error' ? (
                     <FavoritesEmptyState
-                        title={t('view.favorite.generated.favorites_failed_to_load')}
+                        title={t(
+                            'view.favorite.generated.favorites_failed_to_load'
+                        )}
                         description={
                             content.favoriteDetail ||
-                            t('view.favorite.generated.the_favorites_baseline_did_not_finish_loading')
+                            t(
+                                'view.favorite.generated.the_favorites_baseline_did_not_finish_loading'
+                            )
                         }
                     />
                 ) : isRemoteDetailsLoading ? (
                     <FavoritesLoadingState
                         title={
                             kind === 'avatar'
-                                ? t('view.favorite.generated.loading_remote_avatar_details')
-                                : t('view.favorite.generated.loading_remote_world_details')
+                                ? t(
+                                      'view.favorite.generated.loading_remote_avatar_details'
+                                  )
+                                : t(
+                                      'view.favorite.generated.loading_remote_world_details'
+                                  )
                         }
                     />
                 ) : !content.items.length ? (
@@ -136,8 +154,12 @@ function FavoritesContentPanel({ kind, content }) {
                         }
                         description={
                             content.isSearchActive
-                                ? t('view.favorite.generated.try_a_different_search_term')
-                                : t('view.favorite.generated.the_selected_group_currently_has_no_items')
+                                ? t(
+                                      'view.favorite.generated.try_a_different_search_term'
+                                  )
+                                : t(
+                                      'view.favorite.generated.the_selected_group_currently_has_no_items'
+                                  )
                         }
                     />
                 ) : (
@@ -176,9 +198,7 @@ function FavoritesContentPanel({ kind, content }) {
                                     content.onFriendRequestInvite
                                 }
                                 onFriendBoop={content.onFriendBoop}
-                                onWorldNewInstance={
-                                    content.onWorldNewInstance
-                                }
+                                onWorldNewInstance={content.onWorldNewInstance}
                                 onWorldSelfInvite={content.onWorldSelfInvite}
                                 onAvatarSelect={content.onAvatarSelect}
                             />

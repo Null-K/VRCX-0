@@ -22,10 +22,7 @@
                     "data:",
                     "blob:"
                 ],
-                "worker-src": [
-                    "'self'",
-                    "blob:"
-                ]
+                "worker-src": ["'self'", "blob:"]
             }
         },
         "windows": [

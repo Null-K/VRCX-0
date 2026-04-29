@@ -118,7 +118,7 @@ export function CurrentWorldHeader({
                     <Button
                         type="button"
                         variant="ghost"
-                        className="h-auto max-w-full justify-start p-0 text-left text-base font-semibold hover:text-primary"
+                        className="hover:text-primary h-auto max-w-full justify-start p-0 text-left text-base font-semibold"
                         onClick={() =>
                             openWorldDialog({
                                 worldId: worldDialogTarget,
@@ -134,7 +134,7 @@ export function CurrentWorldHeader({
                     <Button
                         type="button"
                         variant="ghost"
-                        className="text-muted-foreground h-auto justify-start p-0 font-mono text-xs hover:text-primary"
+                        className="text-muted-foreground hover:text-primary h-auto justify-start p-0 font-mono text-xs"
                         onClick={() =>
                             world?.authorId &&
                             openUserDialog({
@@ -299,7 +299,7 @@ export function PlayerListTableShell({ table, onResetLayout, children }) {
             <DataTableScrollArea>
                 <DataTableColumnDndProvider table={table}>
                     <Table
-                        className="app-data-table table-fixed min-w-full"
+                        className="app-data-table min-w-full table-fixed"
                         style={getDataTableSizingStyle(table)}
                     >
                         <DataTableColumnSizeColGroup table={table} />

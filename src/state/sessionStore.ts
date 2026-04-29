@@ -2,7 +2,12 @@ import { create } from 'zustand';
 
 type SessionPhase = 'signed_out' | 'authenticating' | 'authenticated' | string;
 type BootStatus = 'idle' | 'running' | 'completed' | 'error' | string;
-type TransportStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | string;
+type TransportStatus =
+    | 'disconnected'
+    | 'connecting'
+    | 'connected'
+    | 'error'
+    | string;
 
 interface SessionState {
     isLoggedIn: boolean;

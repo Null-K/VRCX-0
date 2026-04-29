@@ -7,8 +7,8 @@ import { getBase64ByteLength, md5Base64 } from '@/shared/utils/binary.js';
 import { extractFileId } from '@/shared/utils/fileUtils.js';
 import { normalizeVrchatEndpointDomain } from '@/shared/vrchatEndpoint.js';
 
-import { backend } from '../platform/tauri/index.js';
 import { normalizePlatformError } from '../platform/tauri/errors.js';
+import { backend } from '../platform/tauri/index.js';
 import {
     buildUrl,
     executeVrchatRequest,
@@ -296,10 +296,7 @@ async function uploadEmoji(
     });
 }
 
-async function uploadSticker(
-    imageData: string,
-    options: MediaApiOptions = {}
-) {
+async function uploadSticker(imageData: string, options: MediaApiOptions = {}) {
     return uploadImage(
         'file/image',
         imageData,

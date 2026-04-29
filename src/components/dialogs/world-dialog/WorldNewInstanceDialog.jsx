@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import {
@@ -21,16 +21,21 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
 import { buildLegacyCreatedInstance } from './worldInstances.js';
 
 const accessTypeOptions = [
     { value: 'public', labelKey: 'dialog.new_instance.access_type_public' },
-    { value: 'friends+', labelKey: 'dialog.new_instance.access_type_friend_plus' },
+    {
+        value: 'friends+',
+        labelKey: 'dialog.new_instance.access_type_friend_plus'
+    },
     { value: 'friends', labelKey: 'dialog.new_instance.access_type_friend' },
-    { value: 'invite+', labelKey: 'dialog.new_instance.access_type_invite_plus' },
+    {
+        value: 'invite+',
+        labelKey: 'dialog.new_instance.access_type_invite_plus'
+    },
     { value: 'invite', labelKey: 'dialog.new_instance.access_type_invite' },
     { value: 'group', labelKey: 'dialog.new_instance.access_type_group' }
 ];
@@ -42,9 +47,15 @@ const regionOptions = [
     { value: 'Japan', labelKey: 'dialog.new_instance.region_jp' }
 ];
 const groupAccessTypeOptions = [
-    { value: 'public', labelKey: 'dialog.new_instance.group_access_type_public' },
+    {
+        value: 'public',
+        labelKey: 'dialog.new_instance.group_access_type_public'
+    },
     { value: 'plus', labelKey: 'dialog.new_instance.group_access_type_plus' },
-    { value: 'members', labelKey: 'dialog.new_instance.group_access_type_members' }
+    {
+        value: 'members',
+        labelKey: 'dialog.new_instance.group_access_type_members'
+    }
 ];
 
 function normalizeText(value) {
@@ -132,8 +143,9 @@ export function WorldNewInstanceDialog({
     const activeAccessType = activeCreated?.accessType || form.accessType;
     const activeOwnerId = activeCreated?.ownerId || currentUserId;
     const selectedGroup =
-        groupOptions.find((group) => groupIdForOption(group) === form.groupId) ||
-        null;
+        groupOptions.find(
+            (group) => groupIdForOption(group) === form.groupId
+        ) || null;
     const missingSelectedGroup =
         form.groupId && !selectedGroup
             ? {
@@ -213,11 +225,15 @@ export function WorldNewInstanceDialog({
                 <DialogHeader>
                     <DialogTitle>
                         {request?.selfInvite
-                            ? t('dialog.world.actions.new_instance_and_self_invite')
+                            ? t(
+                                  'dialog.world.actions.new_instance_and_self_invite'
+                              )
                             : t('dialog.new_instance.header')}
                     </DialogTitle>
                     <DialogDescription>
-                        {world?.name || world?.id || t('dialog.world.generated.world')}
+                        {world?.name ||
+                            world?.id ||
+                            t('dialog.world.generated.world')}
                     </DialogDescription>
                 </DialogHeader>
                 <Tabs
@@ -225,13 +241,19 @@ export function WorldNewInstanceDialog({
                     onValueChange={(value) => patchForm({ selectedTab: value })}
                 >
                     <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="Normal">{t('dialog.new_instance.normal')}</TabsTrigger>
-                        <TabsTrigger value="Legacy">{t('dialog.new_instance.legacy')}</TabsTrigger>
+                        <TabsTrigger value="Normal">
+                            {t('dialog.new_instance.normal')}
+                        </TabsTrigger>
+                        <TabsTrigger value="Legacy">
+                            {t('dialog.new_instance.legacy')}
+                        </TabsTrigger>
                     </TabsList>
                     <TabsContent value="Normal">
                         <FieldGroup className="gap-4">
                             <Field>
-                                <FieldLabel>{t('dialog.world.generated.access')}</FieldLabel>
+                                <FieldLabel>
+                                    {t('dialog.world.generated.access')}
+                                </FieldLabel>
                                 <Select
                                     value={form.accessType}
                                     disabled={Boolean(request?.created)}
@@ -257,7 +279,9 @@ export function WorldNewInstanceDialog({
                                 </Select>
                             </Field>
                             <Field>
-                                <FieldLabel>{t('dialog.new_instance.region')}</FieldLabel>
+                                <FieldLabel>
+                                    {t('dialog.new_instance.region')}
+                                </FieldLabel>
                                 <Select
                                     value={form.region}
                                     disabled={Boolean(request?.created)}
@@ -294,7 +318,11 @@ export function WorldNewInstanceDialog({
                                         )}
                                     </Field>
                                     <Field>
-                                        <FieldLabel>{t('dialog.new_instance.group_access_type')}</FieldLabel>
+                                        <FieldLabel>
+                                            {t(
+                                                'dialog.new_instance.group_access_type'
+                                            )}
+                                        </FieldLabel>
                                         <Select
                                             value={form.groupAccessType}
                                             disabled={Boolean(request?.created)}
@@ -319,7 +347,9 @@ export function WorldNewInstanceDialog({
                                                                     option.value
                                                                 }
                                                             >
-                                                                {t(option.labelKey)}
+                                                                {t(
+                                                                    option.labelKey
+                                                                )}
                                                             </SelectItem>
                                                         )
                                                     )}
@@ -330,7 +360,9 @@ export function WorldNewInstanceDialog({
                                     {form.groupAccessType === 'members' ? (
                                         <Field>
                                             <FieldLabel htmlFor="world-instance-role-ids">
-                                                {t('dialog.world.generated.role_ids')}
+                                                {t(
+                                                    'dialog.world.generated.role_ids'
+                                                )}
                                             </FieldLabel>
                                             <Input
                                                 id="world-instance-role-ids"
@@ -368,7 +400,9 @@ export function WorldNewInstanceDialog({
                                                 }
                                             />
                                             <FieldLabel htmlFor="world-instance-queue-enabled">
-                                                {t('dialog.world.generated.queue_enabled')}
+                                                {t(
+                                                    'dialog.world.generated.queue_enabled'
+                                                )}
                                             </FieldLabel>
                                         </Field>
                                         <Field
@@ -390,7 +424,9 @@ export function WorldNewInstanceDialog({
                                                 }
                                             />
                                             <FieldLabel htmlFor="world-instance-age-gate">
-                                                {t('dialog.world.generated.age_gate')}
+                                                {t(
+                                                    'dialog.world.generated.age_gate'
+                                                )}
                                             </FieldLabel>
                                         </Field>
                                     </FieldGroup>
@@ -416,7 +452,9 @@ export function WorldNewInstanceDialog({
                     <TabsContent value="Legacy">
                         <FieldGroup className="gap-4">
                             <Field>
-                                <FieldLabel>{t('dialog.world.generated.access')}</FieldLabel>
+                                <FieldLabel>
+                                    {t('dialog.world.generated.access')}
+                                </FieldLabel>
                                 <Select
                                     value={form.accessType}
                                     onValueChange={(value) =>
@@ -441,7 +479,9 @@ export function WorldNewInstanceDialog({
                                 </Select>
                             </Field>
                             <Field>
-                                <FieldLabel>{t('dialog.new_instance.region')}</FieldLabel>
+                                <FieldLabel>
+                                    {t('dialog.new_instance.region')}
+                                </FieldLabel>
                                 <Select
                                     value={form.region}
                                     onValueChange={(value) =>
@@ -467,7 +507,9 @@ export function WorldNewInstanceDialog({
                             </Field>
                             <Field>
                                 <FieldLabel htmlFor="world-launch-instance-name">
-                                    {t('table.previous_instances.instance_name')}
+                                    {t(
+                                        'table.previous_instances.instance_name'
+                                    )}
                                 </FieldLabel>
                                 <Input
                                     id="world-launch-instance-name"
@@ -506,10 +548,16 @@ export function WorldNewInstanceDialog({
                                         <FieldLabel htmlFor="world-launch-group-id">
                                             {t('dialog.new_instance.group_id')}
                                         </FieldLabel>
-                                        {renderGroupPicker('world-launch-group-id')}
+                                        {renderGroupPicker(
+                                            'world-launch-group-id'
+                                        )}
                                     </Field>
                                     <Field>
-                                        <FieldLabel>{t('dialog.new_instance.group_access_type')}</FieldLabel>
+                                        <FieldLabel>
+                                            {t(
+                                                'dialog.new_instance.group_access_type'
+                                            )}
+                                        </FieldLabel>
                                         <Select
                                             value={form.groupAccessType}
                                             onValueChange={(value) =>
@@ -533,7 +581,9 @@ export function WorldNewInstanceDialog({
                                                                     option.value
                                                                 }
                                                             >
-                                                                {t(option.labelKey)}
+                                                                {t(
+                                                                    option.labelKey
+                                                                )}
                                                             </SelectItem>
                                                         )
                                                     )}

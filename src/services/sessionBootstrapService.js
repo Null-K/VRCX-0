@@ -6,9 +6,9 @@ import {
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useSessionStore } from '@/state/sessionStore.js';
 
-import { syncStartupServicesTask } from './startupServicesStatus.js';
-import { showSQLiteErrorDialog } from './sqliteErrorDialogService.js';
 import { isHostCapabilityAvailable } from './hostCapabilityService.js';
+import { showSQLiteErrorDialog } from './sqliteErrorDialogService.js';
+import { syncStartupServicesTask } from './startupServicesStatus.js';
 
 function getCurrentUserDisplayName(user) {
     return user?.displayName || user?.username || user?.id || '';

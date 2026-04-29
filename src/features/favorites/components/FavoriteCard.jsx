@@ -8,8 +8,8 @@ import {
     UsersIcon
 } from 'lucide-react';
 import { memo } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { Location } from '@/components/Location.jsx';
 import { cn } from '@/lib/utils.js';
 import {
@@ -31,8 +31,8 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
-
 import { Spinner } from '@/ui/shadcn/spinner';
+
 import { normalizeFavoriteEntityId as normalizeEntityId } from '../favoritesItems.js';
 
 function resolvePresenceLocation(profile) {
@@ -256,7 +256,7 @@ const FavoriteCard = memo(function FavoriteCard({
                             size="icon-sm"
                             variant="ghost"
                             className="rounded-full"
-                            aria-label={"Favorite item options"}
+                            aria-label={'Favorite item options'}
                             disabled={removing}
                             onClick={(event) => event.stopPropagation()}
                         >
@@ -286,7 +286,9 @@ const FavoriteCard = memo(function FavoriteCard({
                                             onFriendRequestInvite?.(item)
                                         }
                                     >
-                                        {t('dialog.user.actions.request_invite')}
+                                        {t(
+                                            'dialog.user.actions.request_invite'
+                                        )}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                         disabled={
@@ -346,7 +348,9 @@ const FavoriteCard = memo(function FavoriteCard({
                                     disabled={!onWorldSelfInvite}
                                     onSelect={() => onWorldSelfInvite?.(item)}
                                 >
-                                    {t('dialog.world.actions.new_instance_and_self_invite')}
+                                    {t(
+                                        'dialog.world.actions.new_instance_and_self_invite'
+                                    )}
                                 </DropdownMenuItem>
                             </DropdownMenuGroup>
                         ) : null}

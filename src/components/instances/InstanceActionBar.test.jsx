@@ -75,20 +75,23 @@ vi.mock('@/ui/shadcn/tooltip', async () => {
     const React = await import('react');
 
     return {
-        Tooltip: ({ children }) => React.createElement(React.Fragment, null, children),
+        Tooltip: ({ children }) =>
+            React.createElement(React.Fragment, null, children),
         TooltipTrigger: ({ children }) =>
             React.createElement(React.Fragment, null, children),
         TooltipContent: ({ children }) =>
-            React.createElement('span', { 'data-tooltip-content': true }, children)
+            React.createElement(
+                'span',
+                { 'data-tooltip-content': true },
+                children
+            )
     };
 });
 
 import { InstanceActionBar } from './InstanceActionBar.jsx';
 
 function renderActionBar(props = {}) {
-    return renderToStaticMarkup(
-        React.createElement(InstanceActionBar, props)
-    );
+    return renderToStaticMarkup(React.createElement(InstanceActionBar, props));
 }
 
 describe('InstanceActionBar', () => {

@@ -16,7 +16,10 @@ const FRIEND_TYPES = new Set<string>([
     'boop'
 ]);
 const GROUP_TYPES_PREFIX = ['group.', 'moderation.'];
-const GROUP_EXACT_TYPES = new Set<string>(['groupChange', 'event.announcement']);
+const GROUP_EXACT_TYPES = new Set<string>([
+    'groupChange',
+    'event.announcement'
+]);
 
 /**
  * Determine the category of a notification type.

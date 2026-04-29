@@ -127,11 +127,11 @@ export function resolveFriendRowLocationState({
     );
     const showLocationSubline = Boolean(
         displayLocation &&
-            !statusSource?.pendingOffline &&
-            !groupByInstanceTimerVisible &&
-            (!isActiveOrOffline ||
-                parsedFriendLocation.isRealInstance ||
-                isTraveling)
+        !statusSource?.pendingOffline &&
+        !groupByInstanceTimerVisible &&
+        (!isActiveOrOffline ||
+            parsedFriendLocation.isRealInstance ||
+            isTraveling)
     );
 
     return {
@@ -205,15 +205,13 @@ export function StaticSidebarLocation({
     const isAgeRestricted = Boolean(
         parsedLocation.ageGate && !ageGatedInstancesVisible
     );
-    const showInstanceName = Boolean(
-        showInstanceIdInLocation && instanceName
-    );
+    const showInstanceName = Boolean(showInstanceIdInLocation && instanceName);
     const isLocationLink = Boolean(
         link &&
-            !parsedLocation.isPrivate &&
-            !parsedLocation.isOffline &&
-            currentLocation &&
-            parsedLocation.worldId
+        !parsedLocation.isPrivate &&
+        !parsedLocation.isOffline &&
+        currentLocation &&
+        parsedLocation.worldId
     );
 
     function openWorld(event) {
@@ -302,7 +300,7 @@ export function StaticSidebarLocation({
                     className={cn(
                         'x-location inline-flex max-w-full min-w-0 flex-nowrap items-center truncate overflow-hidden text-left',
                         isLocationLink
-                            ? 'cursor-pointer text-inherit underline-offset-4 hover:text-primary'
+                            ? 'hover:text-primary cursor-pointer text-inherit underline-offset-4'
                             : 'cursor-default'
                     )}
                     onClick={openWorld}
@@ -328,7 +326,7 @@ export function StaticSidebarLocation({
                 <span
                     role="button"
                     tabIndex={0}
-                    className="ml-0.5 min-w-0 cursor-pointer truncate text-left font-normal text-inherit hover:text-primary focus-visible:ring-ring/50 focus-visible:ring-[3px] focus-visible:outline-none"
+                    className="hover:text-primary focus-visible:ring-ring/50 ml-0.5 min-w-0 cursor-pointer truncate text-left font-normal text-inherit focus-visible:ring-[3px] focus-visible:outline-none"
                     onClick={openGroup}
                     onKeyDown={openGroupFromKeyboard}
                 >

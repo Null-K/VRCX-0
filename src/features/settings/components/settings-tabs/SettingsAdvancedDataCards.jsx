@@ -1,12 +1,7 @@
 import { Trash2Icon } from 'lucide-react';
 
 import { Button } from '@/ui/shadcn/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle
-} from '@/ui/shadcn/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import {
     Select,
     SelectContent,
@@ -169,10 +164,9 @@ export function SettingsAdvancedDataCards({
                         <div className="flex items-center gap-2">
                             {onlineVisitCount !== null ? (
                                 <span className="text-muted-foreground text-sm">
-                                    {t(
-                                        'view.profile.game_info.user_online',
-                                        { count: onlineVisitCount }
-                                    )}
+                                    {t('view.profile.game_info.user_online', {
+                                        count: onlineVisitCount
+                                    })}
                                 </span>
                             ) : null}
                             <Button

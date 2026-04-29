@@ -1,8 +1,8 @@
 import { CopyIcon, InfoIcon, MoreHorizontalIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { InstanceInviteDialog } from '@/components/dialogs/InstanceInviteDialog.jsx';
 import { copyTextToClipboard } from '@/lib/entityMedia.js';
 import { cn } from '@/lib/utils.js';
@@ -243,7 +243,9 @@ export function LaunchDialogHost() {
                     toast.error(
                         error instanceof Error
                             ? error.message
-                            : t('host.launch_dialog.generated_toast.failed_to_resolve_launch_details')
+                            : t(
+                                  'host.launch_dialog.generated_toast.failed_to_resolve_launch_details'
+                              )
                     );
                 }
             })
@@ -269,7 +271,11 @@ export function LaunchDialogHost() {
             return;
         }
         await copyTextToClipboard(value);
-        toast.success(t('host.launch_dialog.generated_dynamic.value_copied', { value: label }));
+        toast.success(
+            t('host.launch_dialog.generated_dynamic.value_copied', {
+                value: label
+            })
+        );
     }
 
     async function runAction(key, action) {
@@ -284,7 +290,11 @@ export function LaunchDialogHost() {
             }
         } catch (error) {
             toast.error(
-                error instanceof Error ? error.message : t('host.launch_dialog.generated_toast.launch_action_failed')
+                error instanceof Error
+                    ? error.message
+                    : t(
+                          'host.launch_dialog.generated_toast.launch_action_failed'
+                      )
             );
         } finally {
             setBusy('');
@@ -295,8 +305,9 @@ export function LaunchDialogHost() {
         if (isGameRunning) {
             const result = await confirm({
                 title: t('host.launch_dialog.generated_modal.launch_vrchat'),
-                description:
-                    t('host.launch_dialog.generated_modal.vrchat_is_already_running_continue_launching_thi'),
+                description: t(
+                    'host.launch_dialog.generated_modal.vrchat_is_already_running_continue_launching_thi'
+                ),
                 confirmText: t('host.launch_dialog.generated_modal.launch'),
                 cancelText: t('common.actions.cancel')
             });
@@ -353,7 +364,9 @@ export function LaunchDialogHost() {
                     <DialogHeader>
                         <DialogTitle>{t('dialog.launch.header')}</DialogTitle>
                         <DialogDescription>
-                            {t('dialog.launch.generated.open_copy_invite_or_self_invite_to_this_vrchat_instance')}
+                            {t(
+                                'dialog.launch.generated.open_copy_invite_or_self_invite_to_this_vrchat_instance'
+                            )}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -470,7 +483,7 @@ export function LaunchDialogHost() {
                                             Boolean(busy)
                                         }
                                         className="border-primary-foreground/25 rounded-l-none border-l"
-                                        aria-label={"More launch options"}
+                                        aria-label={'More launch options'}
                                     >
                                         <MoreHorizontalIcon data-icon="inline-start" />
                                     </Button>
@@ -499,7 +512,9 @@ export function LaunchDialogHost() {
                                                 )
                                             }
                                         >
-                                            {t('dialog.launch.generated.start_as_desktop')}
+                                            {t(
+                                                'dialog.launch.generated.start_as_desktop'
+                                            )}
                                         </DropdownMenuItem>
                                     </DropdownMenuGroup>
                                 </DropdownMenuContent>

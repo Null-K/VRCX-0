@@ -8,8 +8,8 @@ import {
     Trash2Icon,
     UserIcon
 } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { FavoriteActionMenu } from '@/components/favorites/FavoriteActionMenu.jsx';
 import { Button } from '@/ui/shadcn/button';
 

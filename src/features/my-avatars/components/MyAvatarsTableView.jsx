@@ -1,3 +1,4 @@
+import { useDataTableColumnDnd } from '@/components/data-table/dataTableColumnDndContext.js';
 import {
     DataTableColumnDndProvider,
     DataTableColumnSizeColGroup,
@@ -11,8 +12,6 @@ import {
     ResizableTableCell,
     ResizableTableHead
 } from '@/components/data-table/ResizableTableParts.jsx';
-import { useDataTableColumnDnd } from '@/components/data-table/dataTableColumnDndContext.js';
-import { Table, TableBody, TableHeader, TableRow } from '@/ui/shadcn/table';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -21,6 +20,7 @@ import {
     ContextMenuSeparator,
     ContextMenuTrigger
 } from '@/ui/shadcn/context-menu';
+import { Table, TableBody, TableHeader, TableRow } from '@/ui/shadcn/table';
 
 import {
     AvatarActionMenuItems,
@@ -86,7 +86,7 @@ export function MyAvatarsTableView({
                 <DataTableScrollArea wideTable>
                     <DataTableColumnDndProvider table={table}>
                         <Table
-                            className="table-fixed min-w-full"
+                            className="min-w-full table-fixed"
                             style={getDataTableSizingStyle(table)}
                         >
                             <DataTableColumnSizeColGroup table={table} />
@@ -101,7 +101,7 @@ export function MyAvatarsTableView({
                                                 className={[
                                                     'group h-8 cursor-pointer',
                                                     row.original?.id ===
-                                                        currentAvatarId
+                                                    currentAvatarId
                                                         ? 'bg-primary/10'
                                                         : ''
                                                 ]
@@ -177,7 +177,7 @@ export function MyAvatarsTableView({
                                                 </DataTableColumnSortableContext>
                                             </TableRow>
                                         </ContextMenuTrigger>
-                                        <ContextMenuContent className="w-max min-w-52 max-w-[90vw]">
+                                        <ContextMenuContent className="w-max max-w-[90vw] min-w-52">
                                             <AvatarActionMenuItems
                                                 avatar={row.original}
                                                 isActive={
@@ -194,9 +194,7 @@ export function MyAvatarsTableView({
                                                 }
                                                 Item={ContextMenuItem}
                                                 Group={ContextMenuGroup}
-                                                Separator={
-                                                    ContextMenuSeparator
-                                                }
+                                                Separator={ContextMenuSeparator}
                                                 onAction={(action, avatar) =>
                                                     void onAvatarAction(
                                                         action,

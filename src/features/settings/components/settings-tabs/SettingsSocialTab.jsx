@@ -1,12 +1,7 @@
 import { ChevronDownIcon } from 'lucide-react';
 
 import { Button } from '@/ui/shadcn/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle
-} from '@/ui/shadcn/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,

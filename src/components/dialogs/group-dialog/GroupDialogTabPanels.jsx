@@ -31,6 +31,7 @@ import {
     EntityRawJson
 } from '../EntityDialogScaffold.jsx';
 import { PreviousInstancesPanel } from '../PreviousInstancesTableDialog.jsx';
+import { GroupEventsTab, GroupEventSummary } from './GroupDialogEvents.jsx';
 import {
     announcementRoleNames,
     announcementTimestamp,
@@ -38,7 +39,6 @@ import {
     announcementUserLabel,
     firstArray
 } from './groupDialogUtils.js';
-import { GroupEventsTab, GroupEventSummary } from './GroupDialogEvents.jsx';
 import { GroupInstanceRows } from './GroupInstanceRows.jsx';
 import { RowList } from './GroupRowList.jsx';
 
@@ -289,10 +289,9 @@ export function GroupDialogTabPanels({ state, handlers }) {
                         type="button"
                         variant="ghost"
                         className="bg-muted h-auto w-full overflow-hidden rounded-md p-0"
-                        aria-label={t(
-                            'dialog.group.overview.preview_banner',
-                            { value: groupTitle }
-                        )}
+                        aria-label={t('dialog.group.overview.preview_banner', {
+                            value: groupTitle
+                        })}
                         onClick={() => onPreviewImage(bannerUrl, groupTitle)}
                     >
                         <img

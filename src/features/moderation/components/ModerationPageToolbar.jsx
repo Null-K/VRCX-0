@@ -33,7 +33,9 @@ export function ModerationPageToolbar({
                 />
                 <Input
                     value={searchQuery}
-                    onChange={(event) => onSearchQueryChange(event.target.value)}
+                    onChange={(event) =>
+                        onSearchQueryChange(event.target.value)
+                    }
                     placeholder={t('common.actions.search')}
                     className="h-9 min-w-32 flex-1 sm:max-w-40"
                 />

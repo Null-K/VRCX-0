@@ -18,12 +18,7 @@ import { normalizeNavWidth, normalizeTableDensity } from './shellStore.js';
 
 export const DEFAULT_TABLE_PAGE_SIZE = 20;
 export const DEFAULT_TABLE_PAGE_SIZES = Object.freeze([
-    10,
-    15,
-    20,
-    25,
-    50,
-    100
+    10, 15, 20, 25, 50, 100
 ]);
 const DEFAULT_TRANSLATION_ENDPOINT =
     'https://api.openai.com/v1/chat/completions';

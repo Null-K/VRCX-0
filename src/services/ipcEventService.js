@@ -6,6 +6,7 @@ import {
     localFavoritesRepository,
     webRepository
 } from '@/repositories/index.js';
+import i18n from '@/services/i18nService.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { useNotificationStore } from '@/state/notificationStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
@@ -19,7 +20,6 @@ import {
 } from './dialogService.js';
 import { bootstrapFavorites } from './favoriteBootstrapService.js';
 import { openFavoriteImportDialog } from './favoriteImportService.js';
-import i18n from '@/services/i18nService.js';
 
 let ipcTimeoutId = null;
 
@@ -199,7 +199,10 @@ async function handleLaunchCommand(input) {
             if (shouldConfirm) {
                 const result = await useModalStore.getState().confirm({
                     title: i18n.t('common.actions.confirm'),
-                    description: i18n.t('service.ipc_event_service.generated_modal.select_avatar_value', { value: avatarId }),
+                    description: i18n.t(
+                        'service.ipc_event_service.generated_modal.select_avatar_value',
+                        { value: avatarId }
+                    ),
                     confirmText: i18n.t('common.actions.select'),
                     cancelText: i18n.t('common.actions.cancel')
                 });

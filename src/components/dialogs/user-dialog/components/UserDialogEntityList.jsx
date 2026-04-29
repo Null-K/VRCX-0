@@ -13,17 +13,12 @@ import {
     userTravelingTimestamp,
     worldOccupantSubtitle
 } from '../userDialogRows.js';
-import { EntityListState } from './UserDialogEntityListState.jsx';
 import { rowImage } from './userDialogEntityImages.js';
+import { EntityListState } from './UserDialogEntityListState.jsx';
 import { openRow } from './userDialogEntityNavigation.js';
 import { UserGroupCard } from './UserDialogGroupCard.jsx';
 
-export function EntityList({
-    rows,
-    kind = '',
-    loading = false,
-    error = ''
-}) {
+export function EntityList({ rows, kind = '', loading = false, error = '' }) {
     const currentEndpoint = useRuntimeStore(
         (state) => state.auth.currentUserEndpoint
     );
@@ -142,11 +137,7 @@ export function EntityList({
     );
 }
 
-export function UserGroupSection({
-    title,
-    rows,
-    countText
-}) {
+export function UserGroupSection({ title, rows, countText }) {
     if (!rows.length) {
         return null;
     }
@@ -159,10 +150,7 @@ export function UserGroupSection({
                     {countText || rows.length}
                 </span>
             </div>
-            <EntityList
-                rows={rows}
-                kind="group"
-            />
+            <EntityList rows={rows} kind="group" />
         </section>
     );
 }

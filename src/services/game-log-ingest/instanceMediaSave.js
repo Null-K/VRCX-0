@@ -8,7 +8,10 @@ import {
     getPrintFileName,
     getPrintLocalDate
 } from '@/shared/utils/gallery.js';
-import { parseInventoryFromUrl, parsePrintFromUrl } from '@/shared/utils/gameLog.js';
+import {
+    parseInventoryFromUrl,
+    parsePrintFromUrl
+} from '@/shared/utils/gameLog.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 
 import { delay, normalizeString } from './parsing.js';

@@ -160,7 +160,9 @@ export function UserDialogHeaderActions({
                                     disabled={actionsDisabled}
                                     onSelect={() => onFriendRequest('accept')}
                                 >
-                                    {t('dialog.user.actions.accept_friend_request')}
+                                    {t(
+                                        'dialog.user.actions.accept_friend_request'
+                                    )}
                                 </EntityActionItem>
                                 <EntityActionItem
                                     icon={UserXIcon}
@@ -168,7 +170,9 @@ export function UserDialogHeaderActions({
                                     disabled={actionsDisabled}
                                     onSelect={() => onFriendRequest('decline')}
                                 >
-                                    {t('dialog.user.actions.decline_friend_request')}
+                                    {t(
+                                        'dialog.user.actions.decline_friend_request'
+                                    )}
                                 </EntityActionItem>
                             </>
                         ) : !isFriend && friendRequestState.outgoing ? (
@@ -304,10 +308,7 @@ export function UserDialogHeaderActions({
                                         Boolean(profile.$isModerator))
                                 }
                                 onSelect={() =>
-                                    onModeration(
-                                        'mute',
-                                        !moderationState.mute
-                                    )
+                                    onModeration('mute', !moderationState.mute)
                                 }
                             >
                                 {t(

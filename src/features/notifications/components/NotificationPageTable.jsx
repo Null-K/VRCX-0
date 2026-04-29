@@ -10,12 +10,7 @@ import {
 } from '@/components/data-table/DataTableView.jsx';
 import { ResizableTableCell } from '@/components/data-table/ResizableTableParts.jsx';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableRow
-} from '@/ui/shadcn/table';
+import { Table, TableBody, TableCell, TableRow } from '@/ui/shadcn/table';
 
 export function NotificationPageTable({
     table,
@@ -27,7 +22,10 @@ export function NotificationPageTable({
     onPageSizeChange,
     t
 }) {
-    const visibleColumnCount = Math.max(table.getVisibleLeafColumns().length, 1);
+    const visibleColumnCount = Math.max(
+        table.getVisibleLeafColumns().length,
+        1
+    );
 
     return (
         <>
@@ -44,42 +42,44 @@ export function NotificationPageTable({
                 <DataTableScrollArea>
                     <DataTableColumnDndProvider table={table}>
                         <Table
-                            className="app-data-table table-fixed min-w-full"
+                            className="app-data-table min-w-full table-fixed"
                             style={getDataTableSizingStyle(table)}
                         >
-                        <DataTableColumnSizeColGroup table={table} />
-                        <DataTableHeader table={table} />
-                        <TableBody>
-                            {table.getRowModel().rows.length > 0 ? (
-                                table.getRowModel().rows.map((row) => (
-                                    <TableRow key={row.id}>
-                                        <DataTableColumnSortableContext
-                                            table={table}
+                            <DataTableColumnSizeColGroup table={table} />
+                            <DataTableHeader table={table} />
+                            <TableBody>
+                                {table.getRowModel().rows.length > 0 ? (
+                                    table.getRowModel().rows.map((row) => (
+                                        <TableRow key={row.id}>
+                                            <DataTableColumnSortableContext
+                                                table={table}
+                                            >
+                                                {row
+                                                    .getVisibleCells()
+                                                    .map((cell) => (
+                                                        <ResizableTableCell
+                                                            key={cell.id}
+                                                            cell={cell}
+                                                        />
+                                                    ))}
+                                            </DataTableColumnSortableContext>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell
+                                            colSpan={visibleColumnCount}
+                                            className="text-muted-foreground h-24 text-center"
                                         >
-                                            {row
-                                                .getVisibleCells()
-                                                .map((cell) => (
-                                                    <ResizableTableCell
-                                                        key={cell.id}
-                                                        cell={cell}
-                                                    />
-                                                ))}
-                                        </DataTableColumnSortableContext>
+                                            {loadStatus === 'running'
+                                                ? t('common.loading')
+                                                : t(
+                                                      'common.no_matching_entries'
+                                                  )}
+                                        </TableCell>
                                     </TableRow>
-                                ))
-                            ) : (
-                                <TableRow>
-                                    <TableCell
-                                        colSpan={visibleColumnCount}
-                                        className="text-muted-foreground h-24 text-center"
-                                    >
-                                        {loadStatus === 'running'
-                                            ? t('common.loading')
-                                            : t('common.no_matching_entries')}
-                                    </TableCell>
-                                </TableRow>
-                            )}
-                        </TableBody>
+                                )}
+                            </TableBody>
                         </Table>
                     </DataTableColumnDndProvider>
                 </DataTableScrollArea>

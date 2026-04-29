@@ -1,5 +1,5 @@
-import { replaceBioSymbols } from './base/string';
 import { getPlatformInfo } from './avatarPlatform.js';
+import { replaceBioSymbols } from './base/string';
 
 interface AvatarImageArgs {
     json: {

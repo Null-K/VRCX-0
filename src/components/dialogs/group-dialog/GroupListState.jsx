@@ -1,4 +1,6 @@
 import { useTranslation } from 'react-i18next';
+
+import { cn } from '@/lib/utils.js';
 import { Alert, AlertDescription } from '@/ui/shadcn/alert';
 import {
     Empty,
@@ -7,7 +9,6 @@ import {
     EmptyTitle
 } from '@/ui/shadcn/empty';
 import { Spinner } from '@/ui/shadcn/spinner';
-import { cn } from '@/lib/utils.js';
 
 export function GroupListState({
     title = 'No rows',

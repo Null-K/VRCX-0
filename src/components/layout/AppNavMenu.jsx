@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { logoutFromReactShell } from '@/services/authExecutionService.js';
 import {
     setSidebarCollapsedPreference,
@@ -11,9 +11,7 @@ import {
     setThemeModePreference
 } from '@/services/preferencesService.js';
 import { triggerToolByKey } from '@/services/toolActionService.js';
-import {
-    DASHBOARD_NAV_KEY_PREFIX
-} from '@/shared/constants/dashboard.js';
+import { DASHBOARD_NAV_KEY_PREFIX } from '@/shared/constants/dashboard.js';
 import { formatReleaseDisplayVersion } from '@/shared/utils/releaseVersion.js';
 import { useDashboardStore } from '@/state/dashboardStore.js';
 import { useModalStore } from '@/state/modalStore.js';
@@ -23,18 +21,18 @@ import { useSessionStore } from '@/state/sessionStore.js';
 import { useShellStore } from '@/state/shellStore.js';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore.js';
 
-import { CustomNavDialog } from './CustomNavDialog.jsx';
 import {
     isDashboardEntry,
     isEntryActive,
     isToolEntry,
-    removeNavKeyFromLayout,
+    removeNavKeyFromLayout
 } from './AppNavMenuParts.jsx';
 import {
     AppNavCreateDashboardHeader,
     AppNavFooter,
     AppNavMenuContent
 } from './AppNavMenuSections.jsx';
+import { CustomNavDialog } from './CustomNavDialog.jsx';
 import {
     getPathForNavEntry,
     loadNavMenuModel,
@@ -197,7 +195,9 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.app_nav_menu.generated_toast.failed_to_create_dashboard')
+                    : t(
+                          'component.app_nav_menu.generated_toast.failed_to_create_dashboard'
+                      )
             );
         } finally {
             setIsCreatingDashboard(false);
@@ -217,7 +217,9 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.app_nav_menu.generated_toast.failed_to_mark_notifications_as_seen')
+                    : t(
+                          'component.app_nav_menu.generated_toast.failed_to_mark_notifications_as_seen'
+                      )
             );
         }
     }
@@ -281,7 +283,9 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.app_nav_menu.generated_toast.failed_to_delete_dashboard')
+                    : t(
+                          'component.app_nav_menu.generated_toast.failed_to_delete_dashboard'
+                      )
             );
         }
     }
@@ -311,7 +315,9 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.app_nav_menu.generated_toast.failed_to_save_custom_navigation')
+                    : t(
+                          'component.app_nav_menu.generated_toast.failed_to_save_custom_navigation'
+                      )
             );
         }
     }
@@ -330,7 +336,9 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.app_nav_menu.generated_toast.failed_to_save_dashboard_navigation')
+                    : t(
+                          'component.app_nav_menu.generated_toast.failed_to_save_dashboard_navigation'
+                      )
             );
         }
     }
@@ -350,7 +358,9 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.app_nav_menu.generated_toast.failed_to_unpin_tool_from_navigation')
+                    : t(
+                          'component.app_nav_menu.generated_toast.failed_to_unpin_tool_from_navigation'
+                      )
             );
         }
     }
@@ -367,7 +377,9 @@ export function AppNavMenu({ isCollapsed }) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.app_nav_menu.generated_toast.failed_to_sign_out_of_vrcx_0')
+                    : t(
+                          'component.app_nav_menu.generated_toast.failed_to_sign_out_of_vrcx_0'
+                      )
             );
         }
     }

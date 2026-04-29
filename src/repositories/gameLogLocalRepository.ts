@@ -190,10 +190,7 @@ const gameLog = {
         };
         gamelogDatabase.sort(compareByCreatedAt);
         if (gamelogDatabase.length > maxTableSize) {
-            gamelogDatabase.splice(
-                0,
-                gamelogDatabase.length - maxTableSize
-            );
+            gamelogDatabase.splice(0, gamelogDatabase.length - maxTableSize);
         }
         return gamelogDatabase;
     },
@@ -1309,8 +1306,7 @@ const gameLog = {
             return cachedWorldName;
         }
 
-        const existingRequest =
-            gameLogWorldNameRequests.get(normalizedWorldId);
+        const existingRequest = gameLogWorldNameRequests.get(normalizedWorldId);
         if (existingRequest) {
             return existingRequest;
         }
@@ -1327,10 +1323,7 @@ const gameLog = {
                 }
             );
             const normalizedWorldName = normalizeGameLogIdentifier(worldName);
-            setCachedGameLogWorldName(
-                normalizedWorldId,
-                normalizedWorldName
-            );
+            setCachedGameLogWorldName(normalizedWorldId, normalizedWorldName);
             return normalizedWorldName;
         })();
 

@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+
 import {
     confirmLegacyDatabaseMigration,
     skipLegacyDatabaseMigration
@@ -73,9 +74,7 @@ export function DatabaseUpgradeDialog({ open }) {
                                     void skipLegacyDatabaseMigration();
                                 }}
                             >
-                                {t(
-                                    'message.database.migration_skip'
-                                )}
+                                {t('message.database.migration_skip')}
                             </Button>
                             <Button
                                 type="button"

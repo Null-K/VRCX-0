@@ -1,7 +1,4 @@
-import {
-    CheckIcon,
-    ImageIcon
-} from 'lucide-react';
+import { CheckIcon, ImageIcon } from 'lucide-react';
 
 import { formatDateFilter, timeToText } from '@/lib/dateTime.js';
 import { Badge } from '@/ui/shadcn/badge';
@@ -88,7 +85,10 @@ export function buildMyAvatarsColumns({
             accessorFn: (row) => row?.name || '',
             meta: { label: t('dialog.avatar.info.name') },
             header: ({ column }) => (
-                <SortButton column={column} label={t('dialog.avatar.info.name')} />
+                <SortButton
+                    column={column}
+                    label={t('dialog.avatar.info.name')}
+                />
             ),
             cell: ({ row }) => (
                 <Button
@@ -109,7 +109,10 @@ export function buildMyAvatarsColumns({
                 (row?.$tags || []).map((entry) => entry.tag).join(', '),
             meta: { label: t('dialog.avatar.info.tags') },
             header: ({ column }) => (
-                <SortButton column={column} label={t('dialog.avatar.info.tags')} />
+                <SortButton
+                    column={column}
+                    label={t('dialog.avatar.info.tags')}
+                />
             ),
             cell: ({ row }) =>
                 (row.original?.$tags || []).length ? (
@@ -338,7 +341,8 @@ export function buildMyAvatarsColumns({
                 label: t('table.import.action'),
                 disableReorder: true,
                 disableVisibilityToggle: true,
-                tableHeadClassName: 'bg-background sticky right-0 z-20 border-l',
+                tableHeadClassName:
+                    'bg-background sticky right-0 z-20 border-l',
                 tableCellClassName:
                     'bg-background group-hover:bg-muted/50 sticky right-0 z-10 border-l'
             },

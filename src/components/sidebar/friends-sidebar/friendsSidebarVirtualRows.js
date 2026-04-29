@@ -78,7 +78,12 @@ function buildFavoriteRows({
     return nextRows;
 }
 
-function buildCurrentUserRows({ currentUser, currentUserId, gameState, prefs }) {
+function buildCurrentUserRows({
+    currentUser,
+    currentUserId,
+    gameState,
+    prefs
+}) {
     if (!currentUser) {
         return Array.from({ length: 1 }, (_, index) => ({
             type: 'skeleton',

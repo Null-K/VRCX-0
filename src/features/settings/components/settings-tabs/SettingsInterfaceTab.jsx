@@ -70,9 +70,7 @@ export function SettingsInterfaceTab({
                 onDisplayVrcPlusIconsAsAvatarChange={
                     onDisplayVrcPlusIconsAsAvatarChange
                 }
-                onShowNewDashboardButtonChange={
-                    onShowNewDashboardButtonChange
-                }
+                onShowNewDashboardButtonChange={onShowNewDashboardButtonChange}
                 onSortFavoritesChange={onSortFavoritesChange}
                 onOpenTablePageSizes={onOpenTablePageSizes}
                 onOpenTableLimits={onOpenTableLimits}

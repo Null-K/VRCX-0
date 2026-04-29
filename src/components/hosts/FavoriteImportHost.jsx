@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import {
     openAvatarDialog,
     openUserDialog,
@@ -164,11 +164,15 @@ export function FavoriteImportHost() {
             open={open}
             onOpenChange={(nextOpen) => !nextOpen && closeDialog()}
         >
-            <DialogContent className="max-h-[90vh] sm:max-w-4xl overflow-y-auto">
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
                 <DialogHeader>
-                    <DialogTitle>{label} {t('dialog.favorite_import.generated.import')}</DialogTitle>
+                    <DialogTitle>
+                        {label} {t('dialog.favorite_import.generated.import')}
+                    </DialogTitle>
                     <DialogDescription>
-                        {t('dialog.favorite_import.generated.paste_exported_ids_process_the_list_then_import_to_a_vrchat_')}
+                        {t(
+                            'dialog.favorite_import.generated.paste_exported_ids_process_the_list_then_import_to_a_vrchat_'
+                        )}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -195,7 +199,9 @@ export function FavoriteImportHost() {
                                 disabled={!input.trim()}
                                 onClick={() => void processFavoriteImportList()}
                             >
-                                {t('dialog.favorite_import.generated.process_list')}
+                                {t(
+                                    'dialog.favorite_import.generated.process_list'
+                                )}
                             </Button>
                         )}
                     </div>
@@ -215,7 +221,11 @@ export function FavoriteImportHost() {
                             onValueChange={(value) => setRemoteGroupName(value)}
                         >
                             <SelectTrigger size="sm" className="min-w-48">
-                                <SelectValue placeholder={t('dialog.favorite_import.generated.vrchat_group')} />
+                                <SelectValue
+                                    placeholder={t(
+                                        'dialog.favorite_import.generated.vrchat_group'
+                                    )}
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
@@ -240,7 +250,11 @@ export function FavoriteImportHost() {
                             onValueChange={(value) => setLocalGroupName(value)}
                         >
                             <SelectTrigger size="sm" className="min-w-48">
-                                <SelectValue placeholder={t('dialog.favorite_import.generated.local_group')} />
+                                <SelectValue
+                                    placeholder={t(
+                                        'dialog.favorite_import.generated.local_group'
+                                    )}
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
@@ -296,12 +310,24 @@ export function FavoriteImportHost() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-16">{t('dialog.favorite_import.generated.image')}</TableHead>
-                                <TableHead>{t('dialog.favorite_import.generated.name')}</TableHead>
-                                <TableHead>{t('dialog.favorite_import.generated.detail')}</TableHead>
+                                <TableHead className="w-16">
+                                    {t(
+                                        'dialog.favorite_import.generated.image'
+                                    )}
+                                </TableHead>
+                                <TableHead>
+                                    {t('dialog.favorite_import.generated.name')}
+                                </TableHead>
+                                <TableHead>
+                                    {t(
+                                        'dialog.favorite_import.generated.detail'
+                                    )}
+                                </TableHead>
                                 <TableHead>ID</TableHead>
                                 <TableHead className="w-36 text-right">
-                                    {t('dialog.favorite_import.generated.actions')}
+                                    {t(
+                                        'dialog.favorite_import.generated.actions'
+                                    )}
                                 </TableHead>
                             </TableRow>
                         </TableHeader>
@@ -359,7 +385,13 @@ export function FavoriteImportHost() {
                                         colSpan={5}
                                         className="text-muted-foreground h-24 text-center"
                                     >
-                                        {t('dialog.favorite_import.generated.no_parsed')} {label.toLowerCase()} {t('dialog.favorite_import.generated.rows_yet')}
+                                        {t(
+                                            'dialog.favorite_import.generated.no_parsed'
+                                        )}{' '}
+                                        {label.toLowerCase()}{' '}
+                                        {t(
+                                            'dialog.favorite_import.generated.rows_yet'
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             )}

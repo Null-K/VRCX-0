@@ -1,6 +1,5 @@
-import { normalizeVrchatEndpointKey } from '@/shared/vrchatEndpoint.js';
-
 import { queryClient } from '@/lib/queryClient.js';
+import { normalizeVrchatEndpointKey } from '@/shared/vrchatEndpoint.js';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;

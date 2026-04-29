@@ -335,7 +335,9 @@ export function useFriendsSidebarActions({
             patch.statusDescription = preset.statusDescription || '';
         }
         await saveCurrentUserPatch(patch, {
-            successMessage: t('component.friends_sidebar.generated.status_updated'),
+            successMessage: t(
+                'component.friends_sidebar.generated.status_updated'
+            ),
             errorMessage: t(
                 'component.friends_sidebar.generated_toast.failed_to_update_status'
             )

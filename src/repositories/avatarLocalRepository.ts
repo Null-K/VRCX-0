@@ -117,8 +117,9 @@ async function getCachedAvatarById(id: unknown) {
 }
 
 async function getAvatarCache() {
-    const rows =
-        await sqliteRepository.query<SQLiteRow>('SELECT * FROM cache_avatar');
+    const rows = await sqliteRepository.query<SQLiteRow>(
+        'SELECT * FROM cache_avatar'
+    );
     return Array.isArray(rows) ? rows.map(normalizeAvatarCacheRow) : [];
 }
 
@@ -199,9 +200,12 @@ async function getAvatarTimeSpent(userId: unknown, avatarId: unknown) {
 
 async function getAllAvatarTimeSpent(userId: unknown) {
     const map = new Map<unknown, number>();
-    await sqliteRepository.execute<unknown[]>((row) => {
-        map.set(row[0], parseInteger(row[1], 0));
-    }, `SELECT avatar_id, time FROM ${avatarHistoryTableName(userId)}`);
+    await sqliteRepository.execute<unknown[]>(
+        (row) => {
+            map.set(row[0], parseInteger(row[1], 0));
+        },
+        `SELECT avatar_id, time FROM ${avatarHistoryTableName(userId)}`
+    );
     return map;
 }
 

@@ -2,10 +2,7 @@ import { ChevronDownIcon } from 'lucide-react';
 
 import { cn } from '@/lib/utils.js';
 import { Button } from '@/ui/shadcn/button';
-import {
-    Collapsible,
-    CollapsibleTrigger
-} from '@/ui/shadcn/collapsible';
+import { Collapsible, CollapsibleTrigger } from '@/ui/shadcn/collapsible';
 
 import { StaticSidebarLocation } from './FriendsSidebarLocation.jsx';
 
@@ -34,13 +31,7 @@ export function estimateFriendSidebarRowSize(row) {
     }
 }
 
-export function FriendSectionHeader({
-    id,
-    title,
-    count,
-    open,
-    onToggle
-}) {
+export function FriendSectionHeader({ id, title, count, open, onToggle }) {
     const isOpen = Boolean(open);
 
     return (
@@ -57,7 +48,7 @@ export function FriendSectionHeader({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    className="w-full justify-between aria-expanded:bg-transparent aria-expanded:text-inherit aria-expanded:hover:bg-muted aria-expanded:hover:text-foreground dark:aria-expanded:bg-transparent dark:aria-expanded:hover:bg-muted/50"
+                    className="aria-expanded:hover:bg-muted aria-expanded:hover:text-foreground dark:aria-expanded:hover:bg-muted/50 w-full justify-between aria-expanded:bg-transparent aria-expanded:text-inherit dark:aria-expanded:bg-transparent"
                 >
                     <span className="min-w-0 flex-1 truncate text-left">
                         {title}

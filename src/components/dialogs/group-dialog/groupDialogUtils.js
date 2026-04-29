@@ -1,8 +1,5 @@
 import { formatDateFilter } from '@/lib/dateTime.js';
-import {
-    convertFileUrlToImageUrl,
-    userImage
-} from '@/lib/entityMedia.js';
+import { convertFileUrlToImageUrl, userImage } from '@/lib/entityMedia.js';
 
 export function firstArray(...values) {
     return values.find((value) => Array.isArray(value)) || [];

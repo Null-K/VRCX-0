@@ -1,8 +1,8 @@
 import { Suspense } from 'react';
-
 import { useTranslation } from 'react-i18next';
 
 import { Spinner } from '@/ui/shadcn/spinner';
+
 import { getDashboardPagePanelComponent } from './dashboardPagePanelRegistry.jsx';
 
 function EmbeddedPageFallback() {

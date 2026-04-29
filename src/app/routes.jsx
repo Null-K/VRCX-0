@@ -41,7 +41,8 @@ export const protectedRoutes = [
     {
         path: '/friends-locations',
         titleKey: 'app.routes.friend_locations',
-        descriptionKey: 'app.routes.live_friend_location_board_for_finding_people',
+        descriptionKey:
+            'app.routes.live_friend_location_board_for_finding_people',
         element: <FriendsLocationsPage />
     },
     {
@@ -53,7 +54,8 @@ export const protectedRoutes = [
     {
         path: '/player-list',
         titleKey: 'app.routes.current_players',
-        descriptionKey: 'app.routes.current_instance_player_roster_rebuilt_from_loca',
+        descriptionKey:
+            'app.routes.current_instance_player_roster_rebuilt_from_loca',
         element: <PlayerListPage />
     },
     {
@@ -65,31 +67,36 @@ export const protectedRoutes = [
     {
         path: '/dashboard/:id',
         titleKey: 'app.routes.dashboard',
-        descriptionKey: 'app.routes.dashboard_shell_with_embedded_widgets_and_suppor',
+        descriptionKey:
+            'app.routes.dashboard_shell_with_embedded_widgets_and_suppor',
         element: <DashboardPage />
     },
     {
         path: '/favorites/friends',
         titleKey: 'app.routes.favorite_friends',
-        descriptionKey: 'app.routes.favorite_friends_groups_and_local_cache_view',
+        descriptionKey:
+            'app.routes.favorite_friends_groups_and_local_cache_view',
         element: <FavoriteFriendsPage />
     },
     {
         path: '/favorites/worlds',
         titleKey: 'app.routes.favorite_worlds',
-        descriptionKey: 'app.routes.favorite_worlds_groups_and_local_cache_view',
+        descriptionKey:
+            'app.routes.favorite_worlds_groups_and_local_cache_view',
         element: <FavoriteWorldsPage />
     },
     {
         path: '/favorites/avatars',
         titleKey: 'app.routes.favorite_avatars',
-        descriptionKey: 'app.routes.favorite_avatars_groups_and_local_cache_view',
+        descriptionKey:
+            'app.routes.favorite_avatars_groups_and_local_cache_view',
         element: <FavoriteAvatarsPage />
     },
     {
         path: '/social/friend-log',
         titleKey: 'app.routes.friend_history',
-        descriptionKey: 'app.routes.friend_relationship_history_table_backed_by_loca',
+        descriptionKey:
+            'app.routes.friend_relationship_history_table_backed_by_loca',
         element: <FriendLogPage />
     },
     {
@@ -101,7 +108,8 @@ export const protectedRoutes = [
     {
         path: '/my-avatars',
         titleKey: 'app.routes.my_avatars',
-        descriptionKey: 'app.routes.my_avatars_browser_with_grid_and_table_modes',
+        descriptionKey:
+            'app.routes.my_avatars_browser_with_grid_and_table_modes',
         element: <MyAvatarsPage />
     },
     {
@@ -149,7 +157,8 @@ export const protectedRoutes = [
     {
         path: '/tools/screenshot-metadata',
         titleKey: 'app.routes.screenshot_metadata',
-        descriptionKey: 'app.routes.screenshot_metadata_browser_and_file_actions',
+        descriptionKey:
+            'app.routes.screenshot_metadata_browser_and_file_actions',
         element: <ScreenshotMetadataPage />
     },
     {

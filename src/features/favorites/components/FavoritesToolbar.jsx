@@ -7,8 +7,8 @@ import {
     UploadIcon,
     XIcon
 } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { Button } from '@/ui/shadcn/button';
 import {
     DropdownMenu,
@@ -34,7 +34,6 @@ import {
     SelectValue
 } from '@/ui/shadcn/select';
 import { Slider } from '@/ui/shadcn/slider';
-
 import { Spinner } from '@/ui/shadcn/spinner';
 
 const CARD_SCALE_SLIDER = { min: 0.6, max: 1, step: 0.01 };
@@ -68,13 +67,21 @@ function FavoritesToolbar({
                 <SelectTrigger size="sm" className="min-w-48">
                     <span className="flex items-center gap-2">
                         <ArrowUpDownIcon className="size-4" />
-                        <SelectValue placeholder={t('view.favorite.generated.sort_favorites')} />
+                        <SelectValue
+                            placeholder={t(
+                                'view.favorite.generated.sort_favorites'
+                            )}
+                        />
                     </span>
                 </SelectTrigger>
                 <SelectContent>
                     <SelectGroup>
-                        <SelectItem value="name">{t('view.search.avatar.sort_name')}</SelectItem>
-                        <SelectItem value="date">{t('view.favorite.generated.sort_by_date')}</SelectItem>
+                        <SelectItem value="name">
+                            {t('view.search.avatar.sort_name')}
+                        </SelectItem>
+                        <SelectItem value="date">
+                            {t('view.favorite.generated.sort_by_date')}
+                        </SelectItem>
                         {kind === 'world' ? (
                             <SelectItem value="players">
                                 {t('view.favorite.generated.sort_by_players')}
@@ -120,7 +127,7 @@ function FavoritesToolbar({
                             <InputGroupButton
                                 type="button"
                                 size="icon-xs"
-                                aria-label={"Clear search"}
+                                aria-label={'Clear search'}
                                 onClick={() => onSearchChange('')}
                             >
                                 <XIcon data-icon="icon" />
@@ -134,7 +141,7 @@ function FavoritesToolbar({
                     size="icon-sm"
                     variant="ghost"
                     className="rounded-full"
-                    aria-label={"Refresh favorites"}
+                    aria-label={'Refresh favorites'}
                     disabled={refreshing}
                     onClick={onRefresh}
                 >
@@ -152,7 +159,7 @@ function FavoritesToolbar({
                             size="icon-sm"
                             variant="ghost"
                             className="rounded-full"
-                            aria-label={"Favorite options"}
+                            aria-label={'Favorite options'}
                         >
                             <EllipsisIcon data-icon="inline-start" />
                         </Button>
@@ -164,7 +171,9 @@ function FavoritesToolbar({
                         >
                             <Field>
                                 <div className="flex items-center justify-between text-sm font-semibold">
-                                    <FieldLabel>{t('view.friends_locations.scale')}</FieldLabel>
+                                    <FieldLabel>
+                                        {t('view.friends_locations.scale')}
+                                    </FieldLabel>
                                     <span className="text-muted-foreground text-xs">
                                         {cardScalePercent}%
                                     </span>
@@ -181,7 +190,9 @@ function FavoritesToolbar({
                             </Field>
                             <Field>
                                 <div className="flex items-center justify-between text-sm font-semibold">
-                                    <FieldLabel>{t('view.friends_locations.spacing')}</FieldLabel>
+                                    <FieldLabel>
+                                        {t('view.friends_locations.spacing')}
+                                    </FieldLabel>
                                     <span className="text-muted-foreground text-xs">
                                         {cardSpacingPercent}%
                                     </span>

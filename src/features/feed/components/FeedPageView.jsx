@@ -1,8 +1,5 @@
 import { PreviousInstancesTableDialog } from '@/components/dialogs/PreviousInstancesTableDialog.jsx';
-import {
-    PageBody,
-    PageScaffold
-} from '@/components/layout/PageScaffold.jsx';
+import { PageBody, PageScaffold } from '@/components/layout/PageScaffold.jsx';
 
 import { FeedTableShell } from './FeedTableShell.jsx';
 import { FeedToolbar } from './FeedToolbar.jsx';

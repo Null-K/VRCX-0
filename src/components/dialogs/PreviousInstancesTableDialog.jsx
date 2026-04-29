@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { gameLogRepository } from '@/repositories/index.js';
 import { openWorldDialog } from '@/services/dialogService.js';
 import { useModalStore } from '@/state/modalStore.js';
@@ -13,16 +13,15 @@ import {
     DialogHeader,
     DialogTitle
 } from '@/ui/shadcn/dialog';
+
+import { PreviousInstancesListTable } from './previous-instances-table/PreviousInstancesListTable.jsx';
 import {
     createdTime,
     rowLocation,
     rowSearchText,
     rowWorldId
 } from './previous-instances-table/previousInstancesRows.js';
-import {
-    PreviousInstanceDetailsPanel
-} from './previous-instances-table/PreviousInstancesViewParts.jsx';
-import { PreviousInstancesListTable } from './previous-instances-table/PreviousInstancesListTable.jsx';
+import { PreviousInstanceDetailsPanel } from './previous-instances-table/PreviousInstancesViewParts.jsx';
 function PreviousInstancesPanel({
     title = 'Instance History',
     instances = [],
@@ -81,7 +80,9 @@ function PreviousInstancesPanel({
             return;
         }
         const result = await confirm({
-            title: t('dialog.previous_instances_table.generated_modal.delete_instance_record'),
+            title: t(
+                'dialog.previous_instances_table.generated_modal.delete_instance_record'
+            ),
             description: location,
             destructive: true,
             confirmText: t('common.actions.delete'),
@@ -95,7 +96,9 @@ function PreviousInstancesPanel({
             if (variant === 'user') {
                 if (!Array.isArray(row.events) || row.events.length === 0) {
                     toast.error(
-                        t('dialog.previous_instances.generated.this_user_instance_row_cannot_be_deleted_without_event_ids')
+                        t(
+                            'dialog.previous_instances.generated.this_user_instance_row_cannot_be_deleted_without_event_ids'
+                        )
                     );
                     return;
                 }
@@ -115,12 +118,16 @@ function PreviousInstancesPanel({
                 return nextRows;
             });
             setDetailRow((current) => (current === row ? null : current));
-            toast.success(t('dialog.previous_instances.generated.instance_record_deleted'));
+            toast.success(
+                t('dialog.previous_instances.generated.instance_record_deleted')
+            );
         } catch (error) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('dialog.previous_instances_table.generated_toast.failed_to_delete_instance_record')
+                    : t(
+                          'dialog.previous_instances_table.generated_toast.failed_to_delete_instance_record'
+                      )
             );
         }
     }
@@ -172,9 +179,7 @@ function PreviousInstancesPanel({
                 setPageIndex((value) => Math.max(0, value - 1))
             }
             onNextPage={() =>
-                setPageIndex((value) =>
-                    Math.min(totalPages - 1, value + 1)
-                )
+                setPageIndex((value) => Math.min(totalPages - 1, value + 1))
             }
             onClose={onClose}
             currentUserId={currentUserId}
@@ -205,7 +210,7 @@ function PreviousInstancesTableDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="flex max-h-[90vh] sm:max-w-[min(92vw,72rem)] flex-col overflow-hidden">
+            <DialogContent className="flex max-h-[90vh] flex-col overflow-hidden sm:max-w-[min(92vw,72rem)]">
                 <DialogHeader>
                     <DialogTitle>{dialogTitle}</DialogTitle>
                     <DialogDescription>{dialogDescription}</DialogDescription>

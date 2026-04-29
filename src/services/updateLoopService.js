@@ -11,8 +11,8 @@ import {
     isHostCapabilityAvailable,
     refreshHostCapabilities
 } from './hostCapabilityService.js';
-import { showSQLiteErrorDialog } from './sqliteErrorDialogService.js';
 import i18n from './i18nService.js';
+import { showSQLiteErrorDialog } from './sqliteErrorDialogService.js';
 
 let updateLoopTimer = null;
 let lastGameLogCapabilityRefreshAt = 0;

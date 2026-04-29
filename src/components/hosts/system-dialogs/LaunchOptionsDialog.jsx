@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { backend } from '@/platform/index.js';
 import { configRepository } from '@/repositories/index.js';
@@ -56,7 +56,9 @@ export function LaunchOptionsDialog({ open, onOpenChange }) {
                 toast.error(
                     userFacingErrorMessage(
                         error,
-                        t('host.system_dialogs.generated_toast.failed_to_load_launch_options')
+                        t(
+                            'host.system_dialogs.generated_toast.failed_to_load_launch_options'
+                        )
                     )
                 );
             })
@@ -103,7 +105,9 @@ export function LaunchOptionsDialog({ open, onOpenChange }) {
             toast.error(
                 userFacingErrorMessage(
                     error,
-                    t('host.system_dialogs.generated_toast.failed_to_save_launch_options')
+                    t(
+                        'host.system_dialogs.generated_toast.failed_to_save_launch_options'
+                    )
                 )
             );
         } finally {
@@ -130,9 +134,7 @@ export function LaunchOptionsDialog({ open, onOpenChange }) {
                             {t('dialog.system.generated.enable_debug_gui')}
                         </div>
                         <div>
-                            {t(
-                                'dialog.system.generated.enable_sdk_log_levels'
-                            )}
+                            {t('dialog.system.generated.enable_sdk_log_levels')}
                         </div>
                         <div>
                             {t(

@@ -5,6 +5,11 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { PageHeader, PageTitle } from '@/components/layout/PageScaffold.jsx';
 import { openExternalLink } from '@/lib/entityMedia.js';
+import {
+    clearEntityQueryCache,
+    getEntityQueryCacheSize,
+    getEntityQueryCacheStats
+} from '@/lib/entityQueryCache.js';
 import { backend } from '@/platform/index.js';
 import {
     avatarProfileRepository,
@@ -15,11 +20,6 @@ import {
     mediaRepository,
     vrchatAuthRepository
 } from '@/repositories/index.js';
-import {
-    clearEntityQueryCache,
-    getEntityQueryCacheSize,
-    getEntityQueryCacheStats
-} from '@/lib/entityQueryCache.js';
 import {
     loadPreferenceSnapshot,
     setAccessibleStatusIndicatorsPreference,

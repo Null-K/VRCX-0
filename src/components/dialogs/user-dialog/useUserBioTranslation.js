@@ -17,8 +17,8 @@ export function useUserBioTranslation({ profile, t }) {
     const [bioTranslationLoading, setBioTranslationLoading] = useState(false);
     const translatedBioActive = Boolean(
         bioTranslation.userId === userId &&
-            bioTranslation.source === source &&
-            bioTranslation.text
+        bioTranslation.source === source &&
+        bioTranslation.text
     );
     const visibleBio = translatedBioActive
         ? bioTranslation.text

@@ -94,7 +94,9 @@ export function GroupDialogContent({ groupId, seedData = null }) {
             setGroup(null);
             setLoadStatus('error');
             setDetail(
-                t('dialog.group.generated.no_group_id_was_provided_for_this_dialog')
+                t(
+                    'dialog.group.generated.no_group_id_was_provided_for_this_dialog'
+                )
             );
             return () => {
                 active = false;
@@ -144,7 +146,9 @@ export function GroupDialogContent({ groupId, seedData = null }) {
                 setDetail(
                     error instanceof Error
                         ? error.message
-                        : t('dialog.group.generated.failed_to_load_the_group_profile')
+                        : t(
+                              'dialog.group.generated.failed_to_load_the_group_profile'
+                          )
                 );
             });
 
@@ -576,7 +580,9 @@ export function GroupDialogContent({ groupId, seedData = null }) {
                 void updateGroupMemberProps(
                     { isSubscribedToAnnouncements: enabled },
                     enabled
-                        ? t('dialog.group.generated.subscribed_to_announcements')
+                        ? t(
+                              'dialog.group.generated.subscribed_to_announcements'
+                          )
                         : t('dialog.group.members.unsubscribed_announcements')
                 )
             }

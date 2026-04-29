@@ -11,12 +11,6 @@ import { useModalStore } from '@/state/modalStore.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 
-import {
-    isSameLocationTag,
-    resolveFriendRequestState,
-    resolvePlatformMeta,
-    resolvePresenceLocation
-} from './user-dialog/userDialogContentHelpers.js';
 import { UserDialogContentDialogs } from './user-dialog/components/UserDialogContentDialogs.jsx';
 import {
     UserDialogEmptyState,
@@ -24,14 +18,20 @@ import {
 } from './user-dialog/components/UserDialogContentStates.jsx';
 import { dialogTargetKey } from './user-dialog/userDialogCache.js';
 import {
+    isSameLocationTag,
+    resolveFriendRequestState,
+    resolvePlatformMeta,
+    resolvePresenceLocation
+} from './user-dialog/userDialogContentHelpers.js';
+import {
     buildFavoriteIdSet,
     normalizeUserId
 } from './user-dialog/userProfileFields.js';
+import { useUserDialogActions } from './user-dialog/useUserDialogActions.js';
 import {
     createEmptyUserDialogLocationPanel,
     useUserDialogLocationPanel
 } from './user-dialog/useUserDialogLocationPanel.js';
-import { useUserDialogActions } from './user-dialog/useUserDialogActions.js';
 import { useUserDialogMemoState } from './user-dialog/useUserDialogMemoState.js';
 import { useUserDialogModerationState } from './user-dialog/useUserDialogModerationState.js';
 import { useUserDialogProfileResource } from './user-dialog/useUserDialogProfileResource.js';
@@ -269,7 +269,7 @@ export function UserDialogContent({ userId, seedData = null, openNonce = 0 }) {
         : false;
     const isCurrentUser = Boolean(
         profile?.id &&
-            normalizeUserId(profile.id) === normalizeUserId(currentUserId)
+        normalizeUserId(profile.id) === normalizeUserId(currentUserId)
     );
     const profileUserId = normalizeUserId(profile?.id);
     const isFriend = Boolean(
@@ -305,18 +305,21 @@ export function UserDialogContent({ userId, seedData = null, openNonce = 0 }) {
         t
     });
 
-    const { socialStatusDialog, profileDetailsDialog, actions: selfActions } =
-        useUserDialogSelfActions({
-            profile,
-            isCurrentUser,
-            currentUserId,
-            currentUserSnapshot,
-            currentEndpoint,
-            baseProfile,
-            setBaseProfile,
-            actionStatusRef,
-            setActionStatus
-        });
+    const {
+        socialStatusDialog,
+        profileDetailsDialog,
+        actions: selfActions
+    } = useUserDialogSelfActions({
+        profile,
+        isCurrentUser,
+        currentUserId,
+        currentUserSnapshot,
+        currentEndpoint,
+        baseProfile,
+        setBaseProfile,
+        actionStatusRef,
+        setActionStatus
+    });
 
     const {
         inviteMessageRequest,

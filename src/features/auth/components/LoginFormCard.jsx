@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+
 import { Button } from '@/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import { Checkbox } from '@/ui/shadcn/checkbox';
@@ -28,7 +29,10 @@ export function LoginFormCard({
                 </CardTitle>
             </CardHeader>
             <CardContent className="flex flex-1 flex-col gap-4">
-                <form className="flex flex-1 flex-col gap-4" onSubmit={onSubmit}>
+                <form
+                    className="flex flex-1 flex-col gap-4"
+                    onSubmit={onSubmit}
+                >
                     <FieldGroup className="gap-3">
                         <Field data-invalid={Boolean(loginErrors.username)}>
                             <FieldLabel htmlFor="react-login-username">
@@ -36,14 +40,20 @@ export function LoginFormCard({
                             </FieldLabel>
                             <Input
                                 id="react-login-username"
-                                aria-invalid={Boolean(loginErrors.username) || undefined}
+                                aria-invalid={
+                                    Boolean(loginErrors.username) || undefined
+                                }
                                 autoComplete="username"
                                 disabled={busy}
-                                placeholder={t('view.login.placeholder.account')}
+                                placeholder={t(
+                                    'view.login.placeholder.account'
+                                )}
                                 value={loginForm.username}
                                 onChange={(event) => {
                                     onCancelAutoLogin(
-                                        t('view.auth.auto_login.skipped_form_changed')
+                                        t(
+                                            'view.auth.auto_login.skipped_form_changed'
+                                        )
                                     );
                                     setLoginForm((current) => ({
                                         ...current,
@@ -65,15 +75,21 @@ export function LoginFormCard({
                             </FieldLabel>
                             <Input
                                 id="react-login-password"
-                                aria-invalid={Boolean(loginErrors.password) || undefined}
+                                aria-invalid={
+                                    Boolean(loginErrors.password) || undefined
+                                }
                                 type="password"
                                 autoComplete="current-password"
                                 disabled={busy}
-                                placeholder={t('view.login.placeholder.password')}
+                                placeholder={t(
+                                    'view.login.placeholder.password'
+                                )}
                                 value={loginForm.password}
                                 onChange={(event) => {
                                     onCancelAutoLogin(
-                                        t('view.auth.auto_login.skipped_form_changed')
+                                        t(
+                                            'view.auth.auto_login.skipped_form_changed'
+                                        )
                                     );
                                     setLoginForm((current) => ({
                                         ...current,
@@ -99,7 +115,9 @@ export function LoginFormCard({
                                 disabled={busy}
                                 onCheckedChange={(checked) => {
                                     onCancelAutoLogin(
-                                        t('view.auth.auto_login.skipped_form_changed')
+                                        t(
+                                            'view.auth.auto_login.skipped_form_changed'
+                                        )
                                     );
                                     setLoginForm((current) => ({
                                         ...current,

@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 
-import { gameLogRepository, userProfileRepository } from '@/repositories/index.js';
-
 import {
-    isSameLocationTag,
-    resolvePresenceLocation
-} from './userDialogContentHelpers.js';
+    gameLogRepository,
+    userProfileRepository
+} from '@/repositories/index.js';
+
 import {
     cachePreviousInstances,
     cacheUserStats,
@@ -13,6 +12,10 @@ import {
     readCachedPreviousInstances,
     readCachedUserStats
 } from './userDialogCache.js';
+import {
+    isSameLocationTag,
+    resolvePresenceLocation
+} from './userDialogContentHelpers.js';
 
 function normalizeMutualFriendCount(value) {
     const source = value && typeof value === 'object' ? value : {};
@@ -40,10 +43,12 @@ export function useUserDialogSupplementalData({
     reloadToken,
     targetKey
 }) {
-    const [previousInstancesState, setPreviousInstancesState] = useState(() => ({
-        targetKey,
-        rows: readCachedPreviousInstances(targetKey)
-    }));
+    const [previousInstancesState, setPreviousInstancesState] = useState(
+        () => ({
+            targetKey,
+            rows: readCachedPreviousInstances(targetKey)
+        })
+    );
     const [userStatsState, setUserStatsState] = useState(() => ({
         targetKey,
         stats: readCachedUserStats(targetKey)
@@ -85,9 +90,7 @@ export function useUserDialogSupplementalData({
                     typeof nextValue === 'function'
                         ? nextValue(currentRows)
                         : nextValue;
-                const normalizedRows = Array.isArray(nextRows)
-                    ? nextRows
-                    : [];
+                const normalizedRows = Array.isArray(nextRows) ? nextRows : [];
                 cachePreviousInstances(targetKey, normalizedRows);
                 return {
                     targetKey,

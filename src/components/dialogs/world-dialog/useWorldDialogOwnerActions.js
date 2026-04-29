@@ -1,5 +1,5 @@
-import { toast } from 'sonner';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { worldProfileRepository } from '@/repositories/index.js';
@@ -23,7 +23,11 @@ export function useWorldDialogOwnerActions({
     const worldNameOrId = world?.name || world?.id || '';
 
     async function saveWorldPatch(patch, { successMessage, errorMessage }) {
-        if (!world?.id || !canManageWorld || actionStatusRef.current !== 'idle') {
+        if (
+            !world?.id ||
+            !canManageWorld ||
+            actionStatusRef.current !== 'idle'
+        ) {
             return false;
         }
 
@@ -218,7 +222,9 @@ export function useWorldDialogOwnerActions({
 
     async function changeWorldCapacity(field, label) {
         const result = await prompt({
-            title: t('dialog.world.generated_dynamic.change_value', { value: label }),
+            title: t('dialog.world.generated_dynamic.change_value', {
+                value: label
+            }),
             description: worldNameOrId,
             inputValue: String(world?.[field] || ''),
             confirmText: t('common.actions.save'),
@@ -229,15 +235,23 @@ export function useWorldDialogOwnerActions({
         }
         const value = Number.parseInt(result.value, 10);
         if (!Number.isFinite(value) || value < 1) {
-            toast.error(t('dialog.world.generated_dynamic.value_must_be_a_positive_number', { value: label }));
+            toast.error(
+                t(
+                    'dialog.world.generated_dynamic.value_must_be_a_positive_number',
+                    { value: label }
+                )
+            );
             return;
         }
         await saveWorldPatch(
             { [field]: value },
             {
-                successMessage: t('dialog.world.generated_dynamic.value_updated', {
-                    value: label
-                }),
+                successMessage: t(
+                    'dialog.world.generated_dynamic.value_updated',
+                    {
+                        value: label
+                    }
+                ),
                 errorMessage: t(
                     'dialog.world.generated_dynamic.failed_to_update_value',
                     {
@@ -319,7 +333,11 @@ export function useWorldDialogOwnerActions({
     }
 
     async function updateWorldPublication(nextPublished) {
-        if (!world?.id || !canManageWorld || actionStatusRef.current !== 'idle') {
+        if (
+            !world?.id ||
+            !canManageWorld ||
+            actionStatusRef.current !== 'idle'
+        ) {
             return;
         }
 
@@ -365,7 +383,9 @@ export function useWorldDialogOwnerActions({
                     : currentWorld
             );
             toast.success(
-                nextPublished ? t('dialog.world.generated_toast.world_published') : t('dialog.world.generated_toast.world_unpublished')
+                nextPublished
+                    ? t('dialog.world.generated_toast.world_published')
+                    : t('dialog.world.generated_toast.world_unpublished')
             );
         } catch (error) {
             if (!isCurrentWorldTarget(targetWorldId, targetEndpoint)) {
@@ -374,7 +394,9 @@ export function useWorldDialogOwnerActions({
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('dialog.world.generated_toast.failed_to_update_world_publication')
+                    : t(
+                          'dialog.world.generated_toast.failed_to_update_world_publication'
+                      )
             );
         } finally {
             actionStatusRef.current = 'idle';
@@ -383,7 +405,11 @@ export function useWorldDialogOwnerActions({
     }
 
     async function deleteWorldPersistentData() {
-        if (!currentUserId || !world?.id || actionStatusRef.current !== 'idle') {
+        if (
+            !currentUserId ||
+            !world?.id ||
+            actionStatusRef.current !== 'idle'
+        ) {
             return;
         }
 
@@ -417,7 +443,9 @@ export function useWorldDialogOwnerActions({
                     : currentWorld
             );
             setHasPersistData(false);
-            toast.success(t('dialog.world.generated.world_persistent_data_deleted'));
+            toast.success(
+                t('dialog.world.generated.world_persistent_data_deleted')
+            );
         } catch (error) {
             if (!isCurrentWorldTarget(targetWorldId, targetEndpoint)) {
                 return;
@@ -425,7 +453,9 @@ export function useWorldDialogOwnerActions({
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('dialog.world.generated_toast.failed_to_delete_world_persistent_data')
+                    : t(
+                          'dialog.world.generated_toast.failed_to_delete_world_persistent_data'
+                      )
             );
         } finally {
             actionStatusRef.current = 'idle';
@@ -434,7 +464,11 @@ export function useWorldDialogOwnerActions({
     }
 
     async function deleteWorld() {
-        if (!world?.id || !canManageWorld || actionStatusRef.current !== 'idle') {
+        if (
+            !world?.id ||
+            !canManageWorld ||
+            actionStatusRef.current !== 'idle'
+        ) {
             return;
         }
 

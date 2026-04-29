@@ -15,12 +15,7 @@ import {
 import { cn } from '@/lib/utils.js';
 import { getFaviconUrl } from '@/shared/utils/urlUtils.js';
 import { Button } from '@/ui/shadcn/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle
-} from '@/ui/shadcn/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import { ScrollArea } from '@/ui/shadcn/scroll-area';
 import { Separator } from '@/ui/shadcn/separator';
 import { Spinner } from '@/ui/shadcn/spinner';
@@ -45,7 +40,9 @@ function InfoPanel({ title, children, className, contentClassName }) {
             <CardHeader className="border-b pb-3">
                 <CardTitle className="text-sm">{title}</CardTitle>
             </CardHeader>
-            <CardContent className={cn('flex flex-col gap-3', contentClassName)}>
+            <CardContent
+                className={cn('flex flex-col gap-3', contentClassName)}
+            >
                 {children}
             </CardContent>
         </Card>
@@ -258,11 +255,9 @@ function UserDialogNotesPanel({
                 <div
                     role="button"
                     tabIndex={0}
-                    className="hover:bg-muted focus-visible:border-ring focus-visible:ring-ring/50 rounded-md p-2 text-left outline-none transition-colors focus-visible:ring-3"
+                    className="hover:bg-muted focus-visible:border-ring focus-visible:ring-ring/50 rounded-md p-2 text-left transition-colors outline-none focus-visible:ring-3"
                     onClick={onEditMemo}
-                    onKeyDown={(event) =>
-                        handlePanelKeyDown(event, onEditMemo)
-                    }
+                    onKeyDown={(event) => handlePanelKeyDown(event, onEditMemo)}
                 >
                     <div className="min-w-0 flex-1">
                         <span className="text-muted-foreground block truncate text-xs">
@@ -279,11 +274,9 @@ function UserDialogNotesPanel({
                 <div
                     role="button"
                     tabIndex={0}
-                    className="hover:bg-muted focus-visible:border-ring focus-visible:ring-ring/50 rounded-md p-2 text-left outline-none transition-colors focus-visible:ring-3"
+                    className="hover:bg-muted focus-visible:border-ring focus-visible:ring-ring/50 rounded-md p-2 text-left transition-colors outline-none focus-visible:ring-3"
                     onClick={onEditMemo}
-                    onKeyDown={(event) =>
-                        handlePanelKeyDown(event, onEditMemo)
-                    }
+                    onKeyDown={(event) => handlePanelKeyDown(event, onEditMemo)}
                 >
                     <div className="min-w-0 flex-1">
                         <span className="text-muted-foreground block truncate text-xs">
@@ -341,7 +334,9 @@ function UserDialogProfileLinksPanel({
                         type="button"
                         variant="ghost"
                         className="hover:text-primary h-auto max-w-full justify-start p-0 text-left text-xs"
-                        onClick={() => openAvatarDialog(currentAvatarDialogArgs)}
+                        onClick={() =>
+                            openAvatarDialog(currentAvatarDialogArgs)
+                        }
                     >
                         <UserIcon data-icon="inline-start" />
                         <span className="truncate">
@@ -442,7 +437,9 @@ function UserDialogBioPanel({
     return (
         <InfoPanel title={t('dialog.user.info.bio')}>
             <div className="relative min-w-0">
-                <TextScroll className="h-52 min-w-0 pr-8">{visibleBio}</TextScroll>
+                <TextScroll className="h-52 min-w-0 pr-8">
+                    {visibleBio}
+                </TextScroll>
                 {profile.bio ? (
                     <Tooltip>
                         <TooltipTrigger asChild>
@@ -530,7 +527,9 @@ function UserDialogActivitySummaryPanel({
                 ) : null}
                 <InfoStat
                     label={t('dialog.user.info.last_login')}
-                    value={formatDate(profile.last_login || profile.last_activity)}
+                    value={formatDate(
+                        profile.last_login || profile.last_activity
+                    )}
                     subtle
                 />
                 <InfoStat

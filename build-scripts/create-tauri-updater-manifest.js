@@ -30,9 +30,7 @@ function requireArg(argName) {
 }
 
 function validateTarget(target) {
-    if (
-        /^(linux|windows)-x86_64-(stable|beta|alpha)$/.test(target) === false
-    ) {
+    if (/^(linux|windows)-x86_64-(stable|beta|alpha)$/.test(target) === false) {
         throw new Error(`Invalid updater target: ${target}`);
     }
 }

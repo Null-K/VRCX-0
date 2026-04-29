@@ -59,8 +59,7 @@ export function setVrchatAuthFailureHandler(
     handler: VrchatAuthFailureHandler | null
 ): () => void {
     const registrationId = ++vrchatAuthFailureHandlerRegistrationId;
-    vrchatAuthFailureHandler =
-        typeof handler === 'function' ? handler : null;
+    vrchatAuthFailureHandler = typeof handler === 'function' ? handler : null;
 
     return () => {
         if (vrchatAuthFailureHandlerRegistrationId === registrationId) {
@@ -74,10 +73,10 @@ export function isVrchatMissingCredentialsError(
 ): error is VrchatRequestError {
     return Boolean(
         error &&
-            typeof error === 'object' &&
-            (error as Partial<VrchatRequestError>).status === 401 &&
-            typeof (error as Error).message === 'string' &&
-            (error as Error).message.includes('Missing Credentials')
+        typeof error === 'object' &&
+        (error as Partial<VrchatRequestError>).status === 401 &&
+        typeof (error as Error).message === 'string' &&
+        (error as Error).message.includes('Missing Credentials')
     );
 }
 

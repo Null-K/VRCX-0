@@ -30,9 +30,7 @@ function normalizeReleaseChannel(channel) {
 }
 
 function isReleaseNumber(value) {
-    return (
-        Number.isInteger(value) && value >= 1 && value <= MAX_RELEASE_NUMBER
-    );
+    return Number.isInteger(value) && value >= 1 && value <= MAX_RELEASE_NUMBER;
 }
 
 function parsePositiveReleaseNumber(value, label) {
@@ -241,7 +239,8 @@ function compareReleaseVersions(left, right) {
 
     if (parsedLeft.channel !== parsedRight.channel) {
         return (
-            CHANNEL_ORDER[parsedLeft.channel] - CHANNEL_ORDER[parsedRight.channel]
+            CHANNEL_ORDER[parsedLeft.channel] -
+            CHANNEL_ORDER[parsedRight.channel]
         );
     }
 

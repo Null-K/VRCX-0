@@ -1,8 +1,8 @@
 import { ChevronDownIcon, RefreshCwIcon } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import dayjs from '@/lib/dayjs.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { cn } from '@/lib/utils.js';
@@ -188,7 +188,9 @@ export function GroupCalendarDialog({ open, onOpenChange }) {
             toast.error(
                 userFacingErrorMessage(
                     error,
-                    t('host.tools_dialogs.generated_toast.failed_to_load_group_events')
+                    t(
+                        'host.tools_dialogs.generated_toast.failed_to_load_group_events'
+                    )
                 )
             );
         } finally {
@@ -242,7 +244,9 @@ export function GroupCalendarDialog({ open, onOpenChange }) {
             toast.error(
                 userFacingErrorMessage(
                     error,
-                    t('host.tools_dialogs.generated_toast.failed_to_update_group_event_follow_state')
+                    t(
+                        'host.tools_dialogs.generated_toast.failed_to_update_group_event_follow_state'
+                    )
                 )
             );
         }

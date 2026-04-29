@@ -1,11 +1,12 @@
 import { useEffect, useMemo } from 'react';
 
+import { useScrollViewportMetrics } from '@/lib/useScrollViewportMetrics.js';
+
 import {
     buildMyAvatarsGridRows,
     getMyAvatarsGridMetrics,
     getVisibleMyAvatarsGridRows
 } from './myAvatarsGrid.js';
-import { useScrollViewportMetrics } from '@/lib/useScrollViewportMetrics.js';
 
 const MY_AVATARS_GRID_HORIZONTAL_INSET = 12;
 
@@ -47,14 +48,13 @@ export function useMyAvatarsGridVirtualization({
         gridMinWidth,
         gridColumnCount,
         gridRowHeight
-    } =
-        getMyAvatarsGridMetrics({
-            gridDensity,
-            width: Math.max(
-                0,
-                gridScrollMetrics.width - MY_AVATARS_GRID_HORIZONTAL_INSET
-            )
-        });
+    } = getMyAvatarsGridMetrics({
+        gridDensity,
+        width: Math.max(
+            0,
+            gridScrollMetrics.width - MY_AVATARS_GRID_HORIZONTAL_INSET
+        )
+    });
     const gridRows = useMemo(
         () =>
             buildMyAvatarsGridRows({

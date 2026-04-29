@@ -135,7 +135,8 @@ export function FriendsLocationCardItem({
     const travelingLocation =
         source?.travelingToLocation || source?.$travelingToLocation || '';
     const friendIsCurrentUser =
-        normalizeId(friend?.id || friend?.userId) === normalizeId(currentUserId);
+        normalizeId(friend?.id || friend?.userId) ===
+        normalizeId(currentUserId);
     const friendIsOnline = isOnlineFriend(friend);
     const friendLocationAvailable = canUseFriendLocation(rawLocation);
 
@@ -157,13 +158,9 @@ export function FriendsLocationCardItem({
             canBoop={!friendIsCurrentUser && canBoop}
             onOpenUser={() => onOpenUser(friend)}
             onOpenWorld={
-                target.worldId
-                    ? () => onOpenWorld(target, location)
-                    : undefined
+                target.worldId ? () => onOpenWorld(target, location) : undefined
             }
-            onOpenGroup={
-                target.groupId ? () => onOpenGroup(target) : undefined
-            }
+            onOpenGroup={target.groupId ? () => onOpenGroup(target) : undefined}
             onLaunchLocation={() => onLaunchLocation(rawLocation)}
             onSelfInviteLocation={() => onSelfInviteLocation(rawLocation)}
             onSendInvite={() => onSendInvite(friend)}

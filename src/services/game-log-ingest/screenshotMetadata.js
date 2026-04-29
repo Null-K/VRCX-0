@@ -1,4 +1,8 @@
-import { configRepository, gameLogRepository, mediaRepository } from '@/repositories/index.js';
+import {
+    configRepository,
+    gameLogRepository,
+    mediaRepository
+} from '@/repositories/index.js';
 import { parseLocation } from '@/shared/utils/locationParser.js';
 import { parseVrchatScreenshotDateFromFileName } from '@/shared/utils/screenshot.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';

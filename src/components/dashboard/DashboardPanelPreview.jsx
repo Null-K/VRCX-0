@@ -1,12 +1,12 @@
 import { ArrowRightIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
-import { useTranslation } from 'react-i18next';
 import { useFavoriteStore } from '@/state/favoriteStore.js';
 import { useFriendRosterStore } from '@/state/friendRosterStore.js';
 import { useNotificationStore } from '@/state/notificationStore.js';
-
 import { Button } from '@/ui/shadcn/button';
+
 import { DashboardEmbeddedPagePanel } from './DashboardEmbeddedPagePanel.jsx';
 import { canEmbedDashboardPagePanel } from './dashboardPagePanelRegistry.jsx';
 import {
@@ -84,8 +84,16 @@ function DashboardPagePreview({ definition }) {
 
     if (definition.key === 'friend-list') {
         metrics = [
-            <PreviewMetric key="friends" label={t('view.dashboard.generated.friends')} value={friendCount} />,
-            <PreviewMetric key="online" label={t('view.dashboard.generated.online')} value={onlineCount} />
+            <PreviewMetric
+                key="friends"
+                label={t('view.dashboard.generated.friends')}
+                value={friendCount}
+            />,
+            <PreviewMetric
+                key="online"
+                label={t('view.dashboard.generated.online')}
+                value={onlineCount}
+            />
         ];
     } else if (definition.key === 'favorite-friends') {
         metrics = [
@@ -152,7 +160,9 @@ export function DashboardPanelPreview({ panel, onPanelChange }) {
     if (!panelKey) {
         return (
             <div className="bg-card text-muted-foreground relative flex h-full min-h-[180px] items-center justify-center overflow-hidden rounded-md border border-dashed text-sm">
-                <div className="py-10 text-center">{t('view.dashboard.generated.panel_not_configured')}</div>
+                <div className="py-10 text-center">
+                    {t('view.dashboard.generated.panel_not_configured')}
+                </div>
             </div>
         );
     }

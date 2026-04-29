@@ -32,13 +32,13 @@ import {
     FieldLabel
 } from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
-import { ScrollArea } from '@/ui/shadcn/scroll-area';
 import {
     InputGroup,
     InputGroupAddon,
     InputGroupButton,
     InputGroupInput
 } from '@/ui/shadcn/input-group';
+import { ScrollArea } from '@/ui/shadcn/scroll-area';
 import {
     Select,
     SelectContent,
@@ -366,9 +366,7 @@ export function UserProfileDetailsDialog({
                         {t('dialog.user.generated.edit_profile_details')}
                     </DialogTitle>
                     <DialogDescription>
-                        {t(
-                            'dialog.user.generated.update_your_profile_details'
-                        )}
+                        {t('dialog.user.generated.update_your_profile_details')}
                     </DialogDescription>
                 </DialogHeader>
                 <ScrollArea className="-mx-1 min-h-0 px-1">
@@ -514,8 +512,10 @@ export function UserProfileDetailsDialog({
                                     onChange={(event) => {
                                         setDraft((current) => ({
                                             ...current,
-                                            pronouns:
-                                                event.target.value.slice(0, 32)
+                                            pronouns: event.target.value.slice(
+                                                0,
+                                                32
+                                            )
                                         }));
                                     }}
                                 />
@@ -583,8 +583,11 @@ export function UserProfileDetailsDialog({
                                                         nextValue;
                                                     return {
                                                         ...current,
-                                                        bioLinks: nextBioLinks
-                                                            .slice(0, 3)
+                                                        bioLinks:
+                                                            nextBioLinks.slice(
+                                                                0,
+                                                                3
+                                                            )
                                                     };
                                                 });
                                             }}
@@ -614,8 +617,7 @@ export function UserProfileDetailsDialog({
                                                         return {
                                                             ...current,
                                                             bioLinks:
-                                                                nextBioLinks
-                                                                    .length
+                                                                nextBioLinks.length
                                                                     ? nextBioLinks
                                                                     : ['']
                                                         };

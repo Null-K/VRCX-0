@@ -1,11 +1,4 @@
-export const NOTIFICATION_TABLE_DEFAULT_PAGE_SIZES = [
-    10,
-    15,
-    20,
-    25,
-    50,
-    100
-];
+export const NOTIFICATION_TABLE_DEFAULT_PAGE_SIZES = [10, 15, 20, 25, 50, 100];
 export const NOTIFICATION_TABLE_DEFAULT_SORTING = [
     { id: 'created_at', desc: true }
 ];

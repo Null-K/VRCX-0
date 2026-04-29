@@ -1,5 +1,4 @@
 import { OpenSourceNoticeDialog } from './OpenSourceNoticeDialog.jsx';
-import { TablePageSizesDialog } from './SettingsViewParts.jsx';
 import { AvatarProviderDialog } from './settings-dialogs/AvatarProviderDialog.jsx';
 import { CustomFontDialog } from './settings-dialogs/CustomFontDialog.jsx';
 import { FeedFilterDialog } from './settings-dialogs/FeedFilterDialog.jsx';
@@ -7,6 +6,7 @@ import { PurgeConfirmDialog } from './settings-dialogs/PurgeConfirmDialog.jsx';
 import { TableLimitsDialog } from './settings-dialogs/TableLimitsDialog.jsx';
 import { TranslationApiDialog } from './settings-dialogs/TranslationApiDialog.jsx';
 import { YoutubeApiDialog } from './settings-dialogs/YoutubeApiDialog.jsx';
+import { TablePageSizesDialog } from './SettingsViewParts.jsx';
 
 export function SettingsDialogs({
     t,

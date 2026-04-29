@@ -1,17 +1,47 @@
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, CopyIcon, ExternalLinkIcon, GlobeIcon, UserIcon, UsersIcon } from 'lucide-react';
+import {
+    ArrowDownIcon,
+    ArrowUpDownIcon,
+    ArrowUpIcon,
+    CopyIcon,
+    ExternalLinkIcon,
+    GlobeIcon,
+    UserIcon,
+    UsersIcon
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { formatDateFilter } from '@/lib/dateTime.js';
 import { copyTextToClipboard } from '@/lib/entityMedia.js';
 import { userProfileRepository } from '@/repositories/index.js';
-import { openGroupDialog, openUserDialog, openWorldDialog } from '@/services/dialogService.js';
-import { parseLocation, resolveFriendPresenceLocation } from '@/shared/utils/location.js';
+import {
+    openGroupDialog,
+    openUserDialog,
+    openWorldDialog
+} from '@/services/dialogService.js';
+import {
+    parseLocation,
+    resolveFriendPresenceLocation
+} from '@/shared/utils/location.js';
 import { Button } from '@/ui/shadcn/button';
-import { ContextMenu, ContextMenuContent, ContextMenuGroup, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger } from '@/ui/shadcn/context-menu';
+import {
+    ContextMenu,
+    ContextMenuContent,
+    ContextMenuGroup,
+    ContextMenuItem,
+    ContextMenuSeparator,
+    ContextMenuTrigger
+} from '@/ui/shadcn/context-menu';
 
-import { canRequestInviteFromFeedFriend, normalizeFeedId as normalizeId, resolveDisplayNameCandidate, resolveFeedUserDisplayName, resolveFeedUserId, UNKNOWN_FEED_USER_DISPLAY_NAME } from '../feedRows.js';
+import {
+    canRequestInviteFromFeedFriend,
+    normalizeFeedId as normalizeId,
+    resolveDisplayNameCandidate,
+    resolveFeedUserDisplayName,
+    resolveFeedUserId,
+    UNKNOWN_FEED_USER_DISPLAY_NAME
+} from '../feedRows.js';
 import { FeedDetailCell, FeedExpandedRow } from './FeedDetailParts.jsx';
 function resolvePresenceLocation(profile) {
     return resolveFriendPresenceLocation(profile);
@@ -155,7 +185,7 @@ function FeedUserLink({
             <Button
                 type="button"
                 variant="ghost"
-                className="hover:text-primary h-auto max-w-full self-start justify-start text-left font-medium"
+                className="hover:text-primary h-auto max-w-full justify-start self-start text-left font-medium"
                 disabled={!userId}
                 onClick={() =>
                     openUserDialog({
@@ -262,9 +292,7 @@ function FeedUserLink({
                 <ContextMenuGroup>
                     <ContextMenuItem
                         disabled={!userId}
-                        onSelect={() =>
-                            void copyFeedText(userId, 'User ID', t)
-                        }
+                        onSelect={() => void copyFeedText(userId, 'User ID', t)}
                     >
                         <CopyIcon />
                         {t('dialog.user.info.copy_id')}

@@ -92,7 +92,9 @@ function serializeValue(value, depth = 0, seen = new Set()) {
 
 function collectText(value, depth = 0, seen = new Set()) {
     if (value instanceof Error) {
-        return [value.name, value.message, value.stack].filter(Boolean).join('\n');
+        return [value.name, value.message, value.stack]
+            .filter(Boolean)
+            .join('\n');
     }
 
     if (typeof value === 'string') {
@@ -169,7 +171,9 @@ function shouldSkipErrorLog(values) {
         return true;
     }
 
-    return hasNetworkErrorText(values.map((value) => collectText(value)).join('\n'));
+    return hasNetworkErrorText(
+        values.map((value) => collectText(value)).join('\n')
+    );
 }
 
 function formatEntry(source, lines) {

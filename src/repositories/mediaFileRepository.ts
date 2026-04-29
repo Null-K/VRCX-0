@@ -64,7 +64,10 @@ async function getExtraScreenshotData(path: string, carouselCache = false) {
     );
 }
 
-async function findScreenshotsBySearch(searchQuery: string, searchType: string) {
+async function findScreenshotsBySearch(
+    searchQuery: string,
+    searchType: string
+) {
     return parseResponseValue(
         await invokeApp('FindScreenshotsBySearch', searchQuery, searchType)
     );

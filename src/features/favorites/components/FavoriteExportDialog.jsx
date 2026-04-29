@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import {
@@ -20,8 +20,8 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
-
 import { Textarea } from '@/ui/shadcn/textarea';
+
 import {
     buildFavoriteExportCsv,
     FAVORITES_EXPORT_ALL_VALUE as EXPORT_ALL_VALUE,
@@ -83,23 +83,32 @@ function FavoriteExportDialog({
     async function copyExportContent() {
         try {
             await navigator.clipboard.writeText(content);
-            toast.success(t('view.favorite.generated.copied_favorite_export_data'));
+            toast.success(
+                t('view.favorite.generated.copied_favorite_export_data')
+            );
         } catch (error) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('view.favorites.generated_toast.failed_to_copy_favorite_export_data')
+                    : t(
+                          'view.favorites.generated_toast.failed_to_copy_favorite_export_data'
+                      )
             );
         }
     }
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] sm:max-w-3xl overflow-y-auto">
+            <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>{t('view.favorite.generated.export_favorite')} {kind}{t('common.time_units.s')}</DialogTitle>
+                    <DialogTitle>
+                        {t('view.favorite.generated.export_favorite')} {kind}
+                        {t('common.time_units.s')}
+                    </DialogTitle>
                     <DialogDescription>
-                        {t('view.favorite.generated.review_the_csv_content_before_copying_it_to_the_clipboard')}
+                        {t(
+                            'view.favorite.generated.review_the_csv_content_before_copying_it_to_the_clipboard'
+                        )}
                     </DialogDescription>
                 </DialogHeader>
                 <FieldGroup
@@ -133,12 +142,18 @@ function FavoriteExportDialog({
                         onValueChange={setRemoteGroupKey}
                     >
                         <SelectTrigger size="sm" className="min-w-52">
-                            <SelectValue placeholder={t('view.favorite.generated.vrchat_group')} />
+                            <SelectValue
+                                placeholder={t(
+                                    'view.favorite.generated.vrchat_group'
+                                )}
+                            />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
                                 <SelectItem value={EXPORT_ALL_VALUE}>
-                                    {t('view.favorite.generated.all_vrchat_favorites')}
+                                    {t(
+                                        'view.favorite.generated.all_vrchat_favorites'
+                                    )}
                                 </SelectItem>
                                 {remoteGroups.map((group) => (
                                     <SelectItem
@@ -160,12 +175,18 @@ function FavoriteExportDialog({
                         onValueChange={setLocalGroupKey}
                     >
                         <SelectTrigger size="sm" className="min-w-52">
-                            <SelectValue placeholder={t('view.favorite.generated.local_group')} />
+                            <SelectValue
+                                placeholder={t(
+                                    'view.favorite.generated.local_group'
+                                )}
+                            />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectGroup>
                                 <SelectItem value={EXPORT_NONE_VALUE}>
-                                    {t('view.favorite.generated.no_local_group')}
+                                    {t(
+                                        'view.favorite.generated.no_local_group'
+                                    )}
                                 </SelectItem>
                                 {localGroups.map((group) => (
                                     <SelectItem

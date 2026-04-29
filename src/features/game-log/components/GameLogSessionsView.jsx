@@ -171,23 +171,20 @@ export function GameLogSessionsView({
     const [sessionOpenOverrides, setSessionOpenOverrides] = useState(
         () => new Map()
     );
-    const handleSessionOpenChange = useCallback(
-        (sessionKey, nextOpen) => {
-            if (!sessionKey) {
-                return;
+    const handleSessionOpenChange = useCallback((sessionKey, nextOpen) => {
+        if (!sessionKey) {
+            return;
+        }
+        setSessionOpenOverrides((current) => {
+            if (current.get(sessionKey) === nextOpen) {
+                return current;
             }
-            setSessionOpenOverrides((current) => {
-                if (current.get(sessionKey) === nextOpen) {
-                    return current;
-                }
 
-                const next = new Map(current);
-                next.set(sessionKey, nextOpen);
-                return next;
-            });
-        },
-        []
-    );
+            const next = new Map(current);
+            next.set(sessionKey, nextOpen);
+            return next;
+        });
+    }, []);
 
     useEffect(() => {
         setAutoFillAttempts(0);

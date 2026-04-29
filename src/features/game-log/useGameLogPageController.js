@@ -4,12 +4,7 @@ import {
     getSortedRowModel,
     useReactTable
 } from '@tanstack/react-table';
-import {
-    useDeferredValue,
-    useMemo,
-    useRef,
-    useState
-} from 'react';
+import { useDeferredValue, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 

@@ -1,6 +1,6 @@
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
-import { Button } from '@/ui/shadcn/button';
 import { cn } from '@/lib/utils.js';
+import { Button } from '@/ui/shadcn/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 export function StatusDot({ active, warn = false }) {
     const color = warn
@@ -34,7 +34,9 @@ export function StatusSegment({
             <StatusDot active={active} warn={warn} />
             <span className="text-muted-foreground text-xs">{label}</span>
             {value ? (
-                <span className="text-foreground truncate text-xs">{value}</span>
+                <span className="text-foreground truncate text-xs">
+                    {value}
+                </span>
             ) : null}
             {children}
         </>

@@ -87,12 +87,9 @@ async function applyAutoLoginDelay(seconds, { signal, onCountdown } = {}) {
 
     try {
         for (let remaining = seconds; remaining > 0; remaining -= 1) {
-            const message = await i18n.t(
-                'message.auto_login_delay_countdown',
-                {
-                    seconds: remaining
-                }
-            );
+            const message = await i18n.t('message.auto_login_delay_countdown', {
+                seconds: remaining
+            });
             if (toastId) {
                 toast.dismiss(toastId);
             }
@@ -177,11 +174,7 @@ export async function executeReactAutoLogin(
                 const restoredSnapshot = await executeCookieSessionRestore({
                     endpoint: restoreEndpoint
                 });
-                toast.success(
-                    await i18n.t(
-                        'message.auth.auto_login_success'
-                    )
-                );
+                toast.success(await i18n.t('message.auth.auto_login_success'));
                 return {
                     status: 'success',
                     snapshot: restoredSnapshot
@@ -220,9 +213,7 @@ export async function executeReactAutoLogin(
                 `Automatic login paused for ${displayName} after ${AUTO_LOGIN_MAX_ATTEMPTS} attempts in the last hour.`
             );
             await flashWindowSafely();
-            toast.error(
-                await i18n.t('message.auth.auto_login_failed')
-            );
+            toast.error(await i18n.t('message.auth.auto_login_failed'));
             return {
                 status: 'throttled',
                 snapshot
@@ -237,9 +228,7 @@ export async function executeReactAutoLogin(
         recordReactAutoLoginAttempt(throttleKey);
         const nextSnapshot = await executeSavedCredentialLogin(savedCredential);
 
-        toast.success(
-            await i18n.t('message.auth.auto_login_success')
-        );
+        toast.success(await i18n.t('message.auth.auto_login_success'));
         return {
             status: 'success',
             snapshot: nextSnapshot
@@ -266,9 +255,7 @@ export async function executeReactAutoLogin(
             'error',
             error instanceof Error ? error.message : String(error)
         );
-        toast.error(
-            await i18n.t('message.auth.auto_login_failed')
-        );
+        toast.error(await i18n.t('message.auth.auto_login_failed'));
 
         if (typeof navigator !== 'undefined' && navigator.onLine === false) {
             toast.error(await i18n.t('message.auth.offline'));

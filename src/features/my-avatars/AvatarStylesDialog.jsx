@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { myAvatarRepository } from '@/repositories/index.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { Button } from '@/ui/shadcn/button';
@@ -170,7 +170,9 @@ export function AvatarStylesDialog({
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : t('view.my_avatars.generated_toast.failed_to_load_avatar_styles')
+                        : t(
+                              'view.my_avatars.generated_toast.failed_to_load_avatar_styles'
+                          )
                 );
             });
 
@@ -245,7 +247,11 @@ export function AvatarStylesDialog({
                 styleIdByName
             );
             if (!hasPrimaryStyleParam || !hasSecondaryStyleParam) {
-                toast.error(t('view.my_avatars.generated.selected_avatar_style_is_not_available'));
+                toast.error(
+                    t(
+                        'view.my_avatars.generated.selected_avatar_style_is_not_available'
+                    )
+                );
                 return;
             }
 
@@ -264,7 +270,9 @@ export function AvatarStylesDialog({
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('view.my_avatars.generated_toast.failed_to_update_avatar_styles')
+                    : t(
+                          'view.my_avatars.generated_toast.failed_to_update_avatar_styles'
+                      )
             );
         } finally {
             setSaving(false);
@@ -275,14 +283,18 @@ export function AvatarStylesDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>{t('dialog.set_avatar_styles.header')}</DialogTitle>
+                    <DialogTitle>
+                        {t('dialog.set_avatar_styles.header')}
+                    </DialogTitle>
                     <DialogDescription>
                         {avatar?.name || avatarId || 'Avatar'}
                     </DialogDescription>
                 </DialogHeader>
                 <FieldGroup>
                     <Field>
-                        <FieldLabel>{t('view.my_avatars.generated.primary_style')}</FieldLabel>
+                        <FieldLabel>
+                            {t('view.my_avatars.generated.primary_style')}
+                        </FieldLabel>
                         <Select
                             value={primaryStyle || CLEAR_STYLE_VALUE}
                             onValueChange={(value) =>
@@ -292,7 +304,11 @@ export function AvatarStylesDialog({
                             }
                         >
                             <SelectTrigger>
-                                <SelectValue placeholder={t('view.my_avatars.generated.select_style')} />
+                                <SelectValue
+                                    placeholder={t(
+                                        'view.my_avatars.generated.select_style'
+                                    )}
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
@@ -312,7 +328,9 @@ export function AvatarStylesDialog({
                         </Select>
                     </Field>
                     <Field>
-                        <FieldLabel>{t('view.my_avatars.generated.secondary_style')}</FieldLabel>
+                        <FieldLabel>
+                            {t('view.my_avatars.generated.secondary_style')}
+                        </FieldLabel>
                         <Select
                             value={secondaryStyle || CLEAR_STYLE_VALUE}
                             onValueChange={(value) =>
@@ -322,7 +340,11 @@ export function AvatarStylesDialog({
                             }
                         >
                             <SelectTrigger>
-                                <SelectValue placeholder={t('view.my_avatars.generated.select_style')} />
+                                <SelectValue
+                                    placeholder={t(
+                                        'view.my_avatars.generated.select_style'
+                                    )}
+                                />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
@@ -357,7 +379,9 @@ export function AvatarStylesDialog({
                     </Field>
                     {loadStatus === 'error' ? (
                         <FieldDescription>
-                            {t('view.my_avatars.generated.style_list_could_not_be_loaded_unknown_style_selections_will')}
+                            {t(
+                                'view.my_avatars.generated.style_list_could_not_be_loaded_unknown_style_selections_will'
+                            )}
                         </FieldDescription>
                     ) : null}
                 </FieldGroup>

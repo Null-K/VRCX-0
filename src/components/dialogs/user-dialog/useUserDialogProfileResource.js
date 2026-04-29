@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { userProfileRepository } from '@/repositories/index.js';
 import {
     buildCurrentUserPresenceView,
     mergeCurrentUserPresenceFields
 } from '@/shared/utils/currentUserPresence.js';
-import { userProfileRepository } from '@/repositories/index.js';
 
 import { normalizeUserId } from './userProfileFields.js';
 
@@ -43,7 +43,9 @@ function normalizeTargetSnapshot(
 
 function profileMatchesTarget(profile, targetUserId) {
     return Boolean(
-        profile && targetUserId && resolveProfileUserId(profile) === targetUserId
+        profile &&
+        targetUserId &&
+        resolveProfileUserId(profile) === targetUserId
     );
 }
 
@@ -74,8 +76,8 @@ export function useUserDialogProfileResource({
     );
     const localSnapshotRef = useRef(normalizedLocalSnapshot);
     localSnapshotRef.current = normalizedLocalSnapshot;
-    const [baseProfile, setBaseProfile] = useState(() =>
-        normalizedLocalSnapshot
+    const [baseProfile, setBaseProfile] = useState(
+        () => normalizedLocalSnapshot
     );
     const activeBaseProfile = useMemo(
         () =>
@@ -246,12 +248,7 @@ export function useUserDialogProfileResource({
         return () => {
             active = false;
         };
-    }, [
-        currentEndpoint,
-        isTargetCurrentUser,
-        normalizedUserId,
-        reloadToken
-    ]);
+    }, [currentEndpoint, isTargetCurrentUser, normalizedUserId, reloadToken]);
 
     function refreshProfile() {
         setReloadToken((value) => value + 1);

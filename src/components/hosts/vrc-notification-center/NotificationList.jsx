@@ -86,11 +86,7 @@ function getGroupDisplayName(notification) {
 }
 
 function getHoverTitle(notification) {
-    return (
-        notification?.data?.announcementTitle ||
-        notification?.title ||
-        ''
-    );
+    return notification?.data?.announcementTitle || notification?.title || '';
 }
 
 function getFriendMessage(notification) {
@@ -198,12 +194,10 @@ function NotificationHoverContent({
                         </div>
                     </div>
                     {hoverTitle ? (
-                        <p className="mb-1 text-sm font-medium">
-                            {hoverTitle}
-                        </p>
+                        <p className="mb-1 text-sm font-medium">{hoverTitle}</p>
                     ) : null}
                     {notification?.message ? (
-                        <p className="text-muted-foreground whitespace-pre-line break-words text-xs leading-relaxed">
+                        <p className="text-muted-foreground text-xs leading-relaxed break-words whitespace-pre-line">
                             {notification.message}
                         </p>
                     ) : null}
@@ -225,7 +219,7 @@ function NotificationHoverContent({
                         <NotificationLocationLine notification={notification} />
                     </div>
                     {friendMessage ? (
-                        <p className="text-muted-foreground break-words text-xs leading-relaxed">
+                        <p className="text-muted-foreground text-xs leading-relaxed break-words">
                             {friendMessage}
                         </p>
                     ) : null}
@@ -249,7 +243,7 @@ function NotificationHoverContent({
                         </p>
                     ) : null}
                     {message ? (
-                        <p className="text-muted-foreground whitespace-pre-line break-words text-xs leading-relaxed">
+                        <p className="text-muted-foreground text-xs leading-relaxed break-words whitespace-pre-line">
                             {message}
                         </p>
                     ) : null}
@@ -369,7 +363,7 @@ function NotificationRow({
                         {relativeTime ? (
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <span className="text-muted-foreground whitespace-nowrap text-xs">
+                                    <span className="text-muted-foreground text-xs whitespace-nowrap">
                                         {relativeTime}
                                     </span>
                                 </TooltipTrigger>
@@ -398,9 +392,7 @@ function NotificationRow({
                                         'view.notification.actions.invite'
                                     )}
                                     onClick={() =>
-                                        void onAcceptRequestInvite(
-                                            notification
-                                        )
+                                        void onAcceptRequestInvite(notification)
                                     }
                                 >
                                     <SendIcon data-icon="icon" />

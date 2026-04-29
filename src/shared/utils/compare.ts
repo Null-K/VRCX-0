@@ -85,7 +85,10 @@ function compareByUpdatedAt(a: ComparableRecord, b: ComparableRecord): number {
  * @param {object} b
  * @returns
  */
-function compareByDisplayName(a: ComparableRecord, b: ComparableRecord): number {
+function compareByDisplayName(
+    a: ComparableRecord,
+    b: ComparableRecord
+): number {
     if (
         typeof a.displayName !== 'string' ||
         typeof b.displayName !== 'string'
@@ -114,7 +117,10 @@ function compareById(a: ComparableRecord, b: ComparableRecord): number {
  * @param {object} b
  * @returns
  */
-function compareByMemberCount(a: ComparableRecord, b: ComparableRecord): number {
+function compareByMemberCount(
+    a: ComparableRecord,
+    b: ComparableRecord
+): number {
     if (
         typeof a.memberCount !== 'number' ||
         typeof b.memberCount !== 'number'
@@ -288,7 +294,10 @@ function compareByLocation(a: ComparableRecord, b: ComparableRecord): number {
  * @param {object} b
  * @returns
  */
-function compareByFriendOrder(a: ComparableRecord, b: ComparableRecord): number {
+function compareByFriendOrder(
+    a: ComparableRecord,
+    b: ComparableRecord
+): number {
     if (typeof a === 'undefined' || typeof b === 'undefined') {
         return 0;
     }

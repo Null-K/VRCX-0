@@ -11,7 +11,9 @@ async function initGlobalTables() {
     for (const sql of GLOBAL_TABLE_STATEMENTS) {
         await sqliteRepository.executeNonQuery(sql);
     }
-    if ((await getStoredDatabaseVersion()) >= DATABASE_VERSION_WITH_V17_INDEXES) {
+    if (
+        (await getStoredDatabaseVersion()) >= DATABASE_VERSION_WITH_V17_INDEXES
+    ) {
         await addV17GlobalPerformanceIndexes();
     }
 }

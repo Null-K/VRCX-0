@@ -1,6 +1,7 @@
 import { ChevronLeftIcon } from 'lucide-react';
 
 import { UserActivityPanel } from '@/components/dialogs/UserActivityPanel.jsx';
+import { userDialogMutualFriendSortingOptions } from '@/shared/constants/user.js';
 import { Button } from '@/ui/shadcn/button';
 import {
     Select,
@@ -11,9 +12,11 @@ import {
     SelectValue
 } from '@/ui/shadcn/select';
 
-import { EntityDialogTabContent, EntityRawJson } from '../../EntityDialogScaffold.jsx';
+import {
+    EntityDialogTabContent,
+    EntityRawJson
+} from '../../EntityDialogScaffold.jsx';
 import { PreviousInstancesPanel } from '../../PreviousInstancesTableDialog.jsx';
-import { userDialogMutualFriendSortingOptions } from '@/shared/constants/user.js';
 import { EntityList, FavoriteWorldGroups } from '../UserDialogViewParts.jsx';
 import { UserDialogSearchHeader } from './UserDialogSearchHeader.jsx';
 
@@ -259,10 +262,14 @@ export function UserDialogAvatarsTab({
                                         {t('dialog.user.avatars.sort_by_name')}
                                     </SelectItem>
                                     <SelectItem value="update">
-                                        {t('dialog.user.avatars.sort_by_update')}
+                                        {t(
+                                            'dialog.user.avatars.sort_by_update'
+                                        )}
                                     </SelectItem>
                                     <SelectItem value="createdAt">
-                                        {t('dialog.user.avatars.sort_by_uploaded')}
+                                        {t(
+                                            'dialog.user.avatars.sort_by_uploaded'
+                                        )}
                                     </SelectItem>
                                 </SelectGroup>
                             </SelectContent>
@@ -345,7 +352,10 @@ export function UserDialogInstanceHistoryTab({
 
 export function UserDialogActivityTab({ profile, isCurrentUser, active }) {
     return (
-        <EntityDialogTabContent value="activity" className="flex flex-col gap-4">
+        <EntityDialogTabContent
+            value="activity"
+            className="flex flex-col gap-4"
+        >
             <UserActivityPanel
                 profile={profile}
                 isCurrentUser={isCurrentUser}

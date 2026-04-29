@@ -80,8 +80,7 @@ export function buildFeedColumns({
         },
         {
             id: 'created_at',
-            accessorFn: (row) =>
-                new Date(row?.created_at || 0).valueOf() || 0,
+            accessorFn: (row) => new Date(row?.created_at || 0).valueOf() || 0,
             meta: { label: t('table.feed.date') },
             header: ({ column }) => (
                 <SortButton column={column} label={t('table.feed.date')} />

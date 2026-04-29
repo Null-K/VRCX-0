@@ -14,13 +14,10 @@ import {
     horizontalListSortingStrategy,
     sortableKeyboardCoordinates
 } from '@dnd-kit/sortable';
-import {
-    getCoreRowModel,
-    useReactTable
-} from '@tanstack/react-table';
+import { getCoreRowModel, useReactTable } from '@tanstack/react-table';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { cn } from '@/lib/utils.js';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -37,7 +34,6 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/ui/shadcn/select';
-
 import {
     Table,
     TableBody,
@@ -45,12 +41,13 @@ import {
     TableHeader,
     TableRow
 } from '@/ui/shadcn/table';
-import { ResizableTableHead } from './ResizableTableParts.jsx';
+
 import {
     DataTableColumnDndContext,
     dataTableColumnDndDefaultState,
     useDataTableColumnDnd
 } from './dataTableColumnDndContext.js';
+import { ResizableTableHead } from './ResizableTableParts.jsx';
 import {
     getColumnOrder,
     getColumnOrderLocked,
@@ -350,7 +347,8 @@ export function DataTablePagination({
                     </PaginationItem>
                     <PaginationItem>
                         <Badge variant="outline">
-                            {t('table.generated.page')} {resolvedPageIndex + 1} / {resolvedPageCount}
+                            {t('table.generated.page')} {resolvedPageIndex + 1}{' '}
+                            / {resolvedPageCount}
                         </Badge>
                     </PaginationItem>
                     <PaginationItem>
@@ -389,7 +387,7 @@ export function DataTableView({
             <DataTableScrollArea>
                 <DataTableColumnDndProvider table={table}>
                     <Table
-                        className="table-fixed min-w-full"
+                        className="min-w-full table-fixed"
                         style={getDataTableSizingStyle(table)}
                     >
                         <DataTableColumnSizeColGroup table={table} />

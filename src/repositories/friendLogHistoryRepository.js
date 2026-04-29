@@ -115,8 +115,7 @@ async function addFriendLogHistory(userId, entry) {
             '@previous_display_name': entry?.previousDisplayName ?? '',
             '@trust_level': entry?.trustLevel ?? '',
             '@previous_trust_level': entry?.previousTrustLevel ?? '',
-            '@friend_number':
-                Number.parseInt(entry?.friendNumber ?? 0, 10) || 0
+            '@friend_number': Number.parseInt(entry?.friendNumber ?? 0, 10) || 0
         }
     );
 }

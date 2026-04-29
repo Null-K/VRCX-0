@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { backend } from '@/platform/index.js';
 import { configRepository } from '@/repositories/index.js';
 import {
@@ -17,10 +17,8 @@ import { useModalStore } from '@/state/modalStore.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useShellStore } from '@/state/shellStore.js';
-import {
-    ContextMenu,
-    ContextMenuTrigger
-} from '@/ui/shadcn/context-menu';
+import { ContextMenu, ContextMenuTrigger } from '@/ui/shadcn/context-menu';
+
 import { StatusBarContextMenuContent } from './status-bar/StatusBarContextMenuContent.jsx';
 import { StatusBarFooter } from './status-bar/StatusBarFooter.jsx';
 
@@ -398,7 +396,9 @@ export function AppStatusBar() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : t('component.app_status_bar.generated_toast.failed_to_save_status_bar_visibility')
+                        : t(
+                              'component.app_status_bar.generated_toast.failed_to_save_status_bar_visibility'
+                          )
                 );
             });
     }
@@ -426,7 +426,9 @@ export function AppStatusBar() {
                 toast.error(
                     error instanceof Error
                         ? error.message
-                        : t('component.app_status_bar.generated_toast.failed_to_save_clock_count')
+                        : t(
+                              'component.app_status_bar.generated_toast.failed_to_save_clock_count'
+                          )
                 );
             });
     }
@@ -453,7 +455,9 @@ export function AppStatusBar() {
                     toast.error(
                         error instanceof Error
                             ? error.message
-                            : t('component.app_status_bar.generated_toast.failed_to_save_status_bar_clocks')
+                            : t(
+                                  'component.app_status_bar.generated_toast.failed_to_save_status_bar_clocks'
+                              )
                     );
                 });
             return nextClocks;
@@ -468,7 +472,9 @@ export function AppStatusBar() {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.app_status_bar.generated_toast.failed_to_open_vrchat_status')
+                    : t(
+                          'component.app_status_bar.generated_toast.failed_to_open_vrchat_status'
+                      )
             );
         }
     }
@@ -480,8 +486,9 @@ export function AppStatusBar() {
         const currentProxyServer = usePreferencesStore.getState().proxyServer;
         const result = await prompt({
             title: t('component.app_status_bar.generated_modal.proxy_settings'),
-            description:
-                t('component.app_status_bar.generated_modal.set_the_proxy_server_used_by_vrcx_0_restart_is_r'),
+            description: t(
+                'component.app_status_bar.generated_modal.set_the_proxy_server_used_by_vrcx_0_restart_is_r'
+            ),
             inputValue: currentProxyServer,
             confirmText: t('component.app_status_bar.generated_modal.restart'),
             cancelText: t('common.actions.close')
@@ -495,7 +502,9 @@ export function AppStatusBar() {
     }
 
     async function promptZoomSettings() {
-        const currentZoom = normalizeZoomLevel(useShellStore.getState().zoomLevel);
+        const currentZoom = normalizeZoomLevel(
+            useShellStore.getState().zoomLevel
+        );
         const result = await prompt({
             title: t('status_bar.zoom'),
             description: t('status_bar.zoom_tooltip'),

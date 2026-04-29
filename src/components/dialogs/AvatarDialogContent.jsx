@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
 import { EmptyState as AppEmptyState } from '@/components/layout/PageScaffold.jsx';
 import { ImageCropDialog } from '@/components/media/ImageCropDialog.jsx';
 import { getAvailablePlatforms } from '@/lib/avatarPlatform.js';
@@ -10,15 +11,13 @@ import {
     vrchatAuthRepository
 } from '@/repositories/index.js';
 import { getCurrentAvatarLiveWearTime } from '@/services/avatarWearTimeService.js';
-import {
-    IMAGE_UPLOAD_ACCEPT
-} from '@/shared/utils/imageUpload.js';
+import { IMAGE_UPLOAD_ACCEPT } from '@/shared/utils/imageUpload.js';
 import { useDialogStore } from '@/state/dialogStore.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { Input } from '@/ui/shadcn/input';
-
 import { Spinner } from '@/ui/shadcn/spinner';
+
 import {
     avatarGalleryImageUrl,
     defaultAvatarSideData
@@ -328,7 +327,9 @@ export function AvatarDialogContent({ avatarId, seedData = null }) {
             <AvatarDialogEmptyState
                 loading
                 title={t('dialog.avatar.generated.loading_avatar_profile')}
-                description={t('dialog.avatar.generated.fetching_the_current_vrchat_avatar_snapshot_for_this_dialog')}
+                description={t(
+                    'dialog.avatar.generated.fetching_the_current_vrchat_avatar_snapshot_for_this_dialog'
+                )}
             />
         );
     }
@@ -364,8 +365,7 @@ export function AvatarDialogContent({ avatarId, seedData = null }) {
             normalizeEntityId(avatar.authorId) ===
                 normalizeEntityId(currentUserId));
     const canSelectFallbackAvatar = Boolean(
-        avatar.id &&
-        (availablePlatforms.isQuest || availablePlatforms.isIos)
+        avatar.id && (availablePlatforms.isQuest || availablePlatforms.isIos)
     );
     const avatarForView = {
         ...avatar,
@@ -450,21 +450,33 @@ export function AvatarDialogContent({ avatarId, seedData = null }) {
                 fileAnalysis={avatarSideData.fileAnalysis}
                 onRefresh={() => void avatarActions.refreshAvatarProfile()}
                 onSelect={() => void avatarActions.selectAvatar()}
-                onSelectFallback={() => void avatarActions.selectFallbackAvatar()}
+                onSelectFallback={() =>
+                    void avatarActions.selectFallbackAvatar()
+                }
                 onReleaseStatus={(nextStatus) =>
                     void avatarActions.updateReleaseStatus(nextStatus)
                 }
-                onAvatarBlock={(enabled) => void avatarActions.setAvatarBlock(enabled)}
+                onAvatarBlock={(enabled) =>
+                    void avatarActions.setAvatarBlock(enabled)
+                }
                 onEditMemo={() => void avatarActions.editMemo()}
                 onSaveMemo={(nextMemo) => avatarActions.saveMemo(nextMemo)}
                 onOpenCache={() => void avatarActions.openAvatarCacheFolder()}
                 onDeleteCache={() => void avatarActions.deleteAvatarCache()}
                 onUploadGallery={() => avatarActions.beginAvatarGalleryUpload()}
                 onEditDetails={() => void avatarActions.editAvatarDetails()}
-                onChangeContentTags={() => void avatarActions.changeAvatarContentTags()}
-                onChangeImage={() => void avatarActions.beginAvatarImageUpload()}
-                onCreateImposter={() => void avatarActions.updateAvatarImposter('create')}
-                onDeleteImposter={() => void avatarActions.updateAvatarImposter('delete')}
+                onChangeContentTags={() =>
+                    void avatarActions.changeAvatarContentTags()
+                }
+                onChangeImage={() =>
+                    void avatarActions.beginAvatarImageUpload()
+                }
+                onCreateImposter={() =>
+                    void avatarActions.updateAvatarImposter('create')
+                }
+                onDeleteImposter={() =>
+                    void avatarActions.updateAvatarImposter('delete')
+                }
                 onRegenerateImposter={() =>
                     void avatarActions.updateAvatarImposter('regenerate')
                 }
@@ -516,7 +528,9 @@ export function AvatarDialogContent({ avatarId, seedData = null }) {
                         imageUploadAvatarRef.current = null;
                     }
                 }}
-                onConfirm={(blob) => avatarActions.confirmAvatarImageUpload(blob)}
+                onConfirm={(blob) =>
+                    avatarActions.confirmAvatarImageUpload(blob)
+                }
             />
         </>
     );

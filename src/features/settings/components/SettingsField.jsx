@@ -81,7 +81,7 @@ export function Field({
             </FieldContent>
             <div
                 className={cn(
-                    'flex justify-self-start lg:w-full lg:justify-self-stretch lg:justify-end',
+                    'flex justify-self-start lg:w-full lg:justify-end lg:justify-self-stretch',
                     controlClassName
                 )}
             >

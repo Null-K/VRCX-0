@@ -1,7 +1,7 @@
 import { ImageIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { cn } from '@/lib/utils.js';
 import { mediaRepository } from '@/repositories/index.js';
 import { Button } from '@/ui/shadcn/button';
@@ -22,14 +22,11 @@ import {
     InputGroupButton,
     InputGroupInput
 } from '@/ui/shadcn/input-group';
-import {
-    ToggleGroup,
-    ToggleGroupItem
-} from '@/ui/shadcn/toggle-group';
 import { Textarea } from '@/ui/shadcn/textarea';
+import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
-import { GroupListState } from './GroupListState.jsx';
 import { getGroupRowImage, getGroupRowLabel } from './groupDialogUtils.js';
+import { GroupListState } from './GroupListState.jsx';
 
 export function GroupPostEditorDialog({
     open,
@@ -174,9 +171,7 @@ export function GroupPostEditorDialog({
                                 }
                             />
                             <FieldLabel htmlFor="group-post-send-notification">
-                                {t(
-                                    'dialog.shared_feed_filters.notification'
-                                )}
+                                {t('dialog.shared_feed_filters.notification')}
                             </FieldLabel>
                         </Field>
                     ) : null}
@@ -252,9 +247,7 @@ export function GroupPostEditorDialog({
                                 </FieldGroup>
                             ) : (
                                 <GroupListState
-                                    title={t(
-                                        'dialog.group.generated.no_roles'
-                                    )}
+                                    title={t('dialog.group.generated.no_roles')}
                                     description=""
                                     className="min-h-20 p-3"
                                 />

@@ -303,7 +303,9 @@ export function InviteMessagePanel({
                             }}
                         >
                             <ImageIcon data-icon="inline-start" />
-                            {t('dialog.invite_message.clear_selected_image')}{' '}
+                            {t(
+                                'dialog.invite_message.clear_selected_image'
+                            )}{' '}
                             {imageName}
                         </Button>
                     ) : null}

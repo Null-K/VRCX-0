@@ -1,6 +1,6 @@
 import { CheckIcon, UserIcon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import {
     EmptyState as AppEmptyState,
     LoadingState as AppLoadingState
@@ -39,8 +39,7 @@ export function UserPickerRow({
                 </span>
                 {Number.isFinite(option?.degree) ? (
                     <span className="text-muted-foreground block truncate text-xs">
-                        {option.degree}{' '}
-                        {t('view.charts.generated.connections')}
+                        {option.degree} {t('view.charts.generated.connections')}
                     </span>
                 ) : null}
             </span>

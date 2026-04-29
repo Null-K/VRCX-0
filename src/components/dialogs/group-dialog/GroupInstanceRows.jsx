@@ -192,7 +192,7 @@ export function GroupInstanceRows({ instances, currentUserId }) {
                 return (
                     <div
                         key={`${location || getInstanceTitle(instance) || 'instance'}:${index}`}
-                        className="bg-muted/10 rounded-md border px-2.5 py-2 text-sm transition-colors hover:bg-muted/25"
+                        className="bg-muted/10 hover:bg-muted/25 rounded-md border px-2.5 py-2 text-sm transition-colors"
                     >
                         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div className="min-w-0 flex-1 overflow-hidden pr-1">

@@ -26,7 +26,7 @@ export function ModerationPageTable({
                 <DataTableScrollArea>
                     <DataTableColumnDndProvider table={table}>
                         <Table
-                            className="app-data-table table-fixed min-w-full"
+                            className="app-data-table min-w-full table-fixed"
                             style={getDataTableSizingStyle(table)}
                         >
                             <DataTableColumnSizeColGroup table={table} />

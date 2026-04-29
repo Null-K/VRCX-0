@@ -65,9 +65,7 @@ import { useVrcNotificationPageActions } from './useVrcNotificationPageActions.j
 export function useVrcNotificationPageController({ embedded = false } = {}) {
     const { t } = useTranslation();
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
-    const endpoint = useRuntimeStore(
-        (state) => state.auth.currentUserEndpoint
-    );
+    const endpoint = useRuntimeStore((state) => state.auth.currentUserEndpoint);
     const currentUserLocationTag = useRuntimeStore(
         (state) => state.auth.currentUserSnapshot?.$locationTag
     );
@@ -77,10 +75,10 @@ export function useVrcNotificationPageController({ embedded = false } = {}) {
     const isLocalUserVrcPlusSupporter = useRuntimeStore((state) =>
         Boolean(
             state.auth.currentUserSnapshot?.$isVRCPlus ||
-                state.auth.currentUserSnapshot?.tags?.includes?.(
-                    'system_supporter'
-                ) ||
-                globalThis?.$debug?.debugVrcPlus
+            state.auth.currentUserSnapshot?.tags?.includes?.(
+                'system_supporter'
+            ) ||
+            globalThis?.$debug?.debugVrcPlus
         )
     );
     const currentLocation = useRuntimeStore(

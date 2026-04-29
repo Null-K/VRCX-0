@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { formatDateFilter } from '@/lib/dateTime.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { configRepository } from '@/repositories/index.js';
@@ -89,9 +89,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
             if (requestId !== refreshRequestRef.current) {
                 return;
             }
-            setDetail(
-                registryRestoreError(error, t)
-            );
+            setDetail(registryRestoreError(error, t));
         } finally {
             if (requestId === refreshRequestRef.current) {
                 setLoading(false);
@@ -106,9 +104,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
             await configRepository.setBool('vrcRegistryAutoBackup', nextValue);
         } catch (error) {
             setAutoBackup(!nextValue);
-            setDetail(
-                registryRestoreError(error, t)
-            );
+            setDetail(registryRestoreError(error, t));
         }
     }
 
@@ -119,9 +115,7 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
             await configRepository.setBool('vrcRegistryAskRestore', nextValue);
         } catch (error) {
             setAskRestore(!nextValue);
-            setDetail(
-                registryRestoreError(error, t)
-            );
+            setDetail(registryRestoreError(error, t));
         }
     }
 
@@ -274,7 +268,9 @@ export function RegistryBackupDialog({ open, onOpenChange }) {
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>{t('dialog.registry_backup.header')}</DialogTitle>
+                    <DialogTitle>
+                        {t('dialog.registry_backup.header')}
+                    </DialogTitle>
                 </DialogHeader>
                 <FieldGroup>
                     <FieldGroup className="gap-3 rounded-md border p-3">

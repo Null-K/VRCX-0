@@ -70,11 +70,7 @@ async function getGroupCalendar(
     { endpoint = '', force = false } = {}
 ) {
     return fetchCachedData({
-        queryKey: queryKeys.groupCalendarList(
-            'group',
-            { groupId },
-            endpoint
-        ),
+        queryKey: queryKeys.groupCalendarList('group', { groupId }, endpoint),
         policy: entityQueryPolicies.groupCollection,
         force,
         queryFn: async () => {

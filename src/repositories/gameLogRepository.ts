@@ -451,10 +451,11 @@ async function queryLatestSessions({
             latestFiltered.length < normalizedLimit &&
             allLocationSegments.length < searchLimit
         ) {
-            const batch = await gameLogLocalRepository.getSessionsLocationSegments(
-                beforeId,
-                fetchCount
-            );
+            const batch =
+                await gameLogLocalRepository.getSessionsLocationSegments(
+                    beforeId,
+                    fetchCount
+                );
             if (!Array.isArray(batch) || batch.length === 0) {
                 break;
             }

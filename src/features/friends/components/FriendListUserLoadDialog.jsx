@@ -15,7 +15,10 @@ export function FriendListUserLoadDialog({
     onCancel
 }) {
     return (
-        <Dialog open={open} onOpenChange={(nextOpen) => !nextOpen && onCancel()}>
+        <Dialog
+            open={open}
+            onOpenChange={(nextOpen) => !nextOpen && onCancel()}
+        >
             <DialogContent showCloseButton={false} className="sm:max-w-md">
                 <DialogHeader>
                     <DialogTitle>

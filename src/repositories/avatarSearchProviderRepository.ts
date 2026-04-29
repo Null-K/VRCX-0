@@ -103,7 +103,9 @@ function publishAvatarSearchProviderConfig(config: ProviderConfig): void {
     publishPreferenceChanged('VRCX_avatarRemoteDatabaseProviderList', config);
 }
 
-function normalizeAvatarProviderItem(avatar: ProviderItem): Record<string, any> {
+function normalizeAvatarProviderItem(
+    avatar: ProviderItem
+): Record<string, any> {
     const normalized = avatarProfileRepository.normalize({
         ...avatar,
         id: pick(avatar, 'id', 'Id', '_id', 'avatarId', 'AvatarId'),
@@ -290,9 +292,7 @@ async function search({ provider, query }: SearchInput) {
 
     const avatars = new Map();
     for (const item of json) {
-        const avatar = normalizeAvatarProviderItem(
-            isRecord(item) ? item : {}
-        );
+        const avatar = normalizeAvatarProviderItem(isRecord(item) ? item : {});
         if (avatar.id && !avatars.has(avatar.id)) {
             avatars.set(avatar.id, avatar);
         }

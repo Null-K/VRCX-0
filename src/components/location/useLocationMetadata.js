@@ -1,15 +1,12 @@
 import { useQueries } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { entityQueryPolicies, queryKeys } from '@/lib/entityQueryCache.js';
 import {
     gameLogRepository,
     groupProfileRepository,
     worldProfileRepository
 } from '@/repositories/index.js';
-import {
-    entityQueryPolicies,
-    queryKeys
-} from '@/lib/entityQueryCache.js';
 import { parseLocation, resolveRegion } from '@/shared/utils/location.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 
@@ -392,8 +389,7 @@ export function useLocationMetadataBatch(entries = [], { endpoint = '' } = {}) {
             staleTime: entityQueryPolicies.group.staleTime,
             gcTime: entityQueryPolicies.group.gcTime,
             retry: entityQueryPolicies.group.retry,
-            refetchOnWindowFocus:
-                entityQueryPolicies.group.refetchOnWindowFocus
+            refetchOnWindowFocus: entityQueryPolicies.group.refetchOnWindowFocus
         })),
         combine: (results) => mapQueryResults(groupIds, results)
     });
@@ -403,15 +399,12 @@ export function useLocationMetadataBatch(entries = [], { endpoint = '' } = {}) {
     const localWorldNameRequestIdsRef = useRef(new Set());
     const mountedRef = useRef(true);
 
-    useEffect(
-        () => {
-            mountedRef.current = true;
-            return () => {
-                mountedRef.current = false;
-            };
-        },
-        []
-    );
+    useEffect(() => {
+        mountedRef.current = true;
+        return () => {
+            mountedRef.current = false;
+        };
+    }, []);
 
     useEffect(() => {
         const missingWorldIds = new Set();

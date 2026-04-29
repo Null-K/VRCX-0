@@ -18,7 +18,8 @@ export function AvatarDialogGalleryTab({
     onUploadGallery
 }) {
     const { t } = useTranslation();
-    const { galleryImages, currentGalleryImage, galleryIndex, listings } = media;
+    const { galleryImages, currentGalleryImage, galleryIndex, listings } =
+        media;
 
     return (
         <EntityDialogTabContent value="gallery" forceMount>
@@ -81,7 +82,8 @@ export function AvatarDialogGalleryTab({
                                             {t('table.pagination.previous')}
                                         </Button>
                                         <span>
-                                            {galleryIndex + 1} / {galleryImages.length}
+                                            {galleryIndex + 1} /{' '}
+                                            {galleryImages.length}
                                         </span>
                                         <Button
                                             type="button"
@@ -102,7 +104,9 @@ export function AvatarDialogGalleryTab({
                                 </div>
                             ) : (
                                 <div className="text-muted-foreground rounded-md border border-dashed p-4 text-xs">
-                                    {t('dialog.avatar.generated.no_gallery_images')}
+                                    {t(
+                                        'dialog.avatar.generated.no_gallery_images'
+                                    )}
                                 </div>
                             )}
                         </div>

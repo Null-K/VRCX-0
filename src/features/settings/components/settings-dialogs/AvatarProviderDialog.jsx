@@ -49,7 +49,15 @@ export function AvatarProviderDialog({
                             (provider, index) => (
                                 <Field
                                     key={`avatar-provider-dialog-${index}`}
-                                    label={t('view.settings.generated_dynamic.value_value', { value: t('view.settings.advanced.advanced.remote_database.avatar_database_provider'), value2: index + 1 })}
+                                    label={t(
+                                        'view.settings.generated_dynamic.value_value',
+                                        {
+                                            value: t(
+                                                'view.settings.advanced.advanced.remote_database.avatar_database_provider'
+                                            ),
+                                            value2: index + 1
+                                        }
+                                    )}
                                     controlId={`settings-avatar-provider-${index}`}
                                 >
                                     <InputGroup>
@@ -74,11 +82,9 @@ export function AvatarProviderDialog({
                                             <InputGroupButton
                                                 type="button"
                                                 size="icon-xs"
-                                                aria-label={"Remove"}
+                                                aria-label={'Remove'}
                                                 onClick={() =>
-                                                    removeAvatarProvider(
-                                                        index
-                                                    )
+                                                    removeAvatarProvider(index)
                                                 }
                                             >
                                                 <Trash2Icon data-icon="inline-start" />
@@ -109,9 +115,7 @@ export function AvatarProviderDialog({
                             onClick={addAvatarProvider}
                         >
                             <PlusIcon data-icon="inline-start" />
-                            {t(
-                                'dialog.avatar_database_provider.add_provider'
-                            )}
+                            {t('dialog.avatar_database_provider.add_provider')}
                         </Button>
                     </Field>
                 </FieldGroup>

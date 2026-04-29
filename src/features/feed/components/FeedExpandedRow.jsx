@@ -1,6 +1,6 @@
 import { ArrowDownIcon, ArrowRightIcon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { timeToText } from '@/lib/dateTime.js';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -166,7 +166,7 @@ function FeedExpandedRow({
                                     type="button"
                                     variant="ghost"
                                     className="h-auto p-0"
-                                    aria-label={"Preview previous avatar"}
+                                    aria-label={'Preview previous avatar'}
                                     onClick={() =>
                                         onPreviewImage?.({
                                             url:
@@ -180,7 +180,9 @@ function FeedExpandedRow({
                                 >
                                     <img
                                         src={previousImage}
-                                        alt={t('view.feed.generated.previous_avatar')}
+                                        alt={t(
+                                            'view.feed.generated.previous_avatar'
+                                        )}
                                         className="h-30 w-40 rounded object-cover"
                                         loading="lazy"
                                     />
@@ -206,7 +208,7 @@ function FeedExpandedRow({
                                     type="button"
                                     variant="ghost"
                                     className="h-auto p-0"
-                                    aria-label={"Preview current avatar"}
+                                    aria-label={'Preview current avatar'}
                                     onClick={() =>
                                         onPreviewImage?.({
                                             url:

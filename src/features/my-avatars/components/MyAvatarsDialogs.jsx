@@ -1,6 +1,6 @@
-import { ImageCropDialog } from '@/components/media/ImageCropDialog.jsx';
 import { AvatarDetailsDialog } from '@/components/dialogs/AvatarDetailsDialog.jsx';
 import { AvatarContentTagsDialog } from '@/components/dialogs/AvatarOwnerEditDialogs.jsx';
+import { ImageCropDialog } from '@/components/media/ImageCropDialog.jsx';
 
 import { ManageAvatarTagsDialog } from '../ManageAvatarTagsDialog.jsx';
 

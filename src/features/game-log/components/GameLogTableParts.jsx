@@ -18,10 +18,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
-import {
-    ToggleGroup,
-    ToggleGroupItem
-} from '@/ui/shadcn/toggle-group';
+import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { getGameLogLocationTarget } from '../gameLogRows.js';

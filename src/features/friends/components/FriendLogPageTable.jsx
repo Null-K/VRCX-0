@@ -26,7 +26,7 @@ export function FriendLogPageTable({
                 <DataTableScrollArea wideTable>
                     <DataTableColumnDndProvider table={table}>
                         <Table
-                            className="table-fixed min-w-full"
+                            className="min-w-full table-fixed"
                             style={getDataTableSizingStyle(table)}
                         >
                             <DataTableColumnSizeColGroup table={table} />

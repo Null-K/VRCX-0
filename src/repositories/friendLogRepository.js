@@ -83,8 +83,7 @@ async function upsertFriendLogCurrent(userId, entry) {
             '@user_id': entry.userId,
             '@display_name': entry.displayName ?? '',
             '@trust_level': entry.trustLevel ?? 'Visitor',
-            '@friend_number':
-                Number.parseInt(entry.friendNumber ?? 0, 10) || 0
+            '@friend_number': Number.parseInt(entry.friendNumber ?? 0, 10) || 0
         }
     );
 }

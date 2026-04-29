@@ -42,8 +42,7 @@ vi.mock('@/state/launchStore.js', () => ({
 
 vi.mock('react-i18next', () => {
     const translations = {
-        'component.region_code_badge.generated_dynamic.region_value':
-            'Region',
+        'component.region_code_badge.generated_dynamic.region_value': 'Region',
         'dialog.new_instance.access_type_friend_plus': 'Friends+',
         'dialog.new_instance.access_type_public': 'Public',
         'dialog.user.info.instance_closed': 'Instance closed',
@@ -73,11 +72,16 @@ vi.mock('@/ui/shadcn/tooltip', async () => {
     const React = await import('react');
 
     return {
-        Tooltip: ({ children }) => React.createElement(React.Fragment, null, children),
+        Tooltip: ({ children }) =>
+            React.createElement(React.Fragment, null, children),
         TooltipTrigger: ({ children }) =>
             React.createElement(React.Fragment, null, children),
         TooltipContent: ({ children }) =>
-            React.createElement('span', { 'data-tooltip-content': true }, children)
+            React.createElement(
+                'span',
+                { 'data-tooltip-content': true },
+                children
+            )
     };
 });
 

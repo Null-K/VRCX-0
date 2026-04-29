@@ -1,8 +1,8 @@
 import { Trash2Icon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { userImage } from '@/lib/entityMedia.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { toolsRepository } from '@/repositories/index.js';
@@ -85,7 +85,9 @@ export function NoteExportDialog({ open, onOpenChange }) {
             toast.error(
                 userFacingErrorMessage(
                     error,
-                    t('host.tools_dialogs.generated_toast.failed_to_load_memo_export_rows')
+                    t(
+                        'host.tools_dialogs.generated_toast.failed_to_load_memo_export_rows'
+                    )
                 )
             );
         } finally {

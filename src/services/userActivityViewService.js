@@ -1,7 +1,4 @@
-import {
-    activityRepository,
-    gameLogRepository
-} from '@/repositories/index.js';
+import { activityRepository, gameLogRepository } from '@/repositories/index.js';
 import { mergeSessions } from '@/shared/utils/activityEngine.js';
 import { runActivityWorkerTask } from '@/workers/activityWorkerRunner.js';
 

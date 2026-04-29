@@ -1,8 +1,8 @@
 import { PlusIcon, Trash2Icon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { avatarSearchProviderRepository } from '@/repositories/index.js';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -73,7 +73,9 @@ export function AvatarProviderSettingsDialog({
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.avatar_provider_settings.generated_toast.failed_to_save_avatar_providers')
+                    : t(
+                          'component.avatar_provider_settings.generated_toast.failed_to_save_avatar_providers'
+                      )
             );
         } finally {
             if (inFlightProviderListKeyRef.current === nextProviderListKey) {
@@ -131,7 +133,8 @@ export function AvatarProviderSettingsDialog({
                                 htmlFor={`avatar-provider-${index}`}
                                 className="sr-only"
                             >
-                                {t('view.search.generated.avatar_provider')} {index + 1}
+                                {t('view.search.generated.avatar_provider')}{' '}
+                                {index + 1}
                             </FieldLabel>
                             <InputGroup>
                                 <InputGroupInput

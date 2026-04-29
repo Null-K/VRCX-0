@@ -157,7 +157,8 @@ export function GroupModerationTabPanel({
                                     {t('dialog.group.generated.user')}
                                 </TableHead>
                                 <TableHead>
-                                    {t('dialog.group_member_moderation.roles')} /{' '}
+                                    {t('dialog.group_member_moderation.roles')}{' '}
+                                    /{' '}
                                     {t(
                                         'dialog.group_member_moderation.description'
                                     )}

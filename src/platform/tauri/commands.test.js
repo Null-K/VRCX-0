@@ -40,9 +40,9 @@ describe('tauri command mapping', () => {
             runProcessOnce: true
         });
         expect(toNamedArgs('app__get_host_capabilities', [])).toEqual({});
-        expect(toNamedArgs('app__get_legacy_vrcx_migration_status', [])).toEqual(
-            {}
-        );
+        expect(
+            toNamedArgs('app__get_legacy_vrcx_migration_status', [])
+        ).toEqual({});
         expect(
             toNamedArgs('asset_bundle__check_vrchat_cache', [
                 'file_abc',

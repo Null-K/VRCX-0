@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 
+import { clearEntityQueryCache } from '@/lib/entityQueryCache.js';
 import {
     authRepository,
     avatarProfileRepository,
@@ -21,7 +22,6 @@ import {
     applySavedAuthSnapshot,
     refreshSavedAuthSnapshot
 } from './authSnapshotService.js';
-import { clearEntityQueryCache } from '@/lib/entityQueryCache.js';
 import {
     buildAvatarWearSnapshotUpdate,
     flushCurrentAvatarWearTimer,

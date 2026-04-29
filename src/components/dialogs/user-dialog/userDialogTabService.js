@@ -61,7 +61,9 @@ async function loadFavoriteWorldCount({ endpoint, userId, repositories }) {
     );
     return worldListResults.reduce(
         (count, result) =>
-            result.status === 'fulfilled' ? count + countRows(result.value) : count,
+            result.status === 'fulfilled'
+                ? count + countRows(result.value)
+                : count,
         0
     );
 }
@@ -150,8 +152,7 @@ export async function loadUserDialogTabCounts({
         policy: entityQueryPolicies.userDialogTabCounts,
         force,
         queryFn: async () => {
-            const releaseStatus =
-                userId === currentUserId ? 'all' : 'public';
+            const releaseStatus = userId === currentUserId ? 'all' : 'public';
             const [groups, worlds, favoriteWorlds, avatars] =
                 await Promise.allSettled([
                     repositories.groupProfileRepository.getUserGroups({

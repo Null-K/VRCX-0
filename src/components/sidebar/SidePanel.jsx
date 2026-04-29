@@ -1,7 +1,7 @@
 import { forwardRef, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils.js';
 import { configRepository } from '@/repositories/index.js';
 import { refreshCurrentUserFriendsAndFavorites } from '@/services/backgroundMaintenanceService.js';
@@ -263,11 +263,21 @@ export const SidePanel = forwardRef(function SidePanel(
         () => [
             {
                 value: 'friends',
-                label: t('component.side_panel.generated_dynamic.value_value_value', { value: t('side_panel.friends'), value2: onlineIds.length, value3: totalFriendCount })
+                label: t(
+                    'component.side_panel.generated_dynamic.value_value_value',
+                    {
+                        value: t('side_panel.friends'),
+                        value2: onlineIds.length,
+                        value3: totalFriendCount
+                    }
+                )
             },
             {
                 value: 'groups',
-                label: t('component.side_panel.generated_dynamic.value_value', { value: t('side_panel.groups'), value2: groupInstances.length })
+                label: t('component.side_panel.generated_dynamic.value_value', {
+                    value: t('side_panel.groups'),
+                    value2: groupInstances.length
+                })
             }
         ],
         [groupInstances.length, onlineIds.length, t, totalFriendCount]
@@ -364,18 +374,28 @@ export const SidePanel = forwardRef(function SidePanel(
         }
         const auth = useRuntimeStore.getState().auth;
         if (!auth.currentUserId || !auth.currentUserSnapshot) {
-            toast.error(t('side_panel.generated.no_authenticated_user_snapshot_is_available'));
+            toast.error(
+                t(
+                    'side_panel.generated.no_authenticated_user_snapshot_is_available'
+                )
+            );
             return;
         }
         setIsRefreshing(true);
         try {
             await refreshCurrentUserFriendsAndFavorites();
-            toast.success(t('side_panel.generated.friend_and_favorite_snapshots_refreshed'));
+            toast.success(
+                t(
+                    'side_panel.generated.friend_and_favorite_snapshots_refreshed'
+                )
+            );
         } catch (error) {
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.side_panel.generated_toast.failed_to_refresh_friends')
+                    : t(
+                          'component.side_panel.generated_toast.failed_to_refresh_friends'
+                      )
             );
         } finally {
             setIsRefreshing(false);

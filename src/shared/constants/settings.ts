@@ -19,7 +19,8 @@ const VRChatCameraResolutions: VRChatResolution[] = [
     { name: '7680x4320 (8K)', width: 7680, height: 4320 }
 ];
 
-const GITHUB_RELEASES_URL = 'https://api.github.com/repos/Map1en/VRCX-0/releases';
+const GITHUB_RELEASES_URL =
+    'https://api.github.com/repos/Map1en/VRCX-0/releases';
 
 const branches = {
     Stable: {

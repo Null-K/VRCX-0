@@ -79,7 +79,9 @@ function normalizeApiInstanceUsers(...sources) {
             return;
         }
 
-        const userId = normalizeString(value.id || value.userId || value.user_id);
+        const userId = normalizeString(
+            value.id || value.userId || value.user_id
+        );
         const displayName = normalizeString(
             value.displayName ||
                 value.display_name ||

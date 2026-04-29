@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+
 import { Alert, AlertDescription } from '@/ui/shadcn/alert';
 import {
     Empty,
@@ -6,7 +7,6 @@ import {
     EmptyHeader,
     EmptyTitle
 } from '@/ui/shadcn/empty';
-
 import { Spinner } from '@/ui/shadcn/spinner';
 
 export function EntityListEmptyTitle(kind) {

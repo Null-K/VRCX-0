@@ -40,12 +40,11 @@ function splitGroupEvents(events) {
         }
     }
 
-    upcoming.sort((left, right) =>
-        eventTimeMs(left?.startsAt) - eventTimeMs(right?.startsAt)
+    upcoming.sort(
+        (left, right) =>
+            eventTimeMs(left?.startsAt) - eventTimeMs(right?.startsAt)
     );
-    past.sort(
-        (left, right) => eventEndTimeMs(right) - eventEndTimeMs(left)
-    );
+    past.sort((left, right) => eventEndTimeMs(right) - eventEndTimeMs(left));
 
     return { upcoming, past };
 }
@@ -168,7 +167,7 @@ export function GroupEventSummary({
                         key={`${getEventId(event) || 'event'}:${index}`}
                         type="button"
                         variant="ghost"
-                        className="h-auto w-full justify-start gap-3 rounded-md border bg-muted/10 p-2 text-left hover:bg-muted/25"
+                        className="bg-muted/10 hover:bg-muted/25 h-auto w-full justify-start gap-3 rounded-md border p-2 text-left"
                         onClick={onOpenEvents}
                     >
                         <span className="bg-muted flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-md">

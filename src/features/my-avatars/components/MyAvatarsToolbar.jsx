@@ -140,7 +140,9 @@ export function MyAvatarsToolbar({
                             aria-label={t(
                                 'view.my_avatars.generated.refresh_avatar_inventory'
                             )}
-                            disabled={!currentUserId || loadStatus === 'running'}
+                            disabled={
+                                !currentUserId || loadStatus === 'running'
+                            }
                             onClick={onRefresh}
                         >
                             {loadStatus === 'running' ? (
@@ -151,7 +153,9 @@ export function MyAvatarsToolbar({
                         </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                        {t('view.my_avatars.generated.refresh_avatar_inventory')}
+                        {t(
+                            'view.my_avatars.generated.refresh_avatar_inventory'
+                        )}
                     </TooltipContent>
                 </Tooltip>
             </div>

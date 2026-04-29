@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import {
     Dialog,
     DialogContent,
@@ -57,7 +57,7 @@ function InviteMessageDialog({
                 }
             }}
         >
-            <DialogContent className="flex max-h-[90vh] sm:max-w-[min(92vw,56rem)] flex-col">
+            <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-[min(92vw,56rem)]">
                 <DialogHeader>
                     <DialogTitle>
                         {title ||
@@ -114,7 +114,7 @@ function InviteMessageTemplatesDialog({
 
     return (
         <Dialog open={Boolean(open)} onOpenChange={onOpenChange}>
-            <DialogContent className="flex max-h-[90vh] sm:max-w-[min(92vw,64rem)] flex-col">
+            <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-[min(92vw,64rem)]">
                 <DialogHeader>
                     <DialogTitle>
                         {t('dialog.edit_invite_messages.header')}
@@ -131,7 +131,10 @@ function InviteMessageTemplatesDialog({
                     >
                         <TabsList className="flex-wrap">
                             {INVITE_MESSAGE_TYPES.map((entry) => (
-                                <TabsTrigger key={entry.type} value={entry.type}>
+                                <TabsTrigger
+                                    key={entry.type}
+                                    value={entry.type}
+                                >
                                     {t(entry.labelKey)}
                                 </TabsTrigger>
                             ))}

@@ -92,7 +92,10 @@ async function executePut(
     });
 }
 
-async function executeDelete(path: string, { endpoint = '' }: RequestOptions = {}) {
+async function executeDelete(
+    path: string,
+    { endpoint = '' }: RequestOptions = {}
+) {
     return executeVrchatRequest(path, {
         endpoint,
         method: 'DELETE',

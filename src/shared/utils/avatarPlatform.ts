@@ -7,9 +7,8 @@ interface UnityPackage {
 
 function normalizeUnityPackages(unityPackages: unknown): UnityPackage[] {
     return Array.isArray(unityPackages)
-        ? unityPackages.filter(
-              (unityPackage): unityPackage is UnityPackage =>
-                  Boolean(unityPackage && typeof unityPackage === 'object')
+        ? unityPackages.filter((unityPackage): unityPackage is UnityPackage =>
+              Boolean(unityPackage && typeof unityPackage === 'object')
           )
         : [];
 }

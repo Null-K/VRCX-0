@@ -16,10 +16,7 @@ import { useFriendRosterStore } from '@/state/friendRosterStore.js';
 import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { Button } from '@/ui/shadcn/button';
-import {
-    Collapsible,
-    CollapsibleTrigger
-} from '@/ui/shadcn/collapsible';
+import { Collapsible, CollapsibleTrigger } from '@/ui/shadcn/collapsible';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -493,12 +490,7 @@ export function GroupsSidebar() {
     function renderVirtualRow(row) {
         switch (row?.type) {
             case 'group-header':
-                return (
-                    <GroupHeaderRow
-                        row={row}
-                        onToggleGroup={toggleGroup}
-                    />
-                );
+                return <GroupHeaderRow row={row} onToggleGroup={toggleGroup} />;
             case 'message':
                 return (
                     <div className="text-muted-foreground rounded-md border border-dashed p-3 text-xs">
@@ -542,9 +534,7 @@ export function GroupsSidebar() {
                     {virtualItems.map((item) => (
                         <div
                             key={item.key}
-                            ref={(element) =>
-                                measureElement(item.key, element)
-                            }
+                            ref={(element) => measureElement(item.key, element)}
                             className="absolute top-0 left-0 w-full"
                             style={{ transform: `translateY(${item.start}px)` }}
                         >

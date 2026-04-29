@@ -148,7 +148,10 @@ function normalizeV2Notification(row: NotificationRow): NotificationRecord {
     };
 }
 
-function matchesSearch(notification: NotificationRecord, search: string): boolean {
+function matchesSearch(
+    notification: NotificationRecord,
+    search: string
+): boolean {
     const query = String(search || '')
         .trim()
         .toLowerCase();
@@ -177,7 +180,10 @@ function matchesSearch(notification: NotificationRecord, search: string): boolea
     );
 }
 
-function matchesFilters(notification: NotificationRecord, filters: unknown): boolean {
+function matchesFilters(
+    notification: NotificationRecord,
+    filters: unknown
+): boolean {
     const normalizedFilters = Array.isArray(filters)
         ? filters.map((value) => String(value || '').trim()).filter(Boolean)
         : [];
@@ -313,7 +319,9 @@ async function queryNotifications({
 
     return Array.from(deduped.values())
         .filter((notification) => notification.id)
-        .filter((notification) => matchesFilters(notification, normalizedFilters))
+        .filter((notification) =>
+            matchesFilters(notification, normalizedFilters)
+        )
         .filter((notification) => matchesSearch(notification, normalizedSearch))
         .sort((left, right) => {
             const leftTime = new Date(left.createdAt || 0).valueOf() || 0;

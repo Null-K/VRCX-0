@@ -1,5 +1,5 @@
-import { subscribeSQLiteError } from '@/shared/sqliteErrorEvents.js';
 import i18n from '@/services/i18nService.js';
+import { subscribeSQLiteError } from '@/shared/sqliteErrorEvents.js';
 import { useModalStore } from '@/state/modalStore.js';
 
 const SQLITE_ERROR_DIALOGS = {

@@ -1,6 +1,6 @@
 import { Settings2Icon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { Button } from '@/ui/shadcn/button';
 import {
     ContextMenu,
@@ -11,7 +11,6 @@ import {
     ContextMenuSeparator,
     ContextMenuTrigger
 } from '@/ui/shadcn/context-menu';
-
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -22,6 +21,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
+
 import {
     getColumnOrderLocked,
     getToggleableColumns,
@@ -104,9 +104,7 @@ export function TableColumnVisibilityMenu({
                                             checked === true
                                         )
                                     }
-                                    onSelect={(event) =>
-                                        event.preventDefault()
-                                    }
+                                    onSelect={(event) => event.preventDefault()}
                                 >
                                     <span className="min-w-0 flex-1 truncate">
                                         {resolveColumnLabel(column)}

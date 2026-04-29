@@ -1,10 +1,10 @@
 import { toast } from 'sonner';
 
+import { webRepository } from '@/repositories/index.js';
 import {
     isVrchatMissingCredentialsError,
     setVrchatAuthFailureHandler
 } from '@/repositories/vrchatRequest.js';
-import { webRepository } from '@/repositories/index.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useSessionStore } from '@/state/sessionStore.js';
 
@@ -26,8 +26,8 @@ function shouldHandleRuntimeAuthFailure(error) {
     const runtimeState = useRuntimeStore.getState();
     return Boolean(
         sessionState.sessionPhase === 'ready' &&
-            sessionState.isLoggedIn &&
-            runtimeState.auth.currentUserId
+        sessionState.isLoggedIn &&
+        runtimeState.auth.currentUserId
     );
 }
 

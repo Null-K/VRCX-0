@@ -47,10 +47,7 @@ export function buildDashboardNavDefinitions(dashboards = []) {
         .filter((dashboard) => dashboard?.id)
         .map((dashboard) => ({
             key: `${DASHBOARD_NAV_KEY_PREFIX}${dashboard.id}`,
-            icon: normalizeNavIconKey(
-                dashboard.icon,
-                DEFAULT_DASHBOARD_ICON
-            ),
+            icon: normalizeNavIconKey(dashboard.icon, DEFAULT_DASHBOARD_ICON),
             tooltip: dashboard.name || 'Dashboard',
             labelKey: dashboard.name || 'Dashboard',
             titleIsCustom: true,
@@ -363,10 +360,7 @@ export function buildMenuItems(layout, definitionMap, t) {
             if (children.length) {
                 items.push({
                     index: entry.id,
-                    icon: normalizeNavIconKey(
-                        entry.icon,
-                        DEFAULT_FOLDER_ICON
-                    ),
+                    icon: normalizeNavIconKey(entry.icon, DEFAULT_FOLDER_ICON),
                     title:
                         entry.name?.trim() ||
                         t('nav_menu.custom_nav.folder_name_placeholder'),

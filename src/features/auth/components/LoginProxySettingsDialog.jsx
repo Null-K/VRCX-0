@@ -1,10 +1,10 @@
 import { NetworkIcon } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import {
     DEFAULT_ENDPOINT_DOMAIN,
     DEFAULT_WEBSOCKET_DOMAIN
 } from '@/repositories/vrchatAuthRepository.js';
-import { useTranslation } from 'react-i18next';
 import { Button } from '@/ui/shadcn/button';
 import { Checkbox } from '@/ui/shadcn/checkbox';
 import {
@@ -30,7 +30,8 @@ export function LoginProxySettingsDialog({
 }) {
     const { t } = useTranslation();
     const { open, setOpen, proxyInput, setProxyInput } = state;
-    const { isSavingProxySettings, isUpdatingEndpointSetting, isAuthBusy } = flags;
+    const { isSavingProxySettings, isUpdatingEndpointSetting, isAuthBusy } =
+        flags;
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>

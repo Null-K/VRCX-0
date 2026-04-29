@@ -268,8 +268,7 @@ export function buildFavoriteRemoteItemsByGroup({
         }
 
         const detail = remoteEntityDetailsData[favoriteId];
-        const isUnavailable =
-            remoteEntityDetailsStatus === 'ready' && !detail;
+        const isUnavailable = remoteEntityDetailsStatus === 'ready' && !detail;
         const playerCount = Number(detail?.occupants) || 0;
         const subtitle =
             kind === 'world'
@@ -277,7 +276,11 @@ export function buildFavoriteRemoteItemsByGroup({
                     ? playerCount
                         ? `${detail.authorName} (${playerCount})`
                         : detail.authorName
-                    : defaultFavoriteDetailSubtitle(kind, isUnavailable, translate)
+                    : defaultFavoriteDetailSubtitle(
+                          kind,
+                          isUnavailable,
+                          translate
+                      )
                 : detail?.authorName ||
                   defaultFavoriteDetailSubtitle(kind, isUnavailable, translate);
 
@@ -376,7 +379,8 @@ export function buildFavoriteLocalItemsByGroup({
                 groupKey: group.key,
                 groupLabel: group.label,
                 id: normalizedId,
-                title: detail.name || defaultFavoriteEntityTitle(kind, translate),
+                title:
+                    detail.name || defaultFavoriteEntityTitle(kind, translate),
                 subtitle: detail.authorName || '',
                 description: detail.description || '',
                 seedData: detail || null,

@@ -52,11 +52,7 @@ function clonePanel(panel: unknown): DashboardPanel | null {
         return panel;
     }
 
-    if (
-        isRecord(panel) &&
-        typeof panel.key === 'string' &&
-        panel.key
-    ) {
+    if (isRecord(panel) && typeof panel.key === 'string' && panel.key) {
         return {
             key: panel.key,
             config:
@@ -159,7 +155,9 @@ async function getDashboards(): Promise<Dashboard[]> {
     }
 }
 
-async function saveDashboards(dashboards: unknown[] = []): Promise<Dashboard[]> {
+async function saveDashboards(
+    dashboards: unknown[] = []
+): Promise<Dashboard[]> {
     const sanitizedDashboards = (Array.isArray(dashboards) ? dashboards : [])
         .map((dashboard) => sanitizeDashboard(dashboard))
         .filter((dashboard): dashboard is Dashboard => Boolean(dashboard));

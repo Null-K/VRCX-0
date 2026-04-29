@@ -1,6 +1,6 @@
 import { BellIcon, XIcon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { useNotificationStore } from '@/state/notificationStore.js';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -41,12 +41,16 @@ export function NotificationHost() {
                         </Badge>
                     </div>
                     <SheetDescription>
-                        {t('dialog.tools.generated.backend_events_and_system_messages_land_here')}
+                        {t(
+                            'dialog.tools.generated.backend_events_and_system_messages_land_here'
+                        )}
                     </SheetDescription>
                 </SheetHeader>
                 <div className="mt-6 flex items-center justify-between gap-3">
                     <div className="text-muted-foreground text-xs">
-                        {t('dialog.tools.generated.notifications_are_surfaced_from_the_top_level_status_bar')}
+                        {t(
+                            'dialog.tools.generated.notifications_are_surfaced_from_the_top_level_status_bar'
+                        )}
                     </div>
                     <Button size="sm" variant="outline" onClick={markAllRead}>
                         {t('dialog.tools.generated.mark_all_read')}
@@ -73,7 +77,7 @@ export function NotificationHost() {
                                         type="button"
                                         size="icon-sm"
                                         variant="ghost"
-                                        aria-label={"Dismiss notification"}
+                                        aria-label={'Dismiss notification'}
                                         onClick={() =>
                                             dismissNotification(item.id)
                                         }

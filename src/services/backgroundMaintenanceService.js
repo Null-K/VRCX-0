@@ -8,6 +8,9 @@ import {
     vrchatAuthRepository,
     vrchatModerationRepository
 } from '@/repositories/index.js';
+import { clearFavoriteRemoteDetailsCache } from '@/services/favoriteRemoteDetailsCacheService.js';
+import { isHostCapabilityAvailable } from '@/services/hostCapabilityService.js';
+import i18n from '@/services/i18nService.js';
 import {
     canInstallUpdatesOnPlatform,
     checkInstallableUpdate,
@@ -17,9 +20,6 @@ import {
     hasUpdateForBranch,
     sanitizeBranch
 } from '@/services/updateService.js';
-import { clearFavoriteRemoteDetailsCache } from '@/services/favoriteRemoteDetailsCacheService.js';
-import i18n from '@/services/i18nService.js';
-import { isHostCapabilityAvailable } from '@/services/hostCapabilityService.js';
 import { parseLocation } from '@/shared/utils/locationParser.js';
 import { useFavoriteStore } from '@/state/favoriteStore.js';
 import { useFriendRosterStore } from '@/state/friendRosterStore.js';
@@ -28,11 +28,11 @@ import { useNotificationStore } from '@/state/notificationStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useSessionStore } from '@/state/sessionStore.js';
 
-import { refreshDiscordPresence as updateDiscordPresence } from './discordPresenceService.js';
 import {
     buildAvatarWearSnapshotUpdate,
     persistAvatarWearTransition
 } from './avatarWearTimeService.js';
+import { refreshDiscordPresence as updateDiscordPresence } from './discordPresenceService.js';
 import { bootstrapFavorites } from './favoriteBootstrapService.js';
 import {
     bootstrapFriendRoster,
@@ -346,7 +346,9 @@ export async function refreshCurrentUser() {
     useRuntimeStore.getState().setAuthBootstrap({
         currentUserId: nextSnapshot.id,
         currentUserDisplayName:
-            nextSnapshot.displayName || nextSnapshot.username || nextSnapshot.id,
+            nextSnapshot.displayName ||
+            nextSnapshot.username ||
+            nextSnapshot.id,
         currentUserEndpoint,
         currentUserWebsocket,
         currentUserSnapshot: nextSnapshot
@@ -804,10 +806,9 @@ async function checkAutoBackupRestoreVrcRegistry() {
         title: i18n.t(
             'service.background_maintenance.generated.vrchat_registry_backup'
         ),
-        description:
-            i18n.t(
-                'service.background_maintenance.generated.registry_backup_restore_description'
-            )
+        description: i18n.t(
+            'service.background_maintenance.generated.registry_backup_restore_description'
+        )
     });
     useRuntimeStore.getState().setSystemHostOpen('registryBackupOpen', true);
     await backend.app.FocusWindow().catch(() => {});

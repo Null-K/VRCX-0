@@ -1,24 +1,21 @@
 import { useNotificationStore } from '@/state/notificationStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useSessionStore } from '@/state/sessionStore.js';
-import {
-    DEFAULT_TIME_UNIT_LABELS,
-    useShellStore
-} from '@/state/shellStore.js';
+import { DEFAULT_TIME_UNIT_LABELS, useShellStore } from '@/state/shellStore.js';
 
 import { bootstrapActivityCache } from './activityCacheService.js';
+import { startRuntimeAuthFailureRecovery } from './authSessionRecoveryService.js';
 import { bindBackendEvents } from './backendEventService.js';
 import { refreshPlayerModerations } from './backgroundMaintenanceService.js';
 import { bootstrapFavorites } from './favoriteBootstrapService.js';
 import { bootstrapFriendRoster } from './friendBootstrapService.js';
 import { stopGameStateService } from './gameStateService.js';
+import { getTimeUnitLabels, setI18nLanguage } from './i18nService.js';
 import {
     startRealtimeTransport,
     stopRealtimeTransport
 } from './realtimeTransportService.js';
-import { getTimeUnitLabels, setI18nLanguage } from './i18nService.js';
 import { initializeReactRuntime } from './startupService.js';
-import { startRuntimeAuthFailureRecovery } from './authSessionRecoveryService.js';
 import { applyThemeMode } from './themeService.js';
 import { startRuntimeUpdateLoop } from './updateLoopService.js';
 import { startVrcStatusPolling } from './vrcStatusService.js';

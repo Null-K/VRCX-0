@@ -1,6 +1,6 @@
 import { ArrowLeftIcon, ArrowRightIcon } from 'lucide-react';
-
 import { useTranslation } from 'react-i18next';
+
 import { KeyboardShortcut } from '@/components/keyboard/KeyboardShortcut.jsx';
 import { Button } from '@/ui/shadcn/button';
 import {
@@ -30,7 +30,7 @@ export function SearchPagination({
                         type="button"
                         variant="outline"
                         size="sm"
-                        aria-label={"Previous search page"}
+                        aria-label={'Previous search page'}
                         disabled={prevDisabled}
                         onClick={onPrev}
                     >
@@ -44,7 +44,7 @@ export function SearchPagination({
                         type="button"
                         variant="outline"
                         size="sm"
-                        aria-label={"Next search page"}
+                        aria-label={'Next search page'}
                         disabled={nextDisabled}
                         onClick={onNext}
                     >

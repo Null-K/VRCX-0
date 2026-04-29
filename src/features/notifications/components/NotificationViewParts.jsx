@@ -19,14 +19,11 @@ import {
     XIcon
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
-import { useTranslation } from 'react-i18next';
 import { Location } from '@/components/Location.jsx';
-import {
-    mediaRepository,
-    NOTIFICATION_TYPES
-} from '@/repositories/index.js';
+import { mediaRepository, NOTIFICATION_TYPES } from '@/repositories/index.js';
 import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
@@ -47,9 +44,7 @@ import { Input } from '@/ui/shadcn/input';
 import { Spinner } from '@/ui/shadcn/spinner';
 
 import { getFileImageUrl } from '../notificationRows.js';
-import {
-    sanitizeNotificationFilters
-} from '../notificationTableState.js';
+import { sanitizeNotificationFilters } from '../notificationTableState.js';
 
 export function getResponseIcon(response, notificationType) {
     if (response?.type === 'link') {
@@ -310,7 +305,7 @@ export function BoopReplyDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="flex max-h-[90vh] sm:max-w-[min(92vw,46rem)] flex-col">
+            <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-[min(92vw,46rem)]">
                 <DialogHeader>
                     <DialogTitle>
                         {t('view.notification.generated.send_boop')}
@@ -320,7 +315,9 @@ export function BoopReplyDialog({
                 <div className="flex flex-col gap-3">
                     {!emojiId ? (
                         <div className="text-muted-foreground rounded-md border p-3 text-sm">
-                            {t('view.notification.generated.no_custom_emoji_selected_the_default_boop_will_be_sent')}
+                            {t(
+                                'view.notification.generated.no_custom_emoji_selected_the_default_boop_will_be_sent'
+                            )}
                         </div>
                     ) : null}
                     {isLocalUserVrcPlusSupporter ? (
@@ -328,7 +325,9 @@ export function BoopReplyDialog({
                             <div className="flex flex-wrap items-center gap-2">
                                 <Input
                                     value={emojiSearch}
-                                    placeholder={t('view.notification.generated.search_emoji')}
+                                    placeholder={t(
+                                        'view.notification.generated.search_emoji'
+                                    )}
                                     disabled={sending}
                                     className="h-9 min-w-48 flex-1"
                                     onChange={(event) =>
@@ -342,14 +341,18 @@ export function BoopReplyDialog({
                                     disabled={sending || !emojiId}
                                     onClick={() => setEmojiId('')}
                                 >
-                                    {t('view.notification.generated.clear_selection')}
+                                    {t(
+                                        'view.notification.generated.clear_selection'
+                                    )}
                                 </Button>
                             </div>
                             <div className="max-h-[48vh] min-h-0 overflow-y-auto rounded-md border p-2">
                                 {loading ? (
                                     <div className="text-muted-foreground flex h-28 items-center justify-center gap-2 text-sm">
                                         <Spinner className="size-4" />
-                                        {t('view.notification.generated.loading_emojis')}
+                                        {t(
+                                            'view.notification.generated.loading_emojis'
+                                        )}
                                     </div>
                                 ) : filteredEmojiRows.length ? (
                                     <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-2">

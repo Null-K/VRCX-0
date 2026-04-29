@@ -95,14 +95,19 @@ function normalizePlayerModerationRow(row: unknown) {
 }
 
 function normalizeUserId(value: unknown): string {
-    return typeof value === 'string' ? value.trim() : String(value ?? '').trim();
+    return typeof value === 'string'
+        ? value.trim()
+        : String(value ?? '').trim();
 }
 
 function asSQLiteValue(value: unknown): SQLiteValue {
     return value as SQLiteValue;
 }
 
-async function executeGet(path: string, { endpoint = '' }: RequestOptions = {}) {
+async function executeGet(
+    path: string,
+    { endpoint = '' }: RequestOptions = {}
+) {
     return executeVrchatRequest(path, {
         endpoint,
         method: 'GET',
@@ -200,7 +205,10 @@ async function getLocalModerationRow(ownerUserId: unknown, userId: unknown) {
     };
 }
 
-async function setLocalModerationRow(ownerUserId: unknown, entry: SaveLocalModerationInput) {
+async function setLocalModerationRow(
+    ownerUserId: unknown,
+    entry: SaveLocalModerationInput
+) {
     const normalizedOwnerUserId = normalizeUserId(ownerUserId);
     if (!normalizedOwnerUserId || !entry?.userId) {
         return;

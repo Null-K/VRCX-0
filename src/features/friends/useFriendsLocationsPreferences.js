@@ -149,7 +149,10 @@ export function useFriendsLocationsPreferences() {
     function changeShowSameInstance(value) {
         const nextValue = Boolean(value);
         setShowSameInstance(nextValue);
-        void configRepository.setBool('FriendLocationShowSameInstance', nextValue);
+        void configRepository.setBool(
+            'FriendLocationShowSameInstance',
+            nextValue
+        );
     }
 
     function changeDensityPreference(value) {

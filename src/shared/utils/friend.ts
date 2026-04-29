@@ -22,7 +22,9 @@ type FriendSortMethod =
 type FriendSortItem = Record<string, any>;
 type FriendComparator = (a: FriendSortItem, b: FriendSortItem) => number;
 
-function getFriendsSortFunction(sortMethods: FriendSortMethod[]): FriendComparator {
+function getFriendsSortFunction(
+    sortMethods: FriendSortMethod[]
+): FriendComparator {
     const sorts: FriendComparator[] = [];
     for (const sortMethod of sortMethods) {
         switch (sortMethod) {

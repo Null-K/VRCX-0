@@ -264,8 +264,9 @@ async function createLocalFavoriteGroup({
 }
 
 async function getWorldFavorites() {
-    const rows =
-        await sqliteRepository.query<SQLiteRow>('SELECT * FROM favorite_world');
+    const rows = await sqliteRepository.query<SQLiteRow>(
+        'SELECT * FROM favorite_world'
+    );
     return Array.isArray(rows) ? rows.map(normalizeWorldFavoriteRow) : [];
 }
 
@@ -284,14 +285,16 @@ async function getFriendFavorites() {
 }
 
 async function getWorldCache() {
-    const rows =
-        await sqliteRepository.query<SQLiteRow>('SELECT * FROM cache_world');
+    const rows = await sqliteRepository.query<SQLiteRow>(
+        'SELECT * FROM cache_world'
+    );
     return Array.isArray(rows) ? rows.map(normalizeWorldCacheRow) : [];
 }
 
 async function getAvatarCache() {
-    const rows =
-        await sqliteRepository.query<SQLiteRow>('SELECT * FROM cache_avatar');
+    const rows = await sqliteRepository.query<SQLiteRow>(
+        'SELECT * FROM cache_avatar'
+    );
     return Array.isArray(rows) ? rows.map(normalizeAvatarCacheRow) : [];
 }
 

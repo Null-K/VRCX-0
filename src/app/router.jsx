@@ -1,10 +1,4 @@
-import {
-    HashRouter,
-    Navigate,
-    Outlet,
-    Route,
-    Routes,
-} from 'react-router-dom';
+import { HashRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom';
 
 import { GlobalHosts } from '@/components/hosts/GlobalHosts.jsx';
 import { AppShellLayout } from '@/components/layout/AppShellLayout.jsx';

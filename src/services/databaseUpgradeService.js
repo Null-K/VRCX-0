@@ -6,10 +6,10 @@ import {
     databaseMaintenanceRepository
 } from '@/repositories/index.js';
 import sqliteRepository from '@/repositories/sqliteRepository.js';
+import i18n from '@/services/i18nService.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useSessionStore } from '@/state/sessionStore.js';
-import i18n from '@/services/i18nService.js';
 
 import { showSQLiteErrorDialog } from './sqliteErrorDialogService.js';
 
@@ -54,9 +54,7 @@ async function blockOnFailedUpgrade(failedUpgrade) {
     });
 
     await useModalStore.getState().alert({
-        title: i18n.t(
-            'message.database.upgrade_failed_title'
-        ),
+        title: i18n.t('message.database.upgrade_failed_title'),
         description: failedUpgradeDescription(failedUpgrade),
         dismissible: false
     });
@@ -122,7 +120,10 @@ async function runFullDatabaseUpgrade() {
             phase: 'running',
             fromVersion: currentVersion,
             toVersion: DATABASE_VERSION,
-            detail: i18n.t('service.database_upgrade_service.generated_dynamic.updating_database_from_value_to_value', { value: currentVersion, value2: DATABASE_VERSION }),
+            detail: i18n.t(
+                'service.database_upgrade_service.generated_dynamic.updating_database_from_value_to_value',
+                { value: currentVersion, value2: DATABASE_VERSION }
+            ),
             legacyMigrationAvailable: false
         });
 
@@ -185,9 +186,7 @@ async function runFullDatabaseUpgrade() {
             detail: description
         });
         await useModalStore.getState().alert({
-            title: i18n.t(
-                'message.database.upgrade_failed_title'
-            ),
+            title: i18n.t('message.database.upgrade_failed_title'),
             description,
             dismissible: false
         });

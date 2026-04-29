@@ -411,9 +411,7 @@ export function bootstrapFriendRoster(options) {
 
     const promise = runFriendBootstrap(options)
         .catch((error) => {
-            if (
-                isCurrentBootstrapTarget(normalizedUserId, options?.endpoint)
-            ) {
+            if (isCurrentBootstrapTarget(normalizedUserId, options?.endpoint)) {
                 useFriendRosterStore
                     .getState()
                     .setRosterError(

@@ -1,11 +1,6 @@
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle
-} from '@/ui/shadcn/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import { Switch } from '@/ui/shadcn/switch';
 
 import { Field } from '../SettingsField.jsx';
@@ -70,9 +65,7 @@ export function SettingsAdvancedTab({
                     >
                         <Switch
                             checked={prefs.relaunchVRChatAfterCrash}
-                            onCheckedChange={
-                                onRelaunchVRChatAfterCrashChange
-                            }
+                            onCheckedChange={onRelaunchVRChatAfterCrashChange}
                         />
                     </Field>
 

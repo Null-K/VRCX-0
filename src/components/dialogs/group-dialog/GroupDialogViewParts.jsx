@@ -25,7 +25,7 @@ export function GroupTitleLanguages({ languages, limit = Infinity }) {
     const hiddenLabel = hiddenLanguages.map(languageOptionLabel).join(', ');
 
     return (
-        <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1">
+        <span className="inline-flex max-w-full min-w-0 flex-wrap items-center gap-1">
             {visibleLanguages.map((language) => {
                 const key = String(
                     language?.key || language?.value || ''

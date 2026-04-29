@@ -21,7 +21,8 @@ export const DASHBOARD_WIDGET_DEFINITIONS = [
         key: 'widget:game-log',
         category: 'widget',
         labelKey: 'dashboard.registry.game_log_widget',
-        descriptionKey: 'dashboard.registry.compact_game_log_widget_configuration',
+        descriptionKey:
+            'dashboard.registry.compact_game_log_widget_configuration',
         path: '/game-log',
         defaultConfig: { filters: [] }
     },
@@ -29,7 +30,8 @@ export const DASHBOARD_WIDGET_DEFINITIONS = [
         key: 'widget:instance',
         category: 'widget',
         labelKey: 'dashboard.registry.instance_widget',
-        descriptionKey: 'dashboard.registry.compact_in_game_status_widget_configuration',
+        descriptionKey:
+            'dashboard.registry.compact_in_game_status_widget_configuration',
         path: '/player-list',
         defaultConfig: { columns: ['icon', 'displayName', 'timer'] }
     }
@@ -37,7 +39,11 @@ export const DASHBOARD_WIDGET_DEFINITIONS = [
 
 export const DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS = Object.freeze([
     { key: 'icon', labelKey: 'dashboard.registry.icon' },
-    { key: 'displayName', labelKey: 'dashboard.registry.display_name', required: true },
+    {
+        key: 'displayName',
+        labelKey: 'dashboard.registry.display_name',
+        required: true
+    },
     { key: 'rank', labelKey: 'dashboard.registry.rank' },
     { key: 'timer', labelKey: 'dashboard.registry.timer' },
     { key: 'platform', labelKey: 'dashboard.registry.platform' },

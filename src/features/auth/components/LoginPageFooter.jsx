@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+
 import { Button } from '@/ui/shadcn/button';
 
 export function LoginPageFooter({ onOpenGithub, onOpenDiscord }) {

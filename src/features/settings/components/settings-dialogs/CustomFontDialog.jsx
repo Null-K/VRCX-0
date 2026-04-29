@@ -20,63 +20,63 @@ export function CustomFontDialog({
     onSave: saveCustomFontFamily
 }) {
     return (
-            <Dialog
-                open={customFontDialogOpen}
-                onOpenChange={setCustomFontDialogOpen}
-            >
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>
-                            {t(
-                                'view.settings.appearance.appearance.font_family_custom_dialog_title'
-                            )}
-                        </DialogTitle>
-                        <DialogDescription>
-                            {t(
-                                'view.settings.appearance.appearance.font_family_custom_dialog_description'
-                            )}
-                        </DialogDescription>
-                    </DialogHeader>
-                    <FieldGroup>
-                        <Field
-                            label={t(
-                                'view.settings.appearance.appearance.font_family_custom'
-                            )}
-                            controlId="settings-custom-font-family"
-                        >
-                            <Input
-                                id="settings-custom-font-family"
-                                value={customFontDraft}
-                                name="customFontFamily"
-                                placeholder="'My Font', Arial, sans-serif"
-                                onChange={(event) =>
-                                    setCustomFontDraft(event.target.value)
+        <Dialog
+            open={customFontDialogOpen}
+            onOpenChange={setCustomFontDialogOpen}
+        >
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>
+                        {t(
+                            'view.settings.appearance.appearance.font_family_custom_dialog_title'
+                        )}
+                    </DialogTitle>
+                    <DialogDescription>
+                        {t(
+                            'view.settings.appearance.appearance.font_family_custom_dialog_description'
+                        )}
+                    </DialogDescription>
+                </DialogHeader>
+                <FieldGroup>
+                    <Field
+                        label={t(
+                            'view.settings.appearance.appearance.font_family_custom'
+                        )}
+                        controlId="settings-custom-font-family"
+                    >
+                        <Input
+                            id="settings-custom-font-family"
+                            value={customFontDraft}
+                            name="customFontFamily"
+                            placeholder="'My Font', Arial, sans-serif"
+                            onChange={(event) =>
+                                setCustomFontDraft(event.target.value)
+                            }
+                            onKeyDown={(event) => {
+                                if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    void saveCustomFontFamily();
                                 }
-                                onKeyDown={(event) => {
-                                    if (event.key === 'Enter') {
-                                        event.preventDefault();
-                                        void saveCustomFontFamily();
-                                    }
-                                }}
-                            />
-                        </Field>
-                    </FieldGroup>
-                    <DialogFooter>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => setCustomFontDialogOpen(false)}
-                        >
-                            {t('dialog.alertdialog.cancel')}
-                        </Button>
-                        <Button
-                            type="button"
-                            onClick={() => void saveCustomFontFamily()}
-                        >
-                            {t('dialog.alertdialog.ok')}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+                            }}
+                        />
+                    </Field>
+                </FieldGroup>
+                <DialogFooter>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setCustomFontDialogOpen(false)}
+                    >
+                        {t('dialog.alertdialog.cancel')}
+                    </Button>
+                    <Button
+                        type="button"
+                        onClick={() => void saveCustomFontFamily()}
+                    >
+                        {t('dialog.alertdialog.ok')}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }

@@ -7,9 +7,9 @@ import {
     XCircleIcon
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { formatDateFilter } from '@/lib/dateTime.js';
 import { cn } from '@/lib/utils.js';
 import { instanceRepository } from '@/repositories/index.js';
@@ -205,13 +205,23 @@ function InstanceInfoTooltip({
                         {platformCount(instance, 'ios')}
                     </div>
                     {instance?.gameServerVersion ? (
-                        <div>{t('dialog.instance.generated.game_version')} {instance.gameServerVersion}</div>
+                        <div>
+                            {t('dialog.instance.generated.game_version')}{' '}
+                            {instance.gameServerVersion}
+                        </div>
                     ) : null}
                     {instance?.queueEnabled ? (
-                        <div>{t('dialog.instance.generated.instance_queuing_enabled')}</div>
+                        <div>
+                            {t(
+                                'dialog.instance.generated.instance_queuing_enabled'
+                            )}
+                        </div>
                     ) : null}
                     {disabledContent ? (
-                        <div>{t('dialog.instance.generated.disabled_content')} {disabledContent}</div>
+                        <div>
+                            {t('dialog.instance.generated.disabled_content')}{' '}
+                            {disabledContent}
+                        </div>
                     ) : null}
                 </div>
             </TooltipContent>
@@ -345,7 +355,9 @@ export function InstanceActionBar({
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.instance_action_bar.generated_toast.failed_to_send_self_invite')
+                    : t(
+                          'component.instance_action_bar.generated_toast.failed_to_send_self_invite'
+                      )
             );
         } finally {
             setBusy('');
@@ -388,7 +400,9 @@ export function InstanceActionBar({
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.instance_action_bar.generated_toast.failed_to_refresh_instance')
+                    : t(
+                          'component.instance_action_bar.generated_toast.failed_to_refresh_instance'
+                      )
             );
         } finally {
             setBusy('');
@@ -402,7 +416,9 @@ export function InstanceActionBar({
         const requestLocation = resolvedInstanceLocation;
         const requestEndpoint = endpoint;
         const result = await confirm({
-            title: t('component.instance_action_bar.generated_modal.close_instance'),
+            title: t(
+                'component.instance_action_bar.generated_modal.close_instance'
+            ),
             description: requestLocation,
             confirmText: t('common.actions.close'),
             cancelText: t('common.actions.cancel'),
@@ -433,7 +449,9 @@ export function InstanceActionBar({
             toast.error(
                 error instanceof Error
                     ? error.message
-                    : t('component.instance_action_bar.generated_toast.failed_to_close_instance')
+                    : t(
+                          'component.instance_action_bar.generated_toast.failed_to_close_instance'
+                      )
             );
         } finally {
             setBusy('');
@@ -453,9 +471,7 @@ export function InstanceActionBar({
             <span
                 className={cn(
                     'inline-block min-w-[5ch] tabular-nums',
-                    instanceCountAlign === 'left'
-                        ? 'text-left'
-                        : 'text-right'
+                    instanceCountAlign === 'left' ? 'text-left' : 'text-right'
                 )}
             >
                 {hasUserCount ? resolvedUserCount : '—'}

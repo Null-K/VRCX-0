@@ -1,7 +1,7 @@
 import { useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
-import { useTranslation } from 'react-i18next';
 import { backend } from '@/platform/index.js';
 import { directAccessParse } from '@/services/directAccessService.js';
 import { useModalStore } from '@/state/modalStore.js';
@@ -56,9 +56,9 @@ export function useDirectAccessAction() {
 
         busyRef.current = true;
         try {
-            const clipboardText = await backend.app.GetClipboard().catch(
-                () => ''
-            );
+            const clipboardText = await backend.app
+                .GetClipboard()
+                .catch(() => '');
             const input =
                 typeof clipboardText === 'string' ? clipboardText.trim() : '';
             if (input) {

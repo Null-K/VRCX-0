@@ -158,7 +158,11 @@ function normalize(group: GroupRecord) {
     return normalizeGroupProfile(group);
 }
 
-async function executeGet(path: string, params: QueryParams = {}, { endpoint = '' } = {}) {
+async function executeGet(
+    path: string,
+    params: QueryParams = {},
+    { endpoint = '' } = {}
+) {
     return executeVrchatRequest<any>(path, {
         endpoint,
         method: 'GET',
@@ -167,7 +171,11 @@ async function executeGet(path: string, params: QueryParams = {}, { endpoint = '
     });
 }
 
-async function executePost(path: string, params: QueryParams = {}, { endpoint = '' } = {}) {
+async function executePost(
+    path: string,
+    params: QueryParams = {},
+    { endpoint = '' } = {}
+) {
     return executeVrchatRequest<any>(path, {
         endpoint,
         method: 'POST',
@@ -176,7 +184,11 @@ async function executePost(path: string, params: QueryParams = {}, { endpoint = 
     });
 }
 
-async function executePut(path: string, params: QueryParams = {}, { endpoint = '' } = {}) {
+async function executePut(
+    path: string,
+    params: QueryParams = {},
+    { endpoint = '' } = {}
+) {
     return executeVrchatRequest<any>(path, {
         endpoint,
         method: 'PUT',
@@ -185,7 +197,11 @@ async function executePut(path: string, params: QueryParams = {}, { endpoint = '
     });
 }
 
-async function executeDelete(path: string, params: QueryParams = {}, { endpoint = '' } = {}) {
+async function executeDelete(
+    path: string,
+    params: QueryParams = {},
+    { endpoint = '' } = {}
+) {
     return executeVrchatRequest<any>(path, {
         endpoint,
         method: 'DELETE',

@@ -1,4 +1,8 @@
-import { ChevronDownIcon, MoreHorizontalIcon, RefreshCwIcon } from 'lucide-react';
+import {
+    ChevronDownIcon,
+    MoreHorizontalIcon,
+    RefreshCwIcon
+} from 'lucide-react';
 import { cloneElement, isValidElement } from 'react';
 
 import { cn } from '@/lib/utils.js';
@@ -157,7 +161,10 @@ export function SidePanelSettingsPopover({
                         <Switch
                             checked={prefs.sidebarGroupByInstance}
                             onCheckedChange={(value) =>
-                                onUpdateBoolPreference('sidebarGroupByInstance', value)
+                                onUpdateBoolPreference(
+                                    'sidebarGroupByInstance',
+                                    value
+                                )
                             }
                         />
                     </SettingRow>
@@ -298,7 +305,9 @@ export function SidePanelSettingsPopover({
                                                     checked={resolvedSidebarFavoriteGroups.includes(
                                                         group.key
                                                     )}
-                                                    onCheckedChange={(checked) =>
+                                                    onCheckedChange={(
+                                                        checked
+                                                    ) =>
                                                         onToggleFavoriteGroup(
                                                             group.key,
                                                             Boolean(checked)

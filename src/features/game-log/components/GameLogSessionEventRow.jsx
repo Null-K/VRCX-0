@@ -159,7 +159,7 @@ function SinglePlayerActivityRow({ event, muted = false }) {
             </span>
             <Badge
                 variant="outline"
-                className="justify-center text-muted-foreground"
+                className="text-muted-foreground justify-center"
             >
                 {getEventLabel(event, t)}
             </Badge>
@@ -190,7 +190,7 @@ function GroupActivityRow({ event, isJoin }) {
                     </span>
                     <Badge
                         variant="outline"
-                        className="justify-center text-muted-foreground"
+                        className="text-muted-foreground justify-center"
                     >
                         {label}
                     </Badge>
@@ -247,7 +247,7 @@ function VideoActivityRow({ event }) {
                     </span>
                     <Badge
                         variant="outline"
-                        className="justify-center text-muted-foreground"
+                        className="text-muted-foreground justify-center"
                     >
                         {getEventLabel(event, t)}
                     </Badge>
@@ -326,7 +326,8 @@ function VideoActivityRow({ event }) {
 function SessionEventRow({ event }) {
     const isJoin =
         event?.type === 'OnPlayerJoined' || event?.type === 'JoinGroup';
-    const isLeave = event?.type === 'OnPlayerLeft' || event?.type === 'LeftGroup';
+    const isLeave =
+        event?.type === 'OnPlayerLeft' || event?.type === 'LeftGroup';
 
     if (event?.type === 'JoinGroup' || event?.type === 'LeftGroup') {
         return <GroupActivityRow event={event} isJoin={isJoin} />;
@@ -345,9 +346,13 @@ function SessionEventRow({ event }) {
 
 export function SessionEventGroups({ events }) {
     const visibleEvents = (events ?? []).filter((event) =>
-        ['JoinGroup', 'LeftGroup', 'OnPlayerJoined', 'OnPlayerLeft', 'VideoPlay'].includes(
-            event?.type
-        )
+        [
+            'JoinGroup',
+            'LeftGroup',
+            'OnPlayerJoined',
+            'OnPlayerLeft',
+            'VideoPlay'
+        ].includes(event?.type)
     );
 
     if (!visibleEvents.length) {

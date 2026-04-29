@@ -1,7 +1,7 @@
 import * as echarts from 'echarts';
 import { useCallback, useEffect, useRef } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import {
     EmptyState as AppEmptyState,
     LoadingState as AppLoadingState
@@ -191,7 +191,9 @@ export function InstanceActivityDetailChart({
             ) : (
                 <ChartEmptyState
                     title={t('view.charts.generated.no_detail_rows')}
-                    description={t('view.charts.generated.no_matching_player_activity_rows_were_found_for_this_instanc')}
+                    description={t(
+                        'view.charts.generated.no_matching_player_activity_rows_were_found_for_this_instanc'
+                    )}
                 />
             )}
         </div>

@@ -1,6 +1,9 @@
 import { AppleIcon, MonitorIcon, SmartphoneIcon } from 'lucide-react';
 
-import { parseLocation, resolveFriendPresenceLocation } from '@/shared/utils/location.js';
+import {
+    parseLocation,
+    resolveFriendPresenceLocation
+} from '@/shared/utils/location.js';
 
 import { normalizeUserId } from './userProfileFields.js';
 

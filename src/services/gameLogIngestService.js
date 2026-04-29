@@ -305,10 +305,7 @@ async function persistGameLog(gameLog, options = {}) {
                 );
             }
             if (await configRepository.getBool('saveInstancePrints', false)) {
-                void enqueuePrintSave(
-                    instanceMediaState.printIds,
-                    requestUrl
-                );
+                void enqueuePrintSave(instanceMediaState.printIds, requestUrl);
             }
             break;
         }

@@ -47,8 +47,9 @@ export async function setI18nLanguage(locale) {
 }
 
 export function getTimeUnitLabels(locale, defaultLabels) {
-    const normalizedLocale =
-        allLocalizedStrings[normalizeLocale(locale)] ? normalizeLocale(locale) : 'en';
+    const normalizedLocale = allLocalizedStrings[normalizeLocale(locale)]
+        ? normalizeLocale(locale)
+        : 'en';
     const localizedMessages = allLocalizedStrings[normalizedLocale] ?? {};
     const fallbackMessages = allLocalizedStrings.en ?? {};
     const labels = {};

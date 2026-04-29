@@ -10,12 +10,7 @@ import {
 } from '@/services/themeService.js';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle
-} from '@/ui/shadcn/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -117,10 +112,7 @@ export function SettingsInterfaceAppearanceCard({
                         value={locale || 'en'}
                         onValueChange={onLanguageChange}
                     >
-                        <SelectTrigger
-                            id="settings-language"
-                            className="w-56"
-                        >
+                        <SelectTrigger id="settings-language" className="w-56">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>

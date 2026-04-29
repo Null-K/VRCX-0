@@ -41,12 +41,7 @@ export function SystemDialogsHost() {
     useEffect(() => {
         const guards = [
             ['registryBackupOpen', registryBackupOpen, 'registryPrefs'],
-            [
-                'launchOptionsOpen',
-                launchOptionsOpen,
-                'gameLaunch',
-                'supported'
-            ],
+            ['launchOptionsOpen', launchOptionsOpen, 'gameLaunch', 'supported'],
             ['vrchatConfigOpen', vrchatConfigOpen, 'vrchatPathDiscovery']
         ];
 

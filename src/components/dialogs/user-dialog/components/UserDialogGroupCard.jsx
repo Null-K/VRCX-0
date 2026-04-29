@@ -1,17 +1,9 @@
-import {
-    EyeIcon,
-    TagIcon,
-    UsersIcon
-} from 'lucide-react';
+import { EyeIcon, TagIcon, UsersIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { groupProfileRepository } from '@/repositories/index.js';
-import {
-    Avatar,
-    AvatarFallback,
-    AvatarImage
-} from '@/ui/shadcn/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@/ui/shadcn/avatar';
 import { Button } from '@/ui/shadcn/button';
 
 import {

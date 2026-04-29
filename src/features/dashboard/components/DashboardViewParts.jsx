@@ -1,9 +1,9 @@
-import { Trash2Icon, XIcon } from "lucide-react";
-import { useState } from "react";
-import { useDefaultLayout } from "react-resizable-panels";
-
+import { Trash2Icon, XIcon } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { DashboardPanelPreview } from "@/components/dashboard/DashboardPanelPreview.jsx";
+import { useDefaultLayout } from 'react-resizable-panels';
+
+import { DashboardPanelPreview } from '@/components/dashboard/DashboardPanelPreview.jsx';
 import {
     createDashboardPanelValue,
     DASHBOARD_INSTANCE_WIDGET_COLUMN_DEFINITIONS,
@@ -12,21 +12,24 @@ import {
     getDashboardPanelDescription,
     getDashboardPanelLabel,
     resolveDashboardPanelKey
-} from "@/components/dashboard/dashboardRegistry.js";
-import { cn } from "@/lib/utils.js";
-import { FEED_FILTER_TYPES, GAME_LOG_FILTER_TYPES } from "@/repositories/index.js";
-import { Button } from "@/ui/shadcn/button";
+} from '@/components/dashboard/dashboardRegistry.js';
+import { cn } from '@/lib/utils.js';
+import {
+    FEED_FILTER_TYPES,
+    GAME_LOG_FILTER_TYPES
+} from '@/repositories/index.js';
+import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
     DialogContent,
     DialogHeader,
     DialogTitle
-} from "@/ui/shadcn/dialog";
+} from '@/ui/shadcn/dialog';
 import {
     ResizableHandle,
     ResizablePanel,
     ResizablePanelGroup
-} from "@/ui/shadcn/resizable";
+} from '@/ui/shadcn/resizable';
 import {
     Select,
     SelectContent,
@@ -34,8 +37,8 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue
-} from "@/ui/shadcn/select";
-import { Switch } from "@/ui/shadcn/switch";
+} from '@/ui/shadcn/select';
+import { Switch } from '@/ui/shadcn/switch';
 
 import {
     createDashboardPanelSelectOptions,
@@ -47,9 +50,14 @@ import {
     getNextDashboardFilterConfig,
     getNextDashboardInstanceColumnConfig,
     isDashboardFilterActive
-} from "../dashboardConfig.js";
+} from '../dashboardConfig.js';
 
-export function DashboardFilterConfig({ title, filterTypes, config, onConfigChange }) {
+export function DashboardFilterConfig({
+    title,
+    filterTypes,
+    config,
+    onConfigChange
+}) {
     const { t } = useTranslation();
 
     const filters = getDashboardFilterList(config);
@@ -156,7 +164,11 @@ export function DashboardInstanceColumnConfig({ config, onConfigChange }) {
     );
 }
 
-export function DashboardWidgetConfigEditor({ panelKey, config, onConfigChange }) {
+export function DashboardWidgetConfigEditor({
+    panelKey,
+    config,
+    onConfigChange
+}) {
     const { t } = useTranslation();
 
     if (panelKey === 'widget:feed') {
@@ -170,7 +182,9 @@ export function DashboardWidgetConfigEditor({ panelKey, config, onConfigChange }
                 />
                 <DashboardSwitchConfig
                     label={t('view.dashboard.generated.show_type_column')}
-                    description={t('view.dashboard.generated.matches_the_stored_feed_widget_config')}
+                    description={t(
+                        'view.dashboard.generated.matches_the_stored_feed_widget_config'
+                    )}
                     checked={Boolean(config.showType)}
                     onCheckedChange={(checked) =>
                         onConfigChange({
@@ -194,7 +208,9 @@ export function DashboardWidgetConfigEditor({ panelKey, config, onConfigChange }
                 />
                 <DashboardSwitchConfig
                     label={t('view.dashboard.generated.show_detail')}
-                    description={t('view.dashboard.generated.expands_the_compact_game_log_description')}
+                    description={t(
+                        'view.dashboard.generated.expands_the_compact_game_log_description'
+                    )}
                     checked={Boolean(config.showDetail)}
                     onCheckedChange={(checked) =>
                         onConfigChange({
@@ -233,7 +249,9 @@ export function DashboardPanelSelectorDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-h-[80vh] overflow-hidden sm:max-w-2xl">
                 <DialogHeader>
-                    <DialogTitle>{t('view.dashboard.generated.select_panel')}</DialogTitle>
+                    <DialogTitle>
+                        {t('view.dashboard.generated.select_panel')}
+                    </DialogTitle>
                 </DialogHeader>
                 <div className="min-h-0 overflow-y-auto">
                     <div className="grid gap-2 sm:grid-cols-2">
@@ -309,7 +327,7 @@ export function DashboardEditorPanel({
                     variant="ghost"
                     size="icon-sm"
                     className="absolute top-1 right-1 z-20"
-                    aria-label={"Remove panel"}
+                    aria-label={'Remove panel'}
                     onClick={onRemove}
                 >
                     <XIcon data-icon="inline-start" />
@@ -328,7 +346,7 @@ export function DashboardEditorPanel({
                                 type="button"
                                 variant="ghost"
                                 size="icon-sm"
-                                aria-label={"Clear panel"}
+                                aria-label={'Clear panel'}
                                 onClick={() => onChange(null)}
                             >
                                 <Trash2Icon data-icon="inline-start" />
@@ -418,7 +436,9 @@ export function DashboardEditorRow({
                             <SelectContent>
                                 <SelectGroup>
                                     <SelectItem value="horizontal">
-                                        {t('view.dashboard.generated.horizontal')}
+                                        {t(
+                                            'view.dashboard.generated.horizontal'
+                                        )}
                                     </SelectItem>
                                     <SelectItem value="vertical">
                                         {t('view.dashboard.generated.vertical')}
@@ -431,7 +451,7 @@ export function DashboardEditorRow({
                         type="button"
                         variant="ghost"
                         size="icon-sm"
-                        aria-label={"Remove row"}
+                        aria-label={'Remove row'}
                         onClick={onRowRemove}
                     >
                         <Trash2Icon data-icon="inline-start" />

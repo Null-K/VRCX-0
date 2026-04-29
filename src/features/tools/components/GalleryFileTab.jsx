@@ -1,13 +1,9 @@
-import {
-    RefreshCwIcon,
-    UploadIcon,
-    XIcon
-} from 'lucide-react';
+import { RefreshCwIcon, UploadIcon, XIcon } from 'lucide-react';
 
 import { Button } from '@/ui/shadcn/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/ui/shadcn/card';
-
 import { TabsContent } from '@/ui/shadcn/tabs';
+
 import { GalleryEmojiUploadSettings } from './GalleryEmojiUploadSettings.jsx';
 import { GalleryFileCard } from './GalleryFileCard.jsx';
 import { EmptyState, LoadingState } from './GalleryViewParts.jsx';
@@ -63,8 +59,7 @@ export function GalleryFileTab({
                                 variant="outline"
                                 size="sm"
                                 disabled={
-                                    !isVrcPlusSupporter ||
-                                    Boolean(uploadingTab)
+                                    !isVrcPlusSupporter || Boolean(uploadingTab)
                                 }
                                 onClick={() => onBeginUpload(tab)}
                             >

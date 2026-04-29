@@ -8,9 +8,7 @@ import {
     buildAvatarWearSnapshotUpdate,
     persistAvatarWearTransition
 } from './avatarWearTimeService.js';
-import {
-    applyCurrentUserLocationEvent
-} from './realtime-presence/currentUserLocationFallback.js';
+import { applyCurrentUserLocationEvent } from './realtime-presence/currentUserLocationFallback.js';
 import { dispatchRealtimePresenceMessage } from './realtime-presence/dispatcher.js';
 import {
     cancelPendingOffline,
@@ -166,7 +164,9 @@ async function isGameLogDisabled() {
         return Boolean(preferencesState.gameLogDisabled);
     }
     try {
-        return Boolean(await configRepository.getBool('gameLogDisabled', false));
+        return Boolean(
+            await configRepository.getBool('gameLogDisabled', false)
+        );
     } catch {
         return false;
     }
@@ -177,257 +177,275 @@ export async function handleRealtimePresenceEvent(message) {
         notification: handleRealtimeNotificationEvent,
         default: async (content, type) => {
             switch (type) {
-        case 'friend-add': {
-            const userId = normalizeUserId(content.userId || content.user?.id);
-            const userPatch = sanitizeTransportUser(content.user) ?? {
-                id: userId
-            };
-            const previous =
-                useFriendRosterStore.getState().friendsById[userId] ?? null;
-            const currentStateBucket = resolveStateBucketFromEvent(
-                content,
-                userPatch,
-                previous
-            );
-            const changed = applyFriendPatch(
-                userId,
-                userPatch,
-                currentStateBucket
-            );
-            if (changed) {
-                notifyFriendLogMenu();
-            }
-            return changed;
-        }
-        case 'friend-delete': {
-            const userId = normalizeUserId(content.userId);
-            if (!userId) {
-                return false;
-            }
-            cancelPendingOffline(userId);
-            useFriendRosterStore.getState().removeFriend(userId);
-            removeCurrentUserFriend(userId);
-            notifyFriendLogMenu();
-            return true;
-        }
-        case 'friend-update': {
-            const userId = normalizeUserId(content.user?.id || content.userId);
-            const userPatch = sanitizeTransportUser(content.user) ?? {};
-            if (
-                !userId ||
-                (!Object.keys(userPatch).length &&
-                    !hasEventStateBucket(content))
-            ) {
-                return false;
-            }
-            const previous =
-                useFriendRosterStore.getState().friendsById[userId] ?? null;
-            const stateBucket = resolveStateBucketFromEvent(
-                content,
-                userPatch,
-                previous
-            );
-            const patch = { ...userPatch, id: userId };
-            recordProfileDiffFeed({ userId, patch, previous });
-            return applyFriendPatch(userId, patch, stateBucket);
-        }
-        case 'friend-online': {
-            const userId = normalizeUserId(content.userId || content.user?.id);
-            if (!userId) {
-                return false;
-            }
-            const canceledPendingOffline = cancelPendingOffline(userId);
-            const previous =
-                useFriendRosterStore.getState().friendsById[userId] ?? null;
-            const userPatch = sanitizeTransportUser(content.user) ?? {};
-            const eventLocation = firstString(
-                userPatch.location,
-                content.location
-            );
-            const eventTravelingToLocation = firstString(
-                userPatch.travelingToLocation,
-                content.travelingToLocation
-            );
-            const eventWorldId = firstString(
-                userPatch.worldId,
-                content.worldId
-            );
-            const locationTimestamp = Date.now();
-            const locationPatch = buildLocationPatch(
-                eventLocation,
-                eventTravelingToLocation,
-                eventWorldId,
-                onlinePresenceFallback(previous)
-            );
-            const patch = {
-                ...userPatch,
-                id: userId,
-                platform: content.platform,
-                state: 'online',
-                pendingOffline: false,
-                ...locationPatch,
-                ...buildLocationMetadataPatch(
-                    locationPatch.location,
-                    previous,
-                    locationTimestamp
-                )
-            };
-            if (!canceledPendingOffline && !isOnlineState(previous)) {
-                recordOnlineFeed({
-                    type: 'Online',
-                    userId,
-                    patch,
-                    previous,
-                    location: patch.location,
-                    time: ''
-                });
-            } else {
-                recordGpsFeed({
-                    userId,
-                    patch,
-                    previous,
-                    location: patch.location
-                });
-            }
-            return applyFriendPatch(userId, patch, 'online');
-        }
-        case 'friend-active': {
-            const userId = normalizeUserId(content.userId || content.user?.id);
-            if (!userId) {
-                return false;
-            }
-            const previous =
-                useFriendRosterStore.getState().friendsById[userId] ?? null;
-            const patch = {
-                ...(sanitizeTransportUser(content.user) ?? {}),
-                id: userId,
-                platform: content.platform,
-                state: 'active',
-                ...buildLocationPatch('offline', 'offline', 'offline')
-            };
-            if (
-                scheduleOfflineFeed({
-                    userId,
-                    patch,
-                    previous,
-                    applyFriendPatch
-                })
-            ) {
-                return true;
-            }
-            return applyFriendPatch(userId, patch, 'active');
-        }
-        case 'friend-offline': {
-            const userId = normalizeUserId(content.userId);
-            if (!userId) {
-                return false;
-            }
-            const previous =
-                useFriendRosterStore.getState().friendsById[userId] ?? null;
-            const patch = {
-                id: userId,
-                platform: content.platform,
-                state: 'offline',
-                ...buildLocationPatch('offline', 'offline', 'offline')
-            };
-            if (
-                scheduleOfflineFeed({
-                    userId,
-                    patch,
-                    previous,
-                    applyFriendPatch
-                })
-            ) {
-                return true;
-            }
-            return applyFriendPatch(userId, patch, 'offline');
-        }
-        case 'friend-location': {
-            const userId = normalizeUserId(content.userId || content.user?.id);
-            if (!userId) {
-                return false;
-            }
-            cancelPendingOffline(userId);
-            const previous =
-                useFriendRosterStore.getState().friendsById[userId] ?? null;
-            const userPatch = sanitizeTransportUser(content.user) ?? {};
-            const eventLocation = firstString(
-                userPatch.location,
-                content.location
-            );
-            const eventTravelingToLocation = firstString(
-                userPatch.travelingToLocation,
-                content.travelingToLocation
-            );
-            const eventWorldId = firstString(
-                userPatch.worldId,
-                content.worldId
-            );
-            const locationTimestamp = Date.now();
-            const locationPatch = buildLocationPatch(
-                eventLocation,
-                eventTravelingToLocation,
-                eventWorldId,
-                onlinePresenceFallback(previous)
-            );
-            const patch = {
-                ...userPatch,
-                id: userId,
-                state: 'online',
-                pendingOffline: false,
-                ...locationPatch,
-                ...buildLocationMetadataPatch(
-                    locationPatch.location,
-                    previous,
-                    locationTimestamp
-                )
-            };
-            recordGpsFeed({
-                userId,
-                patch,
-                previous,
-                location: patch.location
-            });
-            return applyFriendPatch(userId, patch, 'online');
-        }
-        case 'user-update': {
-            const previous =
-                useRuntimeStore.getState().auth.currentUserSnapshot ?? null;
-            const userPatch =
-                sanitizeTransportUser(content.user, { preserveState: true }) ??
-                {};
-            const stateBucket = resolveStateBucketFromEvent(
-                content,
-                userPatch,
-                previous,
-                ''
-            );
-            const patch = { ...userPatch };
-            if (stateBucket) {
-                patch.stateBucket = stateBucket;
-            }
-            if (!Object.keys(patch).length) {
-                return false;
-            }
-            patchCurrentUserSnapshot(patch);
-            return true;
-        }
-        case 'user-location': {
-            const currentUserId = normalizeUserId(
-                useRuntimeStore.getState().auth.currentUserId
-            );
-            const userId = normalizeUserId(content.userId);
-            if (!currentUserId || !userId || currentUserId !== userId) {
-                return false;
-            }
-            return applyCurrentUserLocationEvent(content, {
-                isGameLogDisabled,
-                patchCurrentUserSnapshot
-            });
-        }
-        case 'instance-closed': {
-            return handleInstanceClosedEvent(content);
-        }
+                case 'friend-add': {
+                    const userId = normalizeUserId(
+                        content.userId || content.user?.id
+                    );
+                    const userPatch = sanitizeTransportUser(content.user) ?? {
+                        id: userId
+                    };
+                    const previous =
+                        useFriendRosterStore.getState().friendsById[userId] ??
+                        null;
+                    const currentStateBucket = resolveStateBucketFromEvent(
+                        content,
+                        userPatch,
+                        previous
+                    );
+                    const changed = applyFriendPatch(
+                        userId,
+                        userPatch,
+                        currentStateBucket
+                    );
+                    if (changed) {
+                        notifyFriendLogMenu();
+                    }
+                    return changed;
+                }
+                case 'friend-delete': {
+                    const userId = normalizeUserId(content.userId);
+                    if (!userId) {
+                        return false;
+                    }
+                    cancelPendingOffline(userId);
+                    useFriendRosterStore.getState().removeFriend(userId);
+                    removeCurrentUserFriend(userId);
+                    notifyFriendLogMenu();
+                    return true;
+                }
+                case 'friend-update': {
+                    const userId = normalizeUserId(
+                        content.user?.id || content.userId
+                    );
+                    const userPatch = sanitizeTransportUser(content.user) ?? {};
+                    if (
+                        !userId ||
+                        (!Object.keys(userPatch).length &&
+                            !hasEventStateBucket(content))
+                    ) {
+                        return false;
+                    }
+                    const previous =
+                        useFriendRosterStore.getState().friendsById[userId] ??
+                        null;
+                    const stateBucket = resolveStateBucketFromEvent(
+                        content,
+                        userPatch,
+                        previous
+                    );
+                    const patch = { ...userPatch, id: userId };
+                    recordProfileDiffFeed({ userId, patch, previous });
+                    return applyFriendPatch(userId, patch, stateBucket);
+                }
+                case 'friend-online': {
+                    const userId = normalizeUserId(
+                        content.userId || content.user?.id
+                    );
+                    if (!userId) {
+                        return false;
+                    }
+                    const canceledPendingOffline = cancelPendingOffline(userId);
+                    const previous =
+                        useFriendRosterStore.getState().friendsById[userId] ??
+                        null;
+                    const userPatch = sanitizeTransportUser(content.user) ?? {};
+                    const eventLocation = firstString(
+                        userPatch.location,
+                        content.location
+                    );
+                    const eventTravelingToLocation = firstString(
+                        userPatch.travelingToLocation,
+                        content.travelingToLocation
+                    );
+                    const eventWorldId = firstString(
+                        userPatch.worldId,
+                        content.worldId
+                    );
+                    const locationTimestamp = Date.now();
+                    const locationPatch = buildLocationPatch(
+                        eventLocation,
+                        eventTravelingToLocation,
+                        eventWorldId,
+                        onlinePresenceFallback(previous)
+                    );
+                    const patch = {
+                        ...userPatch,
+                        id: userId,
+                        platform: content.platform,
+                        state: 'online',
+                        pendingOffline: false,
+                        ...locationPatch,
+                        ...buildLocationMetadataPatch(
+                            locationPatch.location,
+                            previous,
+                            locationTimestamp
+                        )
+                    };
+                    if (!canceledPendingOffline && !isOnlineState(previous)) {
+                        recordOnlineFeed({
+                            type: 'Online',
+                            userId,
+                            patch,
+                            previous,
+                            location: patch.location,
+                            time: ''
+                        });
+                    } else {
+                        recordGpsFeed({
+                            userId,
+                            patch,
+                            previous,
+                            location: patch.location
+                        });
+                    }
+                    return applyFriendPatch(userId, patch, 'online');
+                }
+                case 'friend-active': {
+                    const userId = normalizeUserId(
+                        content.userId || content.user?.id
+                    );
+                    if (!userId) {
+                        return false;
+                    }
+                    const previous =
+                        useFriendRosterStore.getState().friendsById[userId] ??
+                        null;
+                    const patch = {
+                        ...(sanitizeTransportUser(content.user) ?? {}),
+                        id: userId,
+                        platform: content.platform,
+                        state: 'active',
+                        ...buildLocationPatch('offline', 'offline', 'offline')
+                    };
+                    if (
+                        scheduleOfflineFeed({
+                            userId,
+                            patch,
+                            previous,
+                            applyFriendPatch
+                        })
+                    ) {
+                        return true;
+                    }
+                    return applyFriendPatch(userId, patch, 'active');
+                }
+                case 'friend-offline': {
+                    const userId = normalizeUserId(content.userId);
+                    if (!userId) {
+                        return false;
+                    }
+                    const previous =
+                        useFriendRosterStore.getState().friendsById[userId] ??
+                        null;
+                    const patch = {
+                        id: userId,
+                        platform: content.platform,
+                        state: 'offline',
+                        ...buildLocationPatch('offline', 'offline', 'offline')
+                    };
+                    if (
+                        scheduleOfflineFeed({
+                            userId,
+                            patch,
+                            previous,
+                            applyFriendPatch
+                        })
+                    ) {
+                        return true;
+                    }
+                    return applyFriendPatch(userId, patch, 'offline');
+                }
+                case 'friend-location': {
+                    const userId = normalizeUserId(
+                        content.userId || content.user?.id
+                    );
+                    if (!userId) {
+                        return false;
+                    }
+                    cancelPendingOffline(userId);
+                    const previous =
+                        useFriendRosterStore.getState().friendsById[userId] ??
+                        null;
+                    const userPatch = sanitizeTransportUser(content.user) ?? {};
+                    const eventLocation = firstString(
+                        userPatch.location,
+                        content.location
+                    );
+                    const eventTravelingToLocation = firstString(
+                        userPatch.travelingToLocation,
+                        content.travelingToLocation
+                    );
+                    const eventWorldId = firstString(
+                        userPatch.worldId,
+                        content.worldId
+                    );
+                    const locationTimestamp = Date.now();
+                    const locationPatch = buildLocationPatch(
+                        eventLocation,
+                        eventTravelingToLocation,
+                        eventWorldId,
+                        onlinePresenceFallback(previous)
+                    );
+                    const patch = {
+                        ...userPatch,
+                        id: userId,
+                        state: 'online',
+                        pendingOffline: false,
+                        ...locationPatch,
+                        ...buildLocationMetadataPatch(
+                            locationPatch.location,
+                            previous,
+                            locationTimestamp
+                        )
+                    };
+                    recordGpsFeed({
+                        userId,
+                        patch,
+                        previous,
+                        location: patch.location
+                    });
+                    return applyFriendPatch(userId, patch, 'online');
+                }
+                case 'user-update': {
+                    const previous =
+                        useRuntimeStore.getState().auth.currentUserSnapshot ??
+                        null;
+                    const userPatch =
+                        sanitizeTransportUser(content.user, {
+                            preserveState: true
+                        }) ?? {};
+                    const stateBucket = resolveStateBucketFromEvent(
+                        content,
+                        userPatch,
+                        previous,
+                        ''
+                    );
+                    const patch = { ...userPatch };
+                    if (stateBucket) {
+                        patch.stateBucket = stateBucket;
+                    }
+                    if (!Object.keys(patch).length) {
+                        return false;
+                    }
+                    patchCurrentUserSnapshot(patch);
+                    return true;
+                }
+                case 'user-location': {
+                    const currentUserId = normalizeUserId(
+                        useRuntimeStore.getState().auth.currentUserId
+                    );
+                    const userId = normalizeUserId(content.userId);
+                    if (!currentUserId || !userId || currentUserId !== userId) {
+                        return false;
+                    }
+                    return applyCurrentUserLocationEvent(content, {
+                        isGameLogDisabled,
+                        patchCurrentUserSnapshot
+                    });
+                }
+                case 'instance-closed': {
+                    return handleInstanceClosedEvent(content);
+                }
                 default:
                     return false;
             }

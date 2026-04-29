@@ -1,13 +1,14 @@
 import type { ActivitySession } from '@/shared/utils/activityEngine.js';
 
-import sqliteRepository from './sqliteRepository.js';
-import type { SQLiteRepository } from './sqliteRepository.js';
 import {
     buildUserTableName,
     normalizeUserTablePrefix
 } from './localDatabaseSchema.js';
+import sqliteRepository from './sqliteRepository.js';
+import type { SQLiteRepository } from './sqliteRepository.js';
 
-type ActivityViewKind = (typeof ACTIVITY_VIEW_KIND)[keyof typeof ACTIVITY_VIEW_KIND];
+type ActivityViewKind =
+    (typeof ACTIVITY_VIEW_KIND)[keyof typeof ACTIVITY_VIEW_KIND];
 type ObjectRow = Record<string, unknown>;
 
 interface ActivitySyncStateRow extends ObjectRow {
@@ -161,7 +162,9 @@ function normalizeActivitySyncStateRow(
     };
 }
 
-function normalizeActivitySessionRow(row: ActivitySessionRow | unknown[] | null) {
+function normalizeActivitySessionRow(
+    row: ActivitySessionRow | unknown[] | null
+) {
     if (Array.isArray(row)) {
         return {
             start: Number.parseInt(String(row[0] ?? 0), 10) || 0,
@@ -395,11 +398,7 @@ async function getFriendPresenceSlice({
     );
 }
 
-async function getFriendPresenceAfter({
-    userId,
-    afterCreatedAt,
-    ownerUserId
-}) {
+async function getFriendPresenceAfter({ userId, afterCreatedAt, ownerUserId }) {
     const tableName = getFeedOnlineOfflineTable(ownerUserId);
     const rows = await sqliteRepository.query<PresenceRow | unknown[]>(
         `SELECT created_at, type
@@ -598,7 +597,9 @@ async function getActivityBucketCache({
     viewKind,
     excludeKey = ''
 }: ActivityBucketCacheQuery) {
-    const rows = await sqliteRepository.query<ActivityBucketCacheRow | unknown[]>(
+    const rows = await sqliteRepository.query<
+        ActivityBucketCacheRow | unknown[]
+    >(
         `SELECT user_id, target_user_id, range_days, view_kind, exclude_key, bucket_version, built_from_cursor, raw_buckets_json, normalized_buckets_json, summary_json, built_at
          FROM ${getBucketCacheTable(ownerUserId)}
          WHERE user_id = @ownerUserId AND target_user_id = @targetUserId AND range_days = @rangeDays AND view_kind = @viewKind AND exclude_key = @excludeKey

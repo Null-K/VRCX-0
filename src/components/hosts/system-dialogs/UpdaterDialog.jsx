@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-
 import { useTranslation } from 'react-i18next';
+
 import { openExternalLink } from '@/lib/entityMedia.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { backend } from '@/platform/index.js';
@@ -51,8 +51,9 @@ export function UpdaterDialog({ open, onOpenChange }) {
     const [progress, setProgress] = useState(0);
     const [detail, setDetail] = useState('');
     const selectedRelease =
-        releases.find((release) => release.canonicalVersion === releaseVersion) ||
-        null;
+        releases.find(
+            (release) => release.canonicalVersion === releaseVersion
+        ) || null;
 
     useEffect(() => {
         if (!open) {

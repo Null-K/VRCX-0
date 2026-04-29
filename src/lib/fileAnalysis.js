@@ -1,9 +1,9 @@
-import { vrchatAuthRepository } from '@/repositories/index.js';
 import {
     entityQueryPolicies,
     fetchCachedData,
     queryKeys
 } from '@/lib/entityQueryCache.js';
+import { vrchatAuthRepository } from '@/repositories/index.js';
 import { compareUnityVersion } from '@/shared/utils/avatar.js';
 import { extractFileId, extractFileVersion } from '@/shared/utils/fileUtils.js';
 

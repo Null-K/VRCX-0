@@ -1,5 +1,4 @@
 import { useCallback, useRef } from 'react';
-
 import { useTranslation } from 'react-i18next';
 
 import { FavoritesPageLayout } from './FavoritesPageLayout.jsx';
@@ -136,7 +135,9 @@ export function FavoritesPageView({
     const handleClearSelection = useStableEvent(() => setSelectedKeys([]));
     const handleGroupRailRefresh = useStableEvent(() => refreshFavorites());
     const handleImportFavorites = useStableEvent(() => onImportFavorites());
-    const handleExportFavorites = useStableEvent(() => exportCurrentFavorites());
+    const handleExportFavorites = useStableEvent(() =>
+        exportCurrentFavorites()
+    );
     const handleGroupRailSelect = useStableEvent((group) => {
         setSearchQuery('');
         setSelectedSource(group.source);
@@ -155,7 +156,9 @@ export function FavoritesPageView({
     );
     const handleAvatarHistoryRefresh = useStableEvent(refreshAvatarHistory);
     const handleAvatarHistoryClear = useStableEvent(onHandleAvatarHistoryClear);
-    const handleRemoteGroupRenameEvent = useStableEvent(handleRemoteGroupRename);
+    const handleRemoteGroupRenameEvent = useStableEvent(
+        handleRemoteGroupRename
+    );
     const handleRemoteGroupVisibilityEvent = useStableEvent(
         handleRemoteGroupVisibility
     );

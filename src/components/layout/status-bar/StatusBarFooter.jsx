@@ -70,14 +70,18 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                     <StatusSegment
                         visible={visibility.vrchat}
                         active={Boolean(isGameRunning)}
-                        label={t('view.settings.advanced.advanced.vrchat_settings.header')}
+                        label={t(
+                            'view.settings.advanced.advanced.vrchat_settings.header'
+                        )}
                         tooltip={
                             <div className="flex flex-col gap-1 text-xs">
                                 {isGameRunning ? (
                                     <>
                                         <div className="flex justify-between gap-4">
                                             <span className="text-muted-foreground">
-                                                {t('app_menu.generated.started_at')}
+                                                {t(
+                                                    'app_menu.generated.started_at'
+                                                )}
                                             </span>
                                             <span>
                                                 {formatStatusDate(
@@ -87,13 +91,17 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                                         </div>
                                         <div className="flex justify-between gap-4">
                                             <span className="text-muted-foreground">
-                                                {t('app_menu.generated.session_duration')}
+                                                {t(
+                                                    'app_menu.generated.session_duration'
+                                                )}
                                             </span>
                                             <span>{gameDuration || '-'}</span>
                                         </div>
                                         <div className="flex justify-between gap-4">
                                             <span className="text-muted-foreground">
-                                                {t('app_menu.generated.instance_duration')}
+                                                {t(
+                                                    'app_menu.generated.instance_duration'
+                                                )}
                                             </span>
                                             <span>
                                                 {currentLocationDuration || '-'}
@@ -109,7 +117,9 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                                     <>
                                         <div className="flex justify-between gap-4">
                                             <span className="text-muted-foreground">
-                                                {t('app_menu.generated.last_game_event')}
+                                                {t(
+                                                    'app_menu.generated.last_game_event'
+                                                )}
                                             </span>
                                             <span>
                                                 {formatStatusDate(
@@ -119,7 +129,9 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                                         </div>
                                         <div className="flex justify-between gap-4">
                                             <span className="text-muted-foreground">
-                                                {t('app_menu.generated.last_event_type')}
+                                                {t(
+                                                    'app_menu.generated.last_event_type'
+                                                )}
                                             </span>
                                             <span>
                                                 {runtimeGameState.lastGameLogType ||
@@ -134,10 +146,12 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                     <StatusSegment
                         visible={visibility.servers}
                         active={
-                            !vrcStatus.indicator || vrcStatus.indicator === 'none'
+                            !vrcStatus.indicator ||
+                            vrcStatus.indicator === 'none'
                         }
                         warn={
-                            vrcStatus.indicator && vrcStatus.indicator !== 'none'
+                            vrcStatus.indicator &&
+                            vrcStatus.indicator !== 'none'
                         }
                         label={t('status_bar.servers')}
                         onClick={() => void onOpenStatusPage()}
@@ -177,7 +191,9 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                         </Tooltip>
                     ) : null}
                     <StatusSegment
-                        visible={visibility.nowPlaying && Boolean(nowPlaying.url)}
+                        visible={
+                            visibility.nowPlaying && Boolean(nowPlaying.url)
+                        }
                         active
                         label={t('status_bar.now_playing')}
                         value={nowPlaying.name || nowPlaying.url}

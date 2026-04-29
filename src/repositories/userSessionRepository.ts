@@ -64,9 +64,7 @@ async function initUserTables(userId: unknown): Promise<UserTableContext> {
     return ensureUserTables(userId);
 }
 
-async function getUserTableContext(
-    userId: unknown
-): Promise<UserTableContext> {
+async function getUserTableContext(userId: unknown): Promise<UserTableContext> {
     return ensureUserTables(userId);
 }
 

@@ -1,11 +1,6 @@
-import {
-    AppleIcon,
-    MonitorIcon,
-    SmartphoneIcon,
-    UserIcon
-} from 'lucide-react';
-
+import { AppleIcon, MonitorIcon, SmartphoneIcon, UserIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 
@@ -14,7 +9,9 @@ function PlatformBadge({ label, rating, fileSize, icon: Icon }) {
         <Badge variant="outline">
             {Icon ? <Icon data-icon="inline-start" /> : null}
             {label}
-            {rating ? <span className="ml-1 border-l pl-1">{rating}</span> : null}
+            {rating ? (
+                <span className="ml-1 border-l pl-1">{rating}</span>
+            ) : null}
             {fileSize ? (
                 <span className="ml-1 border-l pl-1">{fileSize}</span>
             ) : null}
@@ -39,7 +36,9 @@ export function AvatarDialogHeaderBadges({
     return (
         <>
             <Badge
-                variant={avatar.releaseStatus === 'public' ? 'default' : 'outline'}
+                variant={
+                    avatar.releaseStatus === 'public' ? 'default' : 'outline'
+                }
             >
                 {avatar.releaseStatus === 'public'
                     ? t('dialog.avatar.tags.public')
@@ -77,7 +76,8 @@ export function AvatarDialogHeaderBadges({
             ) : null}
             {avatar.styles?.primary || avatar.styles?.secondary ? (
                 <Badge variant="outline">
-                    {t('view.favorite.avatars.styles')} {avatar.styles?.primary || ''}
+                    {t('view.favorite.avatars.styles')}{' '}
+                    {avatar.styles?.primary || ''}
                     {avatar.styles?.secondary
                         ? ` / ${avatar.styles.secondary}`
                         : ''}
