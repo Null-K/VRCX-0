@@ -64,7 +64,8 @@
                 "displayLanguageSelector": false,
                 "installMode": "currentUser"
             }
-        }
+        },
+        "createUpdaterArtifacts": true
     },
     "plugins": {
         "updater": {
