@@ -5,8 +5,8 @@ import {
     ListFilterIcon,
     MonitorIcon,
     MoreHorizontalIcon,
+    RectangleGogglesIcon,
     SettingsIcon,
-    SmartphoneIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -83,7 +83,7 @@ export function PlatformBadges({ unityPackages }) {
             ) : null}
             {platforms?.isQuest ? (
                 <Badge variant="outline">
-                    <SmartphoneIcon className="size-3.5" />
+                    <RectangleGogglesIcon className="size-3.5" />
                 </Badge>
             ) : null}
             {platforms?.isIos ? <Badge variant="outline">iOS</Badge> : null}

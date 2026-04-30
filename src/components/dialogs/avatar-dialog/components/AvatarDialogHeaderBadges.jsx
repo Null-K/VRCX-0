@@ -1,4 +1,9 @@
-import { AppleIcon, MonitorIcon, SmartphoneIcon, UserIcon } from 'lucide-react';
+import {
+    AppleIcon,
+    MonitorIcon,
+    RectangleGogglesIcon,
+    UserIcon
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Badge } from '@/ui/shadcn/badge';
@@ -106,7 +111,7 @@ export function AvatarDialogHeaderBadges({
                     label="Android"
                     rating={platformInfo.android.performanceRating}
                     fileSize={fileAnalysis.android?._fileSize}
-                    icon={SmartphoneIcon}
+                    icon={RectangleGogglesIcon}
                 />
             ) : null}
             {platformInfo?.ios?.platform ? (

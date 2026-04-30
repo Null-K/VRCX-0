@@ -1,4 +1,4 @@
-import { MonitorIcon, SmartphoneIcon } from 'lucide-react';
+import { MonitorIcon, RectangleGogglesIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import {
@@ -33,7 +33,7 @@ export function PlatformBadge({ name, fileSize = '' }) {
         normalized === 'pc'
             ? MonitorIcon
             : normalized === 'quest'
-              ? SmartphoneIcon
+              ? RectangleGogglesIcon
               : null;
     return (
         <Badge variant="outline">

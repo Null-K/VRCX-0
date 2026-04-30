@@ -1,4 +1,4 @@
-import { AppleIcon, MonitorIcon, SmartphoneIcon } from 'lucide-react';
+import { AppleIcon, MonitorIcon, RectangleGogglesIcon } from 'lucide-react';
 
 import {
     parseLocation,
@@ -90,7 +90,7 @@ export function resolvePlatformMeta(platform) {
     if (normalized === 'android' || normalized === 'quest') {
         return {
             label: 'Android',
-            icon: SmartphoneIcon
+            icon: RectangleGogglesIcon
         };
     }
 

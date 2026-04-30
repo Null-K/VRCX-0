@@ -2,9 +2,9 @@ import {
     AppleIcon,
     HeartIcon,
     MonitorIcon,
+    RectangleGogglesIcon,
     SettingsIcon,
     ShieldIcon,
-    SmartphoneIcon,
     UserIcon
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -69,7 +69,7 @@ function resolvePlatformMeta(platform) {
     if (normalized === 'android' || normalized === 'quest') {
         return {
             label: 'Android',
-            icon: SmartphoneIcon,
+            icon: RectangleGogglesIcon,
             className: 'text-muted-foreground'
         };
     }

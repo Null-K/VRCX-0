@@ -1,4 +1,4 @@
-import { AppleIcon, MonitorIcon, SmartphoneIcon } from 'lucide-react';
+import { AppleIcon, MonitorIcon, RectangleGogglesIcon } from 'lucide-react';
 
 import { convertFileUrlToImageUrl } from '@/lib/entityMedia.js';
 import { userStatusIndicatorClassName } from '@/lib/userStatus.js';
@@ -25,7 +25,7 @@ export function resolvePlatformMeta(platform) {
     if (normalized === 'android' || normalized === 'quest') {
         return {
             label: 'Android',
-            icon: SmartphoneIcon,
+            icon: RectangleGogglesIcon,
             className: 'text-muted-foreground'
         };
     }
@@ -145,7 +145,7 @@ export function resolvePlatformBadge(platform) {
         return {
             key: 'Quest',
             label: 'Android',
-            icon: SmartphoneIcon
+            icon: RectangleGogglesIcon
         };
     }
     if (normalized === 'ios') {
