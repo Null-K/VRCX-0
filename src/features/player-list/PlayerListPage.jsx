@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useQueries } from '@tanstack/react-query';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { PageScaffold } from '@/components/layout/PageScaffold.jsx';
 import { useCurrentInstancePresence } from '@/domain/presence/useCurrentInstancePresence.js';
+import { entityQueryPolicies, queryKeys } from '@/lib/entityQueryCache.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { backend } from '@/platform/index.js';
 import {
@@ -11,6 +13,7 @@ import {
     instanceRepository,
     playerListRepository,
     userProfileRepository,
+    vrchatFriendRepository,
     vrchatAuthRepository,
     vrchatSearchRepository,
     vrchatModerationRepository
@@ -41,8 +44,6 @@ import {
     resolvePlayerRowUserId,
     shouldFetchInstanceUsers
 } from './playerListRows.js';
-
-const PLAYER_PROFILE_FETCH_CONCURRENCY = 4;
 
 function normalizeLogLocationSnapshot(snapshot) {
     if (!snapshot || typeof snapshot !== 'object') {
@@ -149,6 +150,41 @@ function normalizeApiInstanceUsers(...sources) {
     return rows;
 }
 
+function buildPlayerProfileIds(playerRows, currentUserId) {
+    const currentUserKey = normalizeString(currentUserId);
+    const ids = [];
+    const seen = new Set();
+
+    for (const row of Array.isArray(playerRows) ? playerRows : []) {
+        const userId = resolvePlayerRowUserId(row);
+        if (!userId || userId === currentUserKey || seen.has(userId)) {
+            continue;
+        }
+        seen.add(userId);
+        ids.push(userId);
+    }
+
+    return ids;
+}
+
+function mapProfileQueryResults(userIds, results) {
+    const profilesByUserId = {};
+
+    for (const [index, result] of results.entries()) {
+        if (!result.data) {
+            continue;
+        }
+
+        const profile = userProfileRepository.normalize(result.data);
+        const userId = normalizeString(profile?.id || userIds[index]);
+        if (userId) {
+            profilesByUserId[userId] = profile;
+        }
+    }
+
+    return profilesByUserId;
+}
+
 export function PlayerListPage({ embedded = false } = {}) {
     const { t } = useTranslation();
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
@@ -213,11 +249,9 @@ export function PlayerListPage({ embedded = false } = {}) {
     });
     const [playerRows, setPlayerRows] = useState([]);
     const [logLocationSnapshot, setLogLocationSnapshot] = useState(null);
-    const [profilesByUserId, setProfilesByUserId] = useState({});
     const [moderationByUserId, setModerationByUserId] = useState({});
     const [languageOptions, setLanguageOptions] = useState([]);
     const [clockNow, setClockNow] = useState(() => Date.now());
-    const requestedProfileKeysRef = useRef(new Set());
 
     const playerListLocation =
         currentUserLocation || logLocationSnapshot?.location || '';
@@ -562,101 +596,28 @@ export function PlayerListPage({ embedded = false } = {}) {
         runtimePlayerRows
     ]);
 
-    useEffect(() => {
-        requestedProfileKeysRef.current.clear();
-        setProfilesByUserId({});
-    }, [currentUserEndpoint, currentUserId, playerListLocation]);
-
-    useEffect(() => {
-        let active = true;
-        const normalizedCurrentUserId = normalizeString(currentUserId);
-        const pendingUserIds = [];
-
-        for (const row of playerSourceRows) {
-            const userId = resolvePlayerRowUserId(row);
-            if (!userId) {
-                continue;
-            }
-            if (userId === normalizedCurrentUserId) {
-                continue;
-            }
-            if (profilesByUserId[userId]) {
-                continue;
-            }
-
-            const requestKey = `${currentUserEndpoint || ''}\u0000${userId}`;
-            if (requestedProfileKeysRef.current.has(requestKey)) {
-                continue;
-            }
-
-            requestedProfileKeysRef.current.add(requestKey);
-            pendingUserIds.push(userId);
-        }
-
-        if (!pendingUserIds.length) {
-            return () => {
-                active = false;
-            };
-        }
-
-        async function fetchProfiles() {
-            const queue = [...pendingUserIds];
-            const nextProfiles = {};
-            const workers = Array.from(
-                {
-                    length: Math.min(
-                        PLAYER_PROFILE_FETCH_CONCURRENCY,
-                        queue.length
-                    )
-                },
-                async () => {
-                    while (queue.length) {
-                        const userId = queue.shift();
-                        try {
-                            const profile =
-                                await userProfileRepository.getUserProfile({
-                                    userId,
-                                    endpoint: currentUserEndpoint
-                                });
-                            const profileUserId = normalizeString(
-                                profile?.id || userId
-                            );
-                            if (profileUserId) {
-                                nextProfiles[profileUserId] = profile;
-                            }
-                        } catch (error) {
-                            console.warn(
-                                'PlayerList failed to load player profile:',
-                                userId,
-                                error
-                            );
-                        }
-                    }
-                }
-            );
-
-            await Promise.all(workers);
-            if (!active || !Object.keys(nextProfiles).length) {
-                return;
-            }
-
-            setProfilesByUserId((current) => ({
-                ...current,
-                ...nextProfiles
-            }));
-        }
-
-        void fetchProfiles();
-
-        return () => {
-            active = false;
-        };
-    }, [
-        currentUserEndpoint,
-        currentUserId,
-        playerSourceRows,
-        profilesByUserId
-    ]);
+    const playerProfileIds = useMemo(
+        () => buildPlayerProfileIds(playerSourceRows, currentUserId),
+        [currentUserId, playerSourceRows]
+    );
+    const profilesByUserId = useQueries({
+        queries: playerProfileIds.map((userId) => ({
+            queryKey: queryKeys.user(userId, currentUserEndpoint),
+            queryFn: async () => {
+                const response = await vrchatFriendRepository.getUser({
+                    userId,
+                    endpoint: currentUserEndpoint
+                });
+                return response.json;
+            },
+            enabled: Boolean(userId),
+            staleTime: 0,
+            gcTime: entityQueryPolicies.user.gcTime,
+            retry: entityQueryPolicies.user.retry,
+            refetchOnWindowFocus: entityQueryPolicies.user.refetchOnWindowFocus
+        })),
+        combine: (results) => mapProfileQueryResults(playerProfileIds, results)
+    });
 
     const enrichedRows = useMemo(() => {
         return enrichPlayerListRows({
