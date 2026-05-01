@@ -179,8 +179,8 @@ jobs:
             - uses: softprops/action-gh-release@v2
               with:
                   tag_name: ${{ needs.prepare.outputs.tag }}
-                  name: VRCX-0 ${{ needs.prepare.outputs.display_version }}
-                  body: Draft release for VRCX-0 ${{ needs.prepare.outputs.display_version }}.
+                  name: ${{ needs.prepare.outputs.display_version }}
+                  body: Draft release for ${{ needs.prepare.outputs.display_version }}.
                   draft: true
                   prerelease: ${{ needs.prepare.outputs.prerelease }}
                   files: release-assets/*
