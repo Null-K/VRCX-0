@@ -12,7 +12,152 @@ export function normalizePlayerUserId(value) {
 }
 
 export function resolvePlayerRowUserId(row) {
-    return normalizePlayerUserId(row?.userId || row?.ref?.id || row?.id);
+    return normalizePlayerUserId(
+        row?.userId ||
+            row?.user_id ||
+            row?.ref?.id ||
+            row?.ref?.userId ||
+            row?.ref?.user_id ||
+            row?.id
+    );
+}
+
+function normalizeDisplayNameKey(value) {
+    return normalizeString(value).toLowerCase();
+}
+
+function normalizeApiUserId(value) {
+    return normalizePlayerUserId(value?.id || value?.userId || value?.user_id);
+}
+
+function normalizeApiDisplayName(value) {
+    return normalizeString(
+        value?.displayName ||
+            value?.display_name ||
+            value?.username ||
+            value?.name
+    );
+}
+
+export function shouldFetchInstanceUsers(playerRows) {
+    const rows = Array.isArray(playerRows) ? playerRows : [];
+    return !rows.length || rows.some((row) => !resolvePlayerRowUserId(row));
+}
+
+export function mergePlayerRowsWithApiUsers(playerRows, apiUsers) {
+    const sourceRows = Array.isArray(playerRows) ? playerRows : [];
+    const users = Array.isArray(apiUsers) ? apiUsers : [];
+    const usersById = new Map();
+    const usersByName = new Map();
+
+    for (const user of users) {
+        if (!user || typeof user !== 'object') {
+            continue;
+        }
+
+        const userId = normalizeApiUserId(user);
+        const displayName = normalizeApiDisplayName(user);
+        if (userId && !usersById.has(userId)) {
+            usersById.set(userId, user);
+        }
+        const nameKey = normalizeDisplayNameKey(displayName);
+        if (nameKey && !usersByName.has(nameKey)) {
+            usersByName.set(nameKey, user);
+        }
+    }
+
+    const matchedUserIds = new Set();
+    const matchedNames = new Set();
+    const mergedRows = sourceRows.map((row) => {
+        const rowUserId = resolvePlayerRowUserId(row);
+        const rowNameKey = normalizeDisplayNameKey(
+            row?.displayName || row?.ref?.displayName
+        );
+        const apiUser =
+            (rowUserId && usersById.get(rowUserId)) ||
+            (rowNameKey && usersByName.get(rowNameKey));
+
+        if (!apiUser) {
+            return row;
+        }
+
+        const apiUserId = normalizeApiUserId(apiUser);
+        const apiDisplayName = normalizeApiDisplayName(apiUser);
+        const existingRef =
+            row?.ref && typeof row.ref === 'object' ? row.ref : null;
+        const ref = existingRef ? { ...apiUser, ...existingRef } : apiUser;
+        if (apiUserId) {
+            matchedUserIds.add(apiUserId);
+        }
+        const matchedNameKey = normalizeDisplayNameKey(apiDisplayName);
+        if (matchedNameKey) {
+            matchedNames.add(matchedNameKey);
+        }
+
+        return {
+            ...apiUser,
+            ...row,
+            id: apiUserId || row?.id,
+            userId: apiUserId || row?.userId || '',
+            displayName:
+                normalizeString(row?.displayName) ||
+                apiDisplayName ||
+                apiUserId ||
+                '',
+            ref
+        };
+    });
+
+    for (const apiUser of users) {
+        const apiUserId = normalizeApiUserId(apiUser);
+        const apiDisplayName = normalizeApiDisplayName(apiUser);
+        const nameKey = normalizeDisplayNameKey(apiDisplayName);
+        if (
+            (apiUserId && matchedUserIds.has(apiUserId)) ||
+            (nameKey && matchedNames.has(nameKey))
+        ) {
+            continue;
+        }
+        mergedRows.push({
+            ...apiUser,
+            id: apiUserId || apiUser?.id,
+            userId: apiUserId,
+            displayName: apiDisplayName || apiUserId || '',
+            ref:
+                apiUser?.ref && typeof apiUser.ref === 'object'
+                    ? apiUser.ref
+                    : apiUser
+        });
+    }
+
+    return mergedRows;
+}
+
+export function buildPlayerDialogSeedData(row) {
+    if (!row || typeof row !== 'object') {
+        return null;
+    }
+
+    const source =
+        row.userRef && typeof row.userRef === 'object'
+            ? row.userRef
+            : row.ref && typeof row.ref === 'object'
+              ? row.ref
+              : row;
+    const userId =
+        resolvePlayerRowUserId(row) || normalizePlayerUserId(source?.id);
+    const displayName = normalizeString(
+        source?.displayName ||
+            source?.username ||
+            row?.displayName ||
+            row?.username
+    );
+
+    return {
+        ...source,
+        ...(userId ? { id: userId, userId } : null),
+        ...(displayName ? { displayName } : null)
+    };
 }
 
 export function parseTimeMs(value) {

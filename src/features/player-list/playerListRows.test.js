@@ -3,9 +3,12 @@ import { describe, expect, it } from 'vitest';
 import {
     buildFavoriteIdSet,
     buildPlayerSourceRows,
+    buildPlayerDialogSeedData,
     isLiveLocation,
+    mergePlayerRowsWithApiUsers,
     normalizeString,
-    parseTimeMs
+    parseTimeMs,
+    shouldFetchInstanceUsers
 } from './playerListRows.js';
 
 describe('playerListRows', () => {
@@ -157,5 +160,61 @@ describe('playerListRows', () => {
                 currentLocationStartedAt: ''
             })
         ).toEqual([]);
+    });
+
+    it('fetches and merges instance users when log rows only have display names', () => {
+        const playerRows = [
+            {
+                rowId: 'row_1',
+                displayName: 'Display Name',
+                joinedAt: '2026-01-02T03:04:05.000Z'
+            }
+        ];
+        const apiUsers = [
+            {
+                id: 'usr_player',
+                displayName: 'Display Name',
+                tags: ['system_trust_known', 'language_jpn'],
+                status: 'active',
+                statusDescription: 'Original status'
+            }
+        ];
+
+        expect(shouldFetchInstanceUsers(playerRows)).toBe(true);
+        expect(mergePlayerRowsWithApiUsers(playerRows, apiUsers)).toEqual([
+            expect.objectContaining({
+                rowId: 'row_1',
+                displayName: 'Display Name',
+                joinedAt: '2026-01-02T03:04:05.000Z',
+                id: 'usr_player',
+                userId: 'usr_player',
+                ref: apiUsers[0]
+            })
+        ]);
+    });
+
+    it('builds dialog seed data from the enriched profile on the player row', () => {
+        const userRef = {
+            id: 'usr_player',
+            displayName: 'Display Name',
+            bio: 'Full profile bio',
+            date_joined: '2024-05-19'
+        };
+
+        expect(
+            buildPlayerDialogSeedData({
+                rowId: 'row_1',
+                userId: 'usr_player',
+                displayName: 'Fallback Name',
+                ref: {
+                    id: 'usr_player',
+                    displayName: 'Partial Name'
+                },
+                userRef
+            })
+        ).toEqual({
+            ...userRef,
+            userId: 'usr_player'
+        });
     });
 });

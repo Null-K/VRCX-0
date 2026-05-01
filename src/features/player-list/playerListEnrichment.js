@@ -94,6 +94,46 @@ function normalizeUserRef(source, fallbackUserId) {
     };
 }
 
+const PROFILE_PRESENCE_REFRESH_FIELDS = [
+    'status',
+    'statusDescription',
+    'state',
+    'stateBucket',
+    'location',
+    '$location',
+    '$location_at',
+    'locationAt',
+    'locationUpdatedAt',
+    'worldId',
+    'instanceId',
+    'travelingToLocation',
+    'travelingToWorld',
+    'travelingToInstance',
+    '$travelingToLocation',
+    '$travelingToTime'
+];
+
+function hasRefreshValue(value) {
+    return value !== undefined && value !== null && value !== '';
+}
+
+function mergePresenceIntoProfile(presence, profile) {
+    if (!presence) {
+        return profile || null;
+    }
+    if (!profile || typeof profile !== 'object') {
+        return presence;
+    }
+
+    const merged = { ...presence, ...profile };
+    for (const field of PROFILE_PRESENCE_REFRESH_FIELDS) {
+        if (hasRefreshValue(presence[field])) {
+            merged[field] = presence[field];
+        }
+    }
+    return merged;
+}
+
 function resolveUserRef({
     currentUserSnapshot,
     friend,
@@ -111,14 +151,22 @@ function resolveUserRef({
     const fetchedProfile = normalizedUserId
         ? profilesByUserId?.[normalizedUserId]
         : null;
-    if (friend) {
+    if (friend && fetchedProfile) {
         return {
-            userRef: normalizeUserRef(friend, normalizedUserId)
+            userRef: normalizeUserRef(
+                mergePresenceIntoProfile(friend, fetchedProfile),
+                normalizedUserId
+            )
         };
     }
     if (fetchedProfile) {
         return {
             userRef: normalizeUserRef(fetchedProfile, normalizedUserId)
+        };
+    }
+    if (friend) {
+        return {
+            userRef: normalizeUserRef(friend, normalizedUserId)
         };
     }
 
@@ -135,6 +183,7 @@ export function enrichPlayerListRows({
     currentUserSnapshot,
     favoriteFriendIds,
     friendsById,
+    languageOptionsMap = new Map(),
     moderationByUserId,
     playerSourceRows,
     profilesByUserId = {}
@@ -171,7 +220,9 @@ export function enrichPlayerListRows({
             '';
         const platformMeta = resolvePlatformMeta(platform);
         const statusDescription = userRef?.statusDescription || '';
-        const languages = userRef ? normalizeProfileLanguageRows(userRef) : [];
+        const languages = userRef
+            ? normalizeProfileLanguageRows(userRef, languageOptionsMap)
+            : [];
         const bioLinks = Array.isArray(userRef?.bioLinks)
             ? userRef.bioLinks.filter(Boolean)
             : [];

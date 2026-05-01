@@ -36,7 +36,10 @@ import {
 } from './user-dialog/useUserDialogLocationPanel.js';
 import { useUserDialogMemoState } from './user-dialog/useUserDialogMemoState.js';
 import { useUserDialogModerationState } from './user-dialog/useUserDialogModerationState.js';
-import { useUserDialogProfileResource } from './user-dialog/useUserDialogProfileResource.js';
+import {
+    mergeUserDialogLocalSnapshot,
+    useUserDialogProfileResource
+} from './user-dialog/useUserDialogProfileResource.js';
 import { useUserDialogSelfActions } from './user-dialog/useUserDialogSelfActions.js';
 import { useUserDialogSupplementalData } from './user-dialog/useUserDialogSupplementalData.js';
 import { UserDialogTabbedView } from './UserDialogTabbedView.jsx';
@@ -131,9 +134,14 @@ export function UserDialogContent({ userId, seedData = null, openNonce = 0 }) {
         endpoint: currentEndpoint
     });
 
+    const friendSnapshot = friendsById[normalizedUserId] || null;
     const localSnapshot = isTargetCurrentUser
         ? currentUserSnapshot
-        : friendsById[normalizedUserId] || seedData || knownTargetUser || null;
+        : mergeUserDialogLocalSnapshot({
+              friendSnapshot,
+              seedData,
+              knownTargetUser
+          });
     const targetKey = dialogTargetKey(currentEndpoint, normalizedUserId);
     const gameState = useMemo(
         () => ({

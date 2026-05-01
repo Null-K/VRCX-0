@@ -99,6 +99,18 @@ export function mergeLocalSnapshotIntoProfile(localSnapshot, profile) {
     return merged;
 }
 
+export function mergeUserDialogLocalSnapshot({
+    friendSnapshot = null,
+    seedData = null,
+    knownTargetUser = null
+} = {}) {
+    const baseSnapshot = seedData || knownTargetUser || null;
+    if (friendSnapshot && baseSnapshot) {
+        return mergeLocalSnapshotIntoProfile(friendSnapshot, baseSnapshot);
+    }
+    return friendSnapshot || baseSnapshot;
+}
+
 export function useUserDialogProfileResource({
     currentEndpoint,
     currentUserSnapshot,

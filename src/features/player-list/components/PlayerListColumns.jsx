@@ -220,6 +220,19 @@ function PlatformCell({ row }) {
     );
 }
 
+function normalizeTooltipText(value) {
+    return typeof value === 'string'
+        ? value.trim()
+        : String(value ?? '').trim();
+}
+
+export function languageTooltipLabel(entry, code) {
+    const original = normalizeTooltipText(
+        entry?.value || entry?.label || entry?.name
+    );
+    return original || code;
+}
+
 function LanguageCell({ row }) {
     return (
         <div className="flex flex-wrap items-center gap-1">
@@ -227,6 +240,7 @@ function LanguageCell({ row }) {
                 ? row.original.languages.map((entry) => {
                       const key = entry?.key || entry?.value || '';
                       const code = languageCodeLabel(key);
+                      const tooltip = languageTooltipLabel(entry, code);
                       if (!code) {
                           return null;
                       }
@@ -237,7 +251,7 @@ function LanguageCell({ row }) {
                                       {code}
                                   </span>
                               </TooltipTrigger>
-                              <TooltipContent>{code}</TooltipContent>
+                              <TooltipContent>{tooltip}</TooltipContent>
                           </Tooltip>
                       );
                   })

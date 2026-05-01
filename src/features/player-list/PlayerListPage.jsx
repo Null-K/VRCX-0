@@ -11,6 +11,7 @@ import {
     instanceRepository,
     playerListRepository,
     userProfileRepository,
+    vrchatAuthRepository,
     vrchatSearchRepository,
     vrchatModerationRepository
 } from '@/repositories/index.js';
@@ -20,6 +21,7 @@ import {
     recordLocationHintsFromInstances
 } from '@/services/domainIngestionService.js';
 import { parseLocation } from '@/shared/utils/locationParser.js';
+import { normalizeLanguageOptionsFromConfig } from '@/shared/utils/userLanguage.js';
 import { useFavoriteStore } from '@/state/favoriteStore.js';
 import { useFriendRosterStore } from '@/state/friendRosterStore.js';
 import { useModalStore } from '@/state/modalStore.js';
@@ -31,10 +33,13 @@ import { PlayerListWorldHeader } from './components/PlayerListWorldHeader.jsx';
 import { enrichPlayerListRows } from './playerListEnrichment.js';
 import {
     buildFavoriteIdSet,
+    buildPlayerDialogSeedData,
     buildPlayerSourceRows,
     isLiveLocation,
+    mergePlayerRowsWithApiUsers,
     normalizeString,
-    resolvePlayerRowUserId
+    resolvePlayerRowUserId,
+    shouldFetchInstanceUsers
 } from './playerListRows.js';
 
 const PLAYER_PROFILE_FETCH_CONCURRENCY = 4;
@@ -210,6 +215,7 @@ export function PlayerListPage({ embedded = false } = {}) {
     const [logLocationSnapshot, setLogLocationSnapshot] = useState(null);
     const [profilesByUserId, setProfilesByUserId] = useState({});
     const [moderationByUserId, setModerationByUserId] = useState({});
+    const [languageOptions, setLanguageOptions] = useState([]);
     const [clockNow, setClockNow] = useState(() => Date.now());
     const requestedProfileKeysRef = useRef(new Set());
 
@@ -366,7 +372,8 @@ export function PlayerListPage({ embedded = false } = {}) {
         playerListRepository
             .getCurrentInstanceSnapshot({
                 currentUserId,
-                currentLocation: playerListLocation
+                currentLocation: playerListLocation,
+                currentLocationStartedAt: playerListStartedAt
             })
             .then(async (result) => {
                 if (!active) {
@@ -378,7 +385,11 @@ export function PlayerListPage({ embedded = false } = {}) {
                     ? result.players
                     : [];
                 let instancePayload = null;
-                if (!players.length && parsed.worldId && parsed.instanceId) {
+                if (
+                    parsed.worldId &&
+                    parsed.instanceId &&
+                    shouldFetchInstanceUsers(players)
+                ) {
                     const response = await instanceRepository
                         .getInstance({
                             worldId: parsed.worldId,
@@ -391,7 +402,7 @@ export function PlayerListPage({ embedded = false } = {}) {
                         return;
                     }
                     instancePayload = response?.json || null;
-                    players = normalizeApiInstanceUsers(
+                    const instanceUsers = normalizeApiInstanceUsers(
                         instancePayload?.users,
                         instancePayload?.players,
                         instancePayload?.playerList,
@@ -399,6 +410,9 @@ export function PlayerListPage({ embedded = false } = {}) {
                         instancePayload?.userIds,
                         instancePayload?.usersById
                     );
+                    players = players.length
+                        ? mergePlayerRowsWithApiUsers(players, instanceUsers)
+                        : instanceUsers;
                 }
 
                 const nextContext = {
@@ -487,6 +501,36 @@ export function PlayerListPage({ embedded = false } = {}) {
         () => buildFavoriteIdSet(remoteFavoriteFriendIds, localFriendFavorites),
         [localFriendFavorites, remoteFavoriteFriendIds]
     );
+    const languageOptionsMap = useMemo(
+        () => new Map(languageOptions.map((option) => [option.key, option])),
+        [languageOptions]
+    );
+
+    useEffect(() => {
+        let active = true;
+        setLanguageOptions([]);
+
+        vrchatAuthRepository
+            .getConfig({ endpoint: currentUserEndpoint })
+            .then((response) => {
+                if (!active) {
+                    return;
+                }
+
+                setLanguageOptions(
+                    normalizeLanguageOptionsFromConfig(response.json)
+                );
+            })
+            .catch(() => {
+                if (active) {
+                    setLanguageOptions([]);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [currentUserEndpoint]);
 
     const playerSourceRows = useMemo(() => {
         const domainRuntimeRows = domainCurrentInstancePresence
@@ -534,9 +578,6 @@ export function PlayerListPage({ embedded = false } = {}) {
                 continue;
             }
             if (userId === normalizedCurrentUserId) {
-                continue;
-            }
-            if (friendsById[userId]) {
                 continue;
             }
             if (profilesByUserId[userId]) {
@@ -613,7 +654,6 @@ export function PlayerListPage({ embedded = false } = {}) {
     }, [
         currentUserEndpoint,
         currentUserId,
-        friendsById,
         playerSourceRows,
         profilesByUserId
     ]);
@@ -626,6 +666,7 @@ export function PlayerListPage({ embedded = false } = {}) {
             currentUserSnapshot,
             favoriteFriendIds,
             friendsById,
+            languageOptionsMap,
             moderationByUserId,
             playerSourceRows,
             profilesByUserId
@@ -638,6 +679,7 @@ export function PlayerListPage({ embedded = false } = {}) {
         currentUserSnapshot,
         favoriteFriendIds,
         friendsById,
+        languageOptionsMap,
         moderationByUserId,
         playerSourceRows,
         profilesByUserId
@@ -711,9 +753,10 @@ export function PlayerListPage({ embedded = false } = {}) {
                 row?.userRef?.displayName ||
                 row?.ref?.displayName
         );
+        const seedData = buildPlayerDialogSeedData(row);
 
         if (userId) {
-            openUserDialog({ userId, title: displayName });
+            openUserDialog({ userId, title: displayName, seedData });
             return;
         }
 
@@ -749,7 +792,14 @@ export function PlayerListPage({ embedded = false } = {}) {
             if (cachedUserId) {
                 openUserDialog({
                     userId: cachedUserId,
-                    title: displayName
+                    title: displayName,
+                    seedData: seedData
+                        ? {
+                              ...seedData,
+                              id: cachedUserId,
+                              userId: cachedUserId
+                          }
+                        : null
                 });
                 return;
             }

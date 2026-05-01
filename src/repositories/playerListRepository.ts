@@ -17,6 +17,21 @@ function parseDateMs(value) {
     return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
+function resolveSnapshotContext(context, currentLocationStartedAt) {
+    const runtimeStartedAt = normalizeString(currentLocationStartedAt);
+    const runtimeStartedAtMs = parseDateMs(runtimeStartedAt);
+    const contextStartedAtMs = parseDateMs(context?.createdAt);
+
+    if (runtimeStartedAtMs > contextStartedAtMs) {
+        return {
+            ...context,
+            createdAt: runtimeStartedAt
+        };
+    }
+
+    return context;
+}
+
 function getRowValue(row, key, index) {
     if (Array.isArray(row)) {
         return row[index];
@@ -200,9 +215,13 @@ async function resolveCurrentLocationContext(currentLocation) {
 
 async function getCurrentInstanceSnapshot({
     currentUserId = '',
-    currentLocation = ''
+    currentLocation = '',
+    currentLocationStartedAt = ''
 } = {}) {
-    const context = await resolveCurrentLocationContext(currentLocation);
+    const context = resolveSnapshotContext(
+        await resolveCurrentLocationContext(currentLocation),
+        currentLocationStartedAt
+    );
 
     if (!isLiveLocation(context.location)) {
         return {
@@ -211,13 +230,16 @@ async function getCurrentInstanceSnapshot({
         };
     }
 
+    const startedAtMs = parseDateMs(context.createdAt);
     const rows = await sqliteRepository.all(
         `SELECT id, created_at, type, display_name, user_id, time
          FROM gamelog_join_leave
          WHERE location = @location
+           AND (@startedAt = '' OR created_at >= @startedAt)
          ORDER BY id ASC`,
         {
-            '@location': context.location
+            '@location': context.location,
+            '@startedAt': startedAtMs ? context.createdAt : ''
         }
     );
 
@@ -226,6 +248,11 @@ async function getCurrentInstanceSnapshot({
 
     for (const [rowIndex, row] of (Array.isArray(rows) ? rows : []).entries()) {
         const event = mapJoinLeaveRow(row);
+        const eventTime = parseDateMs(event.createdAt);
+        if (startedAtMs && (!eventTime || eventTime < startedAtMs)) {
+            continue;
+        }
+
         const playerKey =
             buildPlayerKey(event.userId) ||
             buildAnonymousPlayerKey(event, rowIndex);
