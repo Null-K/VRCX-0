@@ -110,11 +110,20 @@ export function playerUserId(row) {
     return row?.userId || row?.user_id || '';
 }
 
+function knownDisplayName(knownUser, userId) {
+    return knownUser?.displayName || knownUser?.username || userId;
+}
+
+function needsKnownDisplayName(displayName, userId) {
+    return !displayName || displayName === '\u2014' || displayName === userId;
+}
+
 export function normalizeInfoChartRows(
     rows,
     currentUserId,
     friendsById,
-    favoriteIdSet
+    favoriteIdSet,
+    knownUsersById = {}
 ) {
     return (Array.isArray(rows) ? rows : [])
         .map((row) => {
@@ -126,10 +135,14 @@ export function normalizeInfoChartRows(
             if (!Number.isFinite(leaveMs) || !userId) {
                 return null;
             }
+            const rowDisplayName = playerDisplayName(row);
+            const knownUser = knownUsersById?.[userId];
             return {
                 ...row,
                 userId,
-                displayName: playerDisplayName(row),
+                displayName: needsKnownDisplayName(rowDisplayName, userId)
+                    ? knownDisplayName(knownUser, userId)
+                    : rowDisplayName,
                 joinMs: leaveMs - durationMs,
                 leaveMs,
                 durationMs,

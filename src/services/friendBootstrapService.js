@@ -1,6 +1,7 @@
 import {
     configRepository,
     friendLogRepository,
+    userProfileRepository,
     vrchatFriendRepository
 } from '@/repositories/index.js';
 import {
@@ -227,12 +228,12 @@ async function fetchMissingFriends(userIds, endpoint) {
                 }
 
                 try {
-                    const response = await vrchatFriendRepository.getUser({
+                    const profile = await userProfileRepository.getUserProfile({
                         userId,
                         endpoint
                     });
-                    if (response?.json?.id) {
-                        recoveredFriends.push(response.json);
+                    if (profile?.id) {
+                        recoveredFriends.push(profile);
                     }
                 } catch (error) {
                     console.warn(

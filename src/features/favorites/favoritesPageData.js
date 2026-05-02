@@ -77,14 +77,23 @@ function buildFriendFavoriteItem({
     groupLabel,
     friendId,
     friend,
+    knownUser,
     index,
     favoritesSortIndex,
     t
 }) {
     const translate = resolveTranslator(t);
     const normalizedId = normalizeEntityId(friendId);
-    const status = friend?.stateBucket || friend?.state || 'offline';
-    const location = resolveFavoritePresenceLocation(friend);
+    const profile = friend
+        ? {
+              ...(knownUser || {}),
+              ...friend,
+              displayName: friend.displayName || knownUser?.displayName,
+              username: friend.username || knownUser?.username
+          }
+        : knownUser || null;
+    const status = profile?.stateBucket || profile?.state || 'offline';
+    const location = resolveFavoritePresenceLocation(profile);
 
     return {
         key: `${source}:${groupKey}:${normalizedId}`,
@@ -94,21 +103,21 @@ function buildFriendFavoriteItem({
         groupLabel,
         id: normalizedId,
         title:
-            friend?.displayName ||
-            friend?.username ||
+            profile?.displayName ||
+            profile?.username ||
             translate('view.favorites.generated.user_fallback'),
-        titleColor: friend?.$userColour || '',
-        subtitle: resolveFavoriteSubtitle(friend, location),
+        titleColor: profile?.$userColour || '',
+        subtitle: resolveFavoriteSubtitle(profile, location),
         detailText: '',
         location,
-        travelingToLocation: friend?.travelingToLocation || '',
-        imageUrl: friend ? userImage(friend, true) : '',
+        travelingToLocation: profile?.travelingToLocation || '',
+        imageUrl: profile ? userImage(profile, true) : '',
         statusLabel: status,
         statusVariant:
             status === 'online' || status === 'active'
                 ? 'default'
                 : 'secondary',
-        seedData: friend || null,
+        seedData: profile,
         orderIndex: favoritesSortIndex?.[normalizedId] ?? index
     };
 }
@@ -216,6 +225,7 @@ export function buildFavoriteRemoteItemsByGroup({
     remoteGroups,
     groupedFavoriteFriendIdsByGroupKey,
     friendsById,
+    knownUsersById = {},
     favoritesSortIndex,
     sortValue,
     remoteFavoritesById,
@@ -241,6 +251,7 @@ export function buildFavoriteRemoteItemsByGroup({
                     groupLabel: group.label,
                     friendId,
                     friend: friendsById[normalizeEntityId(friendId)],
+                    knownUser: knownUsersById[normalizeEntityId(friendId)],
                     index,
                     favoritesSortIndex,
                     t: translate
@@ -328,6 +339,7 @@ export function buildFavoriteLocalItemsByGroup({
     localAvatarDetailsById,
     localWorldDetailsById,
     friendsById,
+    knownUsersById = {},
     sortValue,
     t
 }) {
@@ -347,6 +359,7 @@ export function buildFavoriteLocalItemsByGroup({
                     groupLabel: group.label,
                     friendId,
                     friend: friendsById[normalizeEntityId(friendId)],
+                    knownUser: knownUsersById[normalizeEntityId(friendId)],
                     index,
                     t: translate
                 })

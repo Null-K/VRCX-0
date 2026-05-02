@@ -138,6 +138,7 @@ function resolveUserRef({
     currentUserSnapshot,
     friend,
     isCurrentUser,
+    knownUser,
     normalizedUserId,
     profilesByUserId,
     row
@@ -151,17 +152,21 @@ function resolveUserRef({
     const fetchedProfile = normalizedUserId
         ? profilesByUserId?.[normalizedUserId]
         : null;
-    if (friend && fetchedProfile) {
+    const knownProfile =
+        knownUser && fetchedProfile
+            ? { ...knownUser, ...fetchedProfile }
+            : fetchedProfile || knownUser;
+    if (friend && knownProfile) {
         return {
             userRef: normalizeUserRef(
-                mergePresenceIntoProfile(friend, fetchedProfile),
+                mergePresenceIntoProfile(friend, knownProfile),
                 normalizedUserId
             )
         };
     }
-    if (fetchedProfile) {
+    if (knownProfile) {
         return {
-            userRef: normalizeUserRef(fetchedProfile, normalizedUserId)
+            userRef: normalizeUserRef(knownProfile, normalizedUserId)
         };
     }
     if (friend) {
@@ -184,6 +189,7 @@ export function enrichPlayerListRows({
     favoriteFriendIds,
     friendsById,
     languageOptionsMap = new Map(),
+    knownUsersById = {},
     moderationByUserId,
     playerSourceRows,
     profilesByUserId = {}
@@ -191,6 +197,9 @@ export function enrichPlayerListRows({
     return playerSourceRows.map((row) => {
         const normalizedUserId = resolvePlayerRowUserId(row);
         const friend = normalizedUserId ? friendsById[normalizedUserId] : null;
+        const knownUser = normalizedUserId
+            ? knownUsersById[normalizedUserId]
+            : null;
         const moderation = normalizedUserId
             ? moderationByUserId[normalizedUserId]
             : null;
@@ -201,6 +210,7 @@ export function enrichPlayerListRows({
             currentUserSnapshot,
             friend,
             isCurrentUser,
+            knownUser,
             normalizedUserId,
             profilesByUserId,
             row

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useKnownUserFacts } from '@/domain/users/useKnownUser.js';
 import { openUserDialog } from '@/services/dialogService.js';
 import { getResolvedThemeMode } from '@/services/themeService.js';
 import { useFavoriteStore } from '@/state/favoriteStore.js';
@@ -20,7 +21,10 @@ import {
     buildInfoChartOption,
     buildInfoChartTooltipParts
 } from './previousInstancesChart.js';
-import { normalizeInfoChartRows } from './previousInstancesRows.js';
+import {
+    normalizeInfoChartRows,
+    playerUserId
+} from './previousInstancesRows.js';
 
 function InfoChartEmptyState({ title, description }) {
     return (
@@ -60,6 +64,9 @@ export function PreviousInstanceInfoChart({ rows }) {
     const { t } = useTranslation();
 
     const currentUserId = useRuntimeStore((state) => state.auth.currentUserId);
+    const currentEndpoint = useRuntimeStore(
+        (state) => state.auth.currentUserEndpoint
+    );
     const friendsById = useFriendRosterStore((state) => state.friendsById);
     const favoriteFriendIds = useFavoriteStore(
         (state) => state.favoriteFriendIds
@@ -88,15 +95,32 @@ export function PreviousInstanceInfoChart({ rows }) {
             ),
         [favoriteFriendIds, localFriendFavoritesList]
     );
+    const chartUserIds = useMemo(() => {
+        const seen = new Set();
+        const ids = [];
+        for (const row of Array.isArray(rows) ? rows : []) {
+            const userId = playerUserId(row);
+            if (!userId || seen.has(userId)) {
+                continue;
+            }
+            seen.add(userId);
+            ids.push(userId);
+        }
+        return ids;
+    }, [rows]);
+    const knownUsersById = useKnownUserFacts(chartUserIds, {
+        endpoint: currentEndpoint
+    });
     const chartRows = useMemo(
         () =>
             normalizeInfoChartRows(
                 rows,
                 currentUserId,
                 friendsById,
-                favoriteIdSet
+                favoriteIdSet,
+                knownUsersById
             ),
-        [currentUserId, favoriteIdSet, friendsById, rows]
+        [currentUserId, favoriteIdSet, friendsById, knownUsersById, rows]
     );
     const chartPayload = useMemo(
         () =>
@@ -189,7 +213,8 @@ export function PreviousInstanceInfoChart({ rows }) {
                 if (entry?.userId) {
                     openUserDialog({
                         userId: entry.userId,
-                        title: entry.displayName || undefined
+                        title: entry.displayName || undefined,
+                        seedData: knownUsersById[entry.userId] || null
                     });
                 }
             });
@@ -205,7 +230,13 @@ export function PreviousInstanceInfoChart({ rows }) {
         return () => {
             cancelled = true;
         };
-    }, [chartElement, chartPayload, chartRows.length, resolvedTheme]);
+    }, [
+        chartElement,
+        chartPayload,
+        chartRows.length,
+        knownUsersById,
+        resolvedTheme
+    ]);
 
     if (!chartRows.length) {
         return (

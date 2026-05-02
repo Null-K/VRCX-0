@@ -2,6 +2,7 @@ import { SearchIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useKnownUserFacts } from '@/domain/users/useKnownUser.js';
 import { convertFileUrlToImageUrl, userImage } from '@/lib/entityMedia.js';
 import {
     groupProfileRepository,
@@ -254,6 +255,13 @@ export function QuickSearchDialog({ open, onOpenChange }) {
     const [query, setQuery] = useState('');
     const [catalog, setCatalog] = useState(() => createEmptyCatalog());
     const normalizedQuery = query.trim().toLowerCase();
+    const friendIds = useMemo(
+        () => Object.keys(friendsById || {}).filter(Boolean),
+        [friendsById]
+    );
+    const knownFriendUsersById = useKnownUserFacts(friendIds, {
+        endpoint: currentEndpoint
+    });
 
     useEffect(() => {
         if (!open || !currentUserId) {
@@ -299,16 +307,26 @@ export function QuickSearchDialog({ open, onOpenChange }) {
             };
         }
 
-        const friends = Object.values(friendsById || {}).map((friend) => ({
-            id: friend.id,
-            type: 'friend',
-            source: 'friends',
-            name: friend.displayName || friend.username || 'User',
-            subtitle: friend.statusDescription || '',
-            memo: friend.memo || friend.$nickName,
-            note: friend.note,
-            imageUrl: userImage(friend, true, '64')
-        }));
+        const friends = Object.values(friendsById || {}).map((friend) => {
+            const knownUser = knownFriendUsersById[friend.id] || null;
+            const profile = {
+                ...(knownUser || {}),
+                ...friend,
+                displayName: friend.displayName || knownUser?.displayName,
+                username: friend.username || knownUser?.username
+            };
+            return {
+                id: profile.id || friend.id,
+                type: 'friend',
+                source: 'friends',
+                name: profile.displayName || profile.username || 'User',
+                subtitle: profile.statusDescription || '',
+                memo: profile.memo || profile.$nickName,
+                note: profile.note,
+                imageUrl: userImage(profile, true, '64'),
+                seedData: profile
+            };
+        });
 
         const remoteFavorites = Object.values(remoteFavoritesByObjectId || []);
         const localAvatars = Object.values(localAvatarDetailsById || []);
@@ -402,6 +420,7 @@ export function QuickSearchDialog({ open, onOpenChange }) {
         currentUserId,
         friendsById,
         groupInstances,
+        knownFriendUsersById,
         localAvatarDetailsById,
         localWorldDetailsById,
         normalizedQuery,
@@ -421,7 +440,11 @@ export function QuickSearchDialog({ open, onOpenChange }) {
         onOpenChange(false);
         setQuery('');
         if (item.type === 'friend') {
-            openUserDialog({ userId: item.id, title: item.name });
+            openUserDialog({
+                userId: item.id,
+                title: item.name,
+                seedData: item.seedData || null
+            });
         } else if (item.type === 'avatar') {
             openAvatarDialog({
                 avatarId: item.id,

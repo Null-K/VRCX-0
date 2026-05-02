@@ -8,10 +8,11 @@ import {
     UserIcon,
     UsersIcon
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import { useKnownUserFact } from '@/domain/users/useKnownUser.js';
 import { formatDateFilter } from '@/lib/dateTime.js';
 import { copyTextToClipboard } from '@/lib/entityMedia.js';
 import { userProfileRepository } from '@/repositories/index.js';
@@ -37,7 +38,6 @@ import {
 import {
     canRequestInviteFromFeedFriend,
     normalizeFeedId as normalizeId,
-    resolveDisplayNameCandidate,
     resolveFeedUserDisplayName,
     resolveFeedUserId,
     UNKNOWN_FEED_USER_DISPLAY_NAME
@@ -114,13 +114,21 @@ function FeedUserLink({
     const { t } = useTranslation();
 
     const userId = resolveFeedUserId(row);
+    const knownUser = useKnownUserFact(userId, { endpoint });
+    const displayUser = friend
+        ? {
+              ...(knownUser || {}),
+              ...friend,
+              displayName: friend.displayName || knownUser?.displayName,
+              username: friend.username || knownUser?.username
+          }
+        : knownUser;
     const displayName = resolveFeedUserDisplayName(
         row,
-        friend,
+        displayUser,
         cachedDisplayName
     );
-    const [resolvedDisplayName, setResolvedDisplayName] = useState(displayName);
-    const location = resolvePresenceLocation(friend);
+    const location = resolvePresenceLocation(friend || knownUser);
     const parsedLocation = parseLocation(location);
     const worldTarget = parsedLocation.worldId || '';
     const worldDialogTarget =
@@ -144,41 +152,17 @@ function FeedUserLink({
     );
 
     useEffect(() => {
-        let active = true;
-        setResolvedDisplayName(displayName);
         if (!userId || displayName !== UNKNOWN_FEED_USER_DISPLAY_NAME) {
-            return () => {
-                active = false;
-            };
+            return;
         }
 
         userProfileRepository
             .getUserProfile({ userId, endpoint })
-            .then((profile) => {
-                if (!active) {
-                    return;
-                }
-                const nextName = resolveDisplayNameCandidate(
-                    profile?.displayName || profile?.username || profile?.name,
-                    userId
-                );
-                setResolvedDisplayName(
-                    nextName || UNKNOWN_FEED_USER_DISPLAY_NAME
-                );
-            })
-            .catch(() => {
-                if (active) {
-                    setResolvedDisplayName(UNKNOWN_FEED_USER_DISPLAY_NAME);
-                }
-            });
-
-        return () => {
-            active = false;
-        };
+            .catch(() => {});
     }, [displayName, endpoint, userId]);
 
     const userLabel =
-        resolvedDisplayName || displayName || UNKNOWN_FEED_USER_DISPLAY_NAME;
+        displayName || UNKNOWN_FEED_USER_DISPLAY_NAME;
 
     const trigger = (
         <div className="flex min-w-0 flex-col gap-0.5">
@@ -190,7 +174,8 @@ function FeedUserLink({
                 onClick={() =>
                     openUserDialog({
                         userId,
-                        title: userLabel
+                        title: userLabel,
+                        seedData: displayUser || null
                     })
                 }
             >
@@ -211,7 +196,8 @@ function FeedUserLink({
                         onSelect={() =>
                             openUserDialog({
                                 userId,
-                                title: userLabel
+                                title: userLabel,
+                                seedData: displayUser || null
                             })
                         }
                     >

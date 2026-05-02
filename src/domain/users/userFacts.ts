@@ -123,6 +123,7 @@ const PRESENCE_SOURCE_RANK: Record<UserFactSource, number> = {
 
 const USER_FIELD_ALIASES: Record<string, keyof UserFact> = {
     display_name: 'displayName',
+    name: 'displayName',
     user_id: 'id',
     userId: 'id',
     profilePicOverride: 'profilePicOverride',

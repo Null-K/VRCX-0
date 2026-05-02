@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import { useKnownUserFacts } from '@/domain/users/useKnownUser.js';
 import {
     avatarProfileRepository,
     avatarLocalRepository,
@@ -165,6 +166,34 @@ export function useFavoritesPageController({ kind, embedded = false }) {
         () => new Map(Object.entries(friendsById || {})),
         [friendsById]
     );
+    const favoriteFriendFactIds = useMemo(() => {
+        if (kind !== 'friend') {
+            return [];
+        }
+        const ids = new Set();
+        for (const groupIds of Object.values(
+            groupedFavoriteFriendIdsByGroupKey || {}
+        )) {
+            for (const friendId of Array.isArray(groupIds) ? groupIds : []) {
+                const normalizedId = normalizeEntityId(friendId);
+                if (normalizedId) {
+                    ids.add(normalizedId);
+                }
+            }
+        }
+        for (const groupIds of Object.values(localFriendFavorites || {})) {
+            for (const friendId of Array.isArray(groupIds) ? groupIds : []) {
+                const normalizedId = normalizeEntityId(friendId);
+                if (normalizedId) {
+                    ids.add(normalizedId);
+                }
+            }
+        }
+        return Array.from(ids);
+    }, [groupedFavoriteFriendIdsByGroupKey, kind, localFriendFavorites]);
+    const knownFavoriteUsersById = useKnownUserFacts(favoriteFriendFactIds, {
+        endpoint: currentEndpoint
+    });
     const currentInviteLocation = useMemo(
         () => resolveCurrentInviteLocation(gameState, currentUserSnapshot),
         [gameState, currentUserSnapshot]
@@ -296,6 +325,7 @@ export function useFavoritesPageController({ kind, embedded = false }) {
         favoritesSortOrder,
         friendsById,
         groupedFavoriteFriendIdsByGroupKey,
+        knownUsersById: knownFavoriteUsersById,
         kind,
         localAvatarDetailsById,
         localAvatarFavoriteGroups,

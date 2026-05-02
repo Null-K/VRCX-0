@@ -1,7 +1,7 @@
 import {
     configRepository,
     mediaRepository,
-    vrchatFriendRepository
+    userProfileRepository
 } from '@/repositories/index.js';
 import {
     getEmojiFileName,
@@ -167,13 +167,11 @@ async function saveInstanceEmojiToFile({ inventoryId, userId }) {
         );
         if (!holderDisplayName) {
             try {
-                const userResponse = await vrchatFriendRepository.getUser({
+                const profile = await userProfileRepository.getUserProfile({
                     userId: holderUserId || userId,
                     endpoint
                 });
-                holderDisplayName = normalizeString(
-                    userResponse.json?.displayName
-                );
+                holderDisplayName = normalizeString(profile?.displayName);
             } catch (error) {
                 console.warn(
                     'Failed to resolve emoji holder display name:',

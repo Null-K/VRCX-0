@@ -127,6 +127,34 @@ describe('previousInstancesRows', () => {
         );
     });
 
+    it('uses known user facts for missing chart display names', () => {
+        const rows = normalizeInfoChartRows(
+            [
+                {
+                    user_id: 'usr_known',
+                    display_name: 'usr_known',
+                    created_at: '2024-01-02T02:00:00.000Z',
+                    time: 60 * 1000
+                }
+            ],
+            '',
+            {},
+            new Set(),
+            {
+                usr_known: {
+                    id: 'usr_known',
+                    endpoint: 'default',
+                    displayName: 'Known User',
+                    updatedAt: '2024-01-02T02:00:00.000Z',
+                    fieldRanks: {},
+                    fieldSources: {}
+                }
+            }
+        );
+
+        expect(rows[0].displayName).toBe('Known User');
+    });
+
     it('builds lower-case search text from instance fields', () => {
         expect(
             rowSearchText({

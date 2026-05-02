@@ -1,4 +1,6 @@
+import { recordUserProfile } from '@/domain/users/userFactAccess.js';
 import { useDialogStore } from '@/state/dialogStore.js';
+import { useRuntimeStore } from '@/state/runtimeStore.js';
 
 let entityDialogOpenNonce = 0;
 
@@ -47,6 +49,38 @@ function readSeedTitle(kind, seedData) {
         default:
             return '';
     }
+}
+
+function recordUserDialogSeed(userId, title, seedData) {
+    const normalizedUserId = normalizeEntityId(
+        userId || seedData?.id || seedData?.userId
+    );
+    if (!normalizedUserId) {
+        return;
+    }
+
+    const seed =
+        seedData && typeof seedData === 'object'
+            ? {
+                  ...seedData,
+                  id: normalizedUserId,
+                  userId: normalizedUserId
+              }
+            : {
+                  id: normalizedUserId,
+                  userId: normalizedUserId
+              };
+    const seedTitle = normalizeTitle(
+        seed.displayName || seed.username || seed.name || title
+    );
+    if (seedTitle && seedTitle !== normalizedUserId) {
+        seed.displayName = seed.displayName || seedTitle;
+    }
+
+    recordUserProfile(seed, {
+        endpoint: useRuntimeStore.getState().auth.currentUserEndpoint,
+        source: 'seed'
+    });
 }
 
 function sanitizeEntityTitle(kind, entityId, title, payload) {
@@ -118,6 +152,7 @@ export function openUserDialog({
     description = '',
     seedData = null
 } = {}) {
+    recordUserDialogSeed(userId, title, seedData);
     openEntityDialog({
         kind: 'user',
         entityId: userId,

@@ -5,17 +5,17 @@ import { toast } from 'sonner';
 
 import { PageScaffold } from '@/components/layout/PageScaffold.jsx';
 import { useCurrentInstancePresence } from '@/domain/presence/useCurrentInstancePresence.js';
+import { recordUserProfile } from '@/domain/users/userFactAccess.js';
+import { useKnownUserFacts } from '@/domain/users/useKnownUser.js';
 import { entityQueryPolicies, queryKeys } from '@/lib/entityQueryCache.js';
 import { userFacingErrorMessage } from '@/lib/errorDisplay.js';
 import { backend } from '@/platform/index.js';
 import {
-    gameLogRepository,
     instanceRepository,
     playerListRepository,
     userProfileRepository,
-    vrchatFriendRepository,
     vrchatAuthRepository,
-    vrchatSearchRepository,
+    vrchatFriendRepository,
     vrchatModerationRepository
 } from '@/repositories/index.js';
 import { openUserDialog } from '@/services/dialogService.js';
@@ -23,6 +23,7 @@ import {
     recordGameRuntimePresence,
     recordLocationHintsFromInstances
 } from '@/services/domainIngestionService.js';
+import { resolveUserByDisplayName } from '@/services/userIdentityService.js';
 import { parseLocation } from '@/shared/utils/locationParser.js';
 import { normalizeLanguageOptionsFromConfig } from '@/shared/utils/userLanguage.js';
 import { useFavoriteStore } from '@/state/favoriteStore.js';
@@ -600,6 +601,9 @@ export function PlayerListPage({ embedded = false } = {}) {
         () => buildPlayerProfileIds(playerSourceRows, currentUserId),
         [currentUserId, playerSourceRows]
     );
+    const knownUsersById = useKnownUserFacts(playerProfileIds, {
+        endpoint: currentUserEndpoint
+    });
     const profilesByUserId = useQueries({
         queries: playerProfileIds.map((userId) => ({
             queryKey: queryKeys.user(userId, currentUserEndpoint),
@@ -608,7 +612,12 @@ export function PlayerListPage({ embedded = false } = {}) {
                     userId,
                     endpoint: currentUserEndpoint
                 });
-                return response.json;
+                const profile = userProfileRepository.normalize(response.json);
+                recordUserProfile(profile, {
+                    endpoint: currentUserEndpoint,
+                    source: 'profile'
+                });
+                return profile;
             },
             enabled: Boolean(userId),
             staleTime: 0,
@@ -627,6 +636,7 @@ export function PlayerListPage({ embedded = false } = {}) {
             currentUserSnapshot,
             favoriteFriendIds,
             friendsById,
+            knownUsersById,
             languageOptionsMap,
             moderationByUserId,
             playerSourceRows,
@@ -640,6 +650,7 @@ export function PlayerListPage({ embedded = false } = {}) {
         currentUserSnapshot,
         favoriteFriendIds,
         friendsById,
+        knownUsersById,
         languageOptionsMap,
         moderationByUserId,
         playerSourceRows,
@@ -726,78 +737,22 @@ export function PlayerListPage({ embedded = false } = {}) {
         }
 
         try {
-            const lowerDisplayName = displayName.toLowerCase();
-            const localUser = [
-                currentUserSnapshot,
-                ...Object.values(friendsById || {})
-            ].find((user) => {
-                const name = normalizeString(
-                    user?.displayName || user?.username
-                ).toLowerCase();
-                return name && name === lowerDisplayName;
+            const resolved = await resolveUserByDisplayName(displayName, {
+                endpoint: currentUserEndpoint
             });
-            if (localUser?.id) {
+            if (resolved?.userId) {
                 openUserDialog({
-                    userId: localUser.id,
-                    title: localUser.displayName || displayName,
-                    seedData: localUser
-                });
-                return;
-            }
-
-            const cachedUserId = normalizeString(
-                await gameLogRepository
-                    .getUserIdFromDisplayName(displayName)
-                    .catch(() => '')
-            );
-            if (cachedUserId) {
-                openUserDialog({
-                    userId: cachedUserId,
-                    title: displayName,
-                    seedData: seedData
-                        ? {
-                              ...seedData,
-                              id: cachedUserId,
-                              userId: cachedUserId
-                          }
-                        : null
-                });
-                return;
-            }
-
-            const candidates = [
-                displayName,
-                normalizeString(row?.userRef?.displayName),
-                normalizeString(row?.ref?.displayName),
-                normalizeString(row?.id)
-            ].filter(Boolean);
-            if (!candidates.length) {
-                toast.info(
-                    t(
-                        'view.player_list.generated.no_user_id_was_found_for_this_player_row'
-                    )
-                );
-                return;
-            }
-            const response = await vrchatSearchRepository.getUsers({
-                search: candidates[0],
-                n: 5,
-                offset: 0
-            });
-            const rows = Array.isArray(response.json) ? response.json : [];
-            const match = rows.find((user) =>
-                candidates.some(
-                    (candidate) =>
-                        normalizeString(user?.id) === candidate ||
-                        normalizeString(user?.displayName).toLowerCase() ===
-                            candidate.toLowerCase()
-                )
-            );
-            if (match?.id) {
-                openUserDialog({
-                    userId: match.id,
-                    title: match.displayName || displayName,
-                    seedData: match
+                    userId: resolved.userId,
+                    title: resolved.title || displayName,
+                    seedData:
+                        seedData || resolved.seedData
+                            ? {
+                                  ...(resolved.seedData || {}),
+                                  ...(seedData || {}),
+                                  id: resolved.userId,
+                                  userId: resolved.userId
+                              }
+                            : null
                 });
                 return;
             }

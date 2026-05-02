@@ -4,6 +4,7 @@ import {
     queryKeys,
     setCachedQueryData
 } from '@/lib/entityQueryCache.js';
+import { recordUserProfile } from '@/domain/users/userFactAccess.js';
 import {
     computeTrustLevel,
     computeUserPlatform,
@@ -84,7 +85,9 @@ async function getUserProfile({
             return response.json;
         }
     });
-    return normalize(json);
+    const profile = normalize(json);
+    recordUserProfile(profile, { endpoint, source: 'profile' });
+    return profile;
 }
 
 async function getMutualCounts({ userId, endpoint = '' }) {
@@ -221,6 +224,11 @@ async function updateCurrentUser({ userId, endpoint = '', params = {} }) {
         queryKeys.user(normalizedUserId, endpoint),
         response.json
     );
+    recordUserProfile(nextUser, {
+        endpoint,
+        source: 'currentUser',
+        isCurrentUser: true
+    });
     return nextUser;
 }
 
@@ -286,6 +294,11 @@ async function addCurrentUserTags({ userId, endpoint = '', tags = [] }) {
         queryKeys.user(normalizedUserId, endpoint),
         response.json
     );
+    recordUserProfile(nextUser, {
+        endpoint,
+        source: 'currentUser',
+        isCurrentUser: true
+    });
     return nextUser;
 }
 
@@ -313,6 +326,11 @@ async function removeCurrentUserTags({ userId, endpoint = '', tags = [] }) {
         queryKeys.user(normalizedUserId, endpoint),
         response.json
     );
+    recordUserProfile(nextUser, {
+        endpoint,
+        source: 'currentUser',
+        isCurrentUser: true
+    });
     return nextUser;
 }
 

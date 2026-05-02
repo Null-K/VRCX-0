@@ -1,7 +1,11 @@
 import { ArrowLeftIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import {
+    useKnownUserFact,
+    useKnownUserFacts
+} from '@/domain/users/useKnownUser.js';
 import { timeToText } from '@/lib/dateTime.js';
 import {
     gameLogRepository,
@@ -77,37 +81,18 @@ export function DialogErrorState({ children }) {
 }
 
 export function InstanceOwnerCell({ userId, location = '', endpoint = '' }) {
-    const [displayName, setDisplayName] = useState(userId || '');
+    const knownUser = useKnownUserFact(userId, { endpoint });
+    const displayName =
+        knownUser?.displayName || knownUser?.username || knownUser?.name || userId;
 
     useEffect(() => {
-        let active = true;
-        if (!userId) {
-            setDisplayName('');
-            return () => {
-                active = false;
-            };
+        if (!userId || displayName !== userId) {
+            return;
         }
-
-        setDisplayName(userId);
         userProfileRepository
             .getUserProfile({ userId, endpoint })
-            .then((profile) => {
-                if (!active) {
-                    return;
-                }
-                setDisplayName(
-                    profile?.displayName ||
-                        profile?.username ||
-                        profile?.name ||
-                        userId
-                );
-            })
             .catch(() => {});
-
-        return () => {
-            active = false;
-        };
-    }, [endpoint, userId]);
+    }, [displayName, endpoint, userId]);
 
     if (!userId) {
         return <span className="text-muted-foreground">-</span>;
@@ -123,7 +108,8 @@ export function InstanceOwnerCell({ userId, location = '', endpoint = '' }) {
                     onClick={() =>
                         openUserDialog({
                             userId,
-                            title: displayName || undefined
+                            title: displayName || undefined,
+                            seedData: knownUser || null
                         })
                     }
                 >
@@ -162,6 +148,51 @@ export function PreviousInstanceDetailsPanel({
         players: [],
         details: []
     });
+    const playerFactIds = useMemo(() => {
+        const seen = new Set();
+        const ids = [];
+        for (const player of [
+            ...infoData.players,
+            ...infoData.details
+        ]) {
+            const userId = playerUserId(player);
+            if (!userId || seen.has(userId)) {
+                continue;
+            }
+            seen.add(userId);
+            ids.push(userId);
+        }
+        return ids;
+    }, [infoData.details, infoData.players]);
+    const knownPlayersById = useKnownUserFacts(playerFactIds, {
+        endpoint: currentEndpoint
+    });
+    const missingPlayerProfileIds = useMemo(() => {
+        const ids = [];
+        for (const userId of playerFactIds) {
+            if (knownPlayersById[userId]?.displayName) {
+                continue;
+            }
+            const row = [...infoData.players, ...infoData.details].find(
+                (player) => playerUserId(player) === userId
+            );
+            const displayName = playerDisplayName(row);
+            if (
+                !displayName ||
+                displayName === '-' ||
+                displayName === '\u2014' ||
+                displayName === userId
+            ) {
+                ids.push(userId);
+            }
+        }
+        return ids;
+    }, [
+        infoData.details,
+        infoData.players,
+        knownPlayersById,
+        playerFactIds
+    ]);
 
     useEffect(() => {
         setDetailsViewMode('players');
@@ -226,6 +257,44 @@ export function PreviousInstanceDetailsPanel({
             active = false;
         };
     }, [currentEndpoint, row]);
+
+    useEffect(() => {
+        if (!missingPlayerProfileIds.length) {
+            return;
+        }
+
+        Promise.allSettled(
+            missingPlayerProfileIds
+                .slice(0, 50)
+                .map((userId) =>
+                    userProfileRepository.getUserProfile({
+                        userId,
+                        endpoint: currentEndpoint
+                    })
+                )
+        ).catch(() => {});
+    }, [currentEndpoint, missingPlayerProfileIds]);
+
+    function resolvePlayerDisplayName(player) {
+        const userId = playerUserId(player);
+        const displayName = playerDisplayName(player);
+        if (
+            displayName &&
+            displayName !== '-' &&
+            displayName !== '\u2014' &&
+            displayName !== userId
+        ) {
+            return displayName;
+        }
+        const knownUser = knownPlayersById[userId];
+        return (
+            knownUser?.displayName ||
+            knownUser?.username ||
+            displayName ||
+            userId ||
+            '-'
+        );
+    }
 
     if (!row) {
         return (
@@ -382,7 +451,7 @@ export function PreviousInstanceDetailsPanel({
                                                         key={`${playerDisplayName(player)}:${playerUserId(player)}:${index}`}
                                                     >
                                                         <TableCell className="align-top">
-                                                            {playerDisplayName(
+                                                            {resolvePlayerDisplayName(
                                                                 player
                                                             )}
                                                         </TableCell>
@@ -475,7 +544,9 @@ export function PreviousInstanceDetailsPanel({
                                             {formatDate(detailRow?.created_at)}
                                         </TableCell>
                                         <TableCell className="px-2 py-1 text-xs">
-                                            {playerDisplayName(detailRow)}
+                                            {resolvePlayerDisplayName(
+                                                detailRow
+                                            )}
                                         </TableCell>
                                         <TableCell className="px-2 py-1 text-xs tabular-nums">
                                             {Number(detailRow?.time || 0) > 0

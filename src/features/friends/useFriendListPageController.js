@@ -13,7 +13,7 @@ import {
     gameLogRepository,
     memoRepository,
     mutualGraphRepository,
-    vrchatFriendRepository
+    userProfileRepository
 } from '@/repositories/index.js';
 import { openUserDialog } from '@/services/dialogService.js';
 import friendRelationshipService from '@/services/friendRelationshipService.js';
@@ -290,7 +290,7 @@ export function useFriendListPageController({ embedded = false } = {}) {
         setUserLoadProgress,
         t,
         toast,
-        vrchatFriendRepository
+        userProfileRepository
     });
     const tableColumns = useMemo(
         () =>

@@ -24,6 +24,7 @@ export function useFavoritesViewData({
     favoritesSortOrder,
     friendsById,
     groupedFavoriteFriendIdsByGroupKey,
+    knownUsersById = {},
     kind,
     localAvatarDetailsById,
     localAvatarFavoriteGroups,
@@ -105,6 +106,7 @@ export function useFavoritesViewData({
             remoteGroups,
             groupedFavoriteFriendIdsByGroupKey,
             friendsById,
+            knownUsersById,
             favoritesSortIndex,
             sortValue,
             remoteFavoritesById,
@@ -117,6 +119,7 @@ export function useFavoritesViewData({
         favoritesSortIndex,
         friendsById,
         groupedFavoriteFriendIdsByGroupKey,
+        knownUsersById,
         kind,
         remoteEntityDetails.data,
         remoteEntityDetails.status,
@@ -137,11 +140,13 @@ export function useFavoritesViewData({
             localAvatarDetailsById,
             localWorldDetailsById,
             friendsById,
+            knownUsersById,
             sortValue,
             t
         });
     }, [
         friendsById,
+        knownUsersById,
         kind,
         localAvatarDetailsById,
         localAvatarFavorites,

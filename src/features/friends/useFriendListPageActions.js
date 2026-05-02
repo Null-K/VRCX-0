@@ -29,7 +29,7 @@ export function useFriendListPageActions({
     setUserLoadProgress,
     t,
     toast,
-    vrchatFriendRepository
+    userProfileRepository
 }) {
     function setFriendDeleting(userId, isDeleting) {
         const normalizedUserId = normalizeId(userId);
@@ -209,14 +209,14 @@ export function useFriendListPageActions({
                 }
                 const friendId = normalizeId(friend?.id);
                 try {
-                    const response = await vrchatFriendRepository.getUser({
+                    const profile = await userProfileRepository.getUserProfile({
                         userId: friendId,
                         endpoint: currentEndpoint
                     });
-                    if (response?.json?.id) {
+                    if (profile?.id) {
                         applyFriendPatch({
                             userId: friendId,
-                            patch: response.json,
+                            patch: profile,
                             stateBucket:
                                 friend.stateBucket || friend.state || 'offline'
                         });
