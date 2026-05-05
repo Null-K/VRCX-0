@@ -5,9 +5,10 @@ const RELEASE_CHANNELS = Object.freeze({
 
 const MAX_MAJOR_VERSION = 99;
 const MAX_MINOR_VERSION = 999;
+const MAX_PATCH_VERSION = 999;
 const MAX_ALPHA_NUMBER = 999;
 const RELEASE_VERSION_PATTERN =
-    /^v?(?<major>[1-9][0-9]*)(?:\.(?<minor>0|[1-9][0-9]*)(?:\.(?<patch>0))?)?(?:-(?<channel>alpha)\.(?<number>[1-9][0-9]{0,2}))?$/;
+    /^v?(?<major>[1-9][0-9]*)\.(?<minor>0|[1-9][0-9]*)\.(?<patch>0|[1-9][0-9]*)(?:-(?<channel>alpha)\.(?<number>[1-9][0-9]{0,2}))?$/;
 
 const CHANNEL_ORDER = {
     [RELEASE_CHANNELS.ALPHA]: 0,
@@ -29,19 +30,19 @@ function isBoundedInteger(value, max) {
     return Number.isInteger(value) && value >= 1 && value <= max;
 }
 
-function buildVersionInfo({ major, minor, channel, number = null }) {
+function buildVersionInfo({ major, minor, patch, channel, number = null }) {
     const normalizedChannel =
         normalizeReleaseChannel(channel) || RELEASE_CHANNELS.STABLE;
     const alphaNumber =
         normalizedChannel === RELEASE_CHANNELS.ALPHA ? number : null;
-    const canonicalVersion = `${major}.${minor}.0${
+    const canonicalVersion = `${major}.${minor}.${patch}${
         alphaNumber ? `-alpha.${alphaNumber}` : ''
     }`;
 
     return {
         major,
         minor,
-        patchNumber: 0,
+        patchNumber: patch,
         betaNumber: null,
         alphaNumber,
         channel: normalizedChannel,
@@ -56,7 +57,7 @@ function buildVersionInfo({ major, minor, channel, number = null }) {
  * @returns {null | {
  *   major: number,
  *   minor: number,
- *   patchNumber: 0,
+ *   patchNumber: number,
  *   betaNumber: null,
  *   alphaNumber: number | null,
  *   channel: 'Stable' | 'Alpha',
@@ -73,9 +74,8 @@ function parseReleaseVersion(version) {
     }
 
     const major = Number.parseInt(match.groups.major, 10);
-    const minor = match.groups.minor
-        ? Number.parseInt(match.groups.minor, 10)
-        : 0;
+    const minor = Number.parseInt(match.groups.minor, 10);
+    const patch = Number.parseInt(match.groups.patch, 10);
     const alphaNumber = match.groups.number
         ? Number.parseInt(match.groups.number, 10)
         : null;
@@ -86,6 +86,9 @@ function parseReleaseVersion(version) {
         !Number.isInteger(minor) ||
         minor < 0 ||
         minor > MAX_MINOR_VERSION ||
+        !Number.isInteger(patch) ||
+        patch < 0 ||
+        patch > MAX_PATCH_VERSION ||
         (match.groups.channel && channel !== RELEASE_CHANNELS.ALPHA) ||
         (match.groups.number &&
             !isBoundedInteger(alphaNumber, MAX_ALPHA_NUMBER))
@@ -96,6 +99,7 @@ function parseReleaseVersion(version) {
     return buildVersionInfo({
         major,
         minor,
+        patch,
         channel: channel || RELEASE_CHANNELS.STABLE,
         number: alphaNumber
     });
@@ -108,7 +112,7 @@ function createReleaseVersionMeta({ version }) {
     }
 
     return {
-        base_version: `${parsedVersion.major}.${parsedVersion.minor}.0`,
+        base_version: `${parsedVersion.major}.${parsedVersion.minor}.${parsedVersion.patchNumber}`,
         build_version: parsedVersion.buildVersion,
         display_version: parsedVersion.displayVersion,
         channel: parsedVersion.channel,
@@ -157,7 +161,8 @@ function compareReleaseVersions(left, right) {
 
     const versionDelta =
         parsedLeft.major - parsedRight.major ||
-        parsedLeft.minor - parsedRight.minor;
+        parsedLeft.minor - parsedRight.minor ||
+        parsedLeft.patchNumber - parsedRight.patchNumber;
     if (versionDelta !== 0) {
         return versionDelta;
     }

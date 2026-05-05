@@ -19,6 +19,15 @@ describe('releaseVersion utilities', () => {
             canonicalVersion: '1.0.0',
             displayVersion: '1.0.0'
         });
+        expect(parseReleaseVersion('v1.0.1')).toMatchObject({
+            major: 1,
+            minor: 0,
+            patchNumber: 1,
+            channel: 'Stable',
+            buildVersion: '1.0.1',
+            canonicalVersion: '1.0.1',
+            displayVersion: '1.0.1'
+        });
         expect(parseReleaseVersion('1.1.0-alpha.12')).toMatchObject({
             major: 1,
             minor: 1,
@@ -38,13 +47,15 @@ describe('releaseVersion utilities', () => {
         expect(formatReleaseDisplayVersion('1.0.0')).toBe('1.0.0');
     });
 
-    it('rejects beta, non-zero patch, old date versions, and malformed values', () => {
-        expect(parseReleaseVersion('v1.1.1')).toBeNull();
+    it('rejects beta, old date versions, and malformed values', () => {
         expect(parseReleaseVersion('v1.1.0-beta.1')).toBeNull();
         expect(parseReleaseVersion('v1.1.0-alpha.0')).toBeNull();
         expect(parseReleaseVersion('v1.1.0-alpha.1000')).toBeNull();
         expect(parseReleaseVersion('v01.1.0')).toBeNull();
         expect(parseReleaseVersion('v1.01.0')).toBeNull();
+        expect(parseReleaseVersion('v1.1.01')).toBeNull();
+        expect(parseReleaseVersion('v1')).toBeNull();
+        expect(parseReleaseVersion('v1.1')).toBeNull();
         expect(parseReleaseVersion('v2026.4.0')).toBeNull();
         expect(parseReleaseVersion('v2026.04')).toBeNull();
         expect(parseReleaseVersion('nightly')).toBeNull();
@@ -56,6 +67,7 @@ describe('releaseVersion utilities', () => {
             '1.1.0',
             '1.2.0-alpha.1',
             '1.1.0-alpha.2',
+            '1.1.1',
             '1.0.0',
             'bad',
             '1.1.0-alpha.1'
@@ -67,6 +79,7 @@ describe('releaseVersion utilities', () => {
             '1.1.0-alpha.1',
             '1.1.0-alpha.2',
             '1.1.0',
+            '1.1.1',
             '1.2.0-alpha.1'
         ]);
     });
