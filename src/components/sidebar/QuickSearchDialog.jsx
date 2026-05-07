@@ -1,4 +1,4 @@
-import { SearchIcon } from 'lucide-react';
+import { GlobeIcon, ImageIcon, UsersIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -6,6 +6,7 @@ import { useKnownUserFacts } from '@/domain/users/useKnownUser.js';
 import { convertFileUrlToImageUrl, userImage } from '@/lib/entityMedia.js';
 import {
     groupProfileRepository,
+    memoRepository,
     myAvatarRepository,
     vrchatFavoriteRepository,
     worldProfileRepository
@@ -20,20 +21,27 @@ import { useFavoriteStore } from '@/state/favoriteStore.js';
 import { useFriendRosterStore } from '@/state/friendRosterStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 import {
+    Command,
+    CommandEmpty,
+    CommandGroup,
+    CommandInput,
+    CommandItem,
+    CommandList,
+    CommandShortcut
+} from '@/ui/shadcn/command';
+import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogHeader,
     DialogTitle
 } from '@/ui/shadcn/dialog';
-import {
-    InputGroup,
-    InputGroupAddon,
-    InputGroupInput
-} from '@/ui/shadcn/input-group';
 
 import { entityTypeLabel, ResultGroup } from './QuickSearchResults.jsx';
 
 const RESULT_LIMIT = 8;
+const USER_QUERY_MIN_LENGTH = 1;
+const DETAIL_QUERY_MIN_LENGTH = 2;
 
 function createEmptyCatalog(status = 'idle', detail = '') {
     return {
@@ -43,7 +51,9 @@ function createEmptyCatalog(status = 'idle', detail = '') {
         favoriteAvatars: [],
         ownWorlds: [],
         favoriteWorlds: [],
-        groups: []
+        groups: [],
+        userMemos: [],
+        userNotes: []
     };
 }
 
@@ -57,17 +67,50 @@ function normalizeQuery(value) {
     return normalize(value).toLowerCase();
 }
 
-function matchesQuery(row, query) {
-    const haystack = [row.name, row.subtitle, row.id, row.memo, row.note]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase();
-    return haystack.includes(query);
+function matchesEntityName(row, query) {
+    return normalizeQuery(row.name).includes(query);
 }
 
-function filterResults(rows, query, limit = RESULT_LIMIT) {
+function matchesFriend(row, query) {
+    if (matchesEntityName(row, query)) {
+        return true;
+    }
+    if (query.length < DETAIL_QUERY_MIN_LENGTH) {
+        return false;
+    }
+    return (
+        normalizeQuery(row.memo).includes(query) ||
+        normalizeQuery(row.note).includes(query)
+    );
+}
+
+function matchedField(row, query) {
+    if (!query) {
+        return 'name';
+    }
+    if (normalizeQuery(row.name).includes(query)) {
+        return 'name';
+    }
+    if (query.length < DETAIL_QUERY_MIN_LENGTH) {
+        return 'name';
+    }
+    if (normalizeQuery(row.memo).includes(query)) {
+        return 'memo';
+    }
+    if (normalizeQuery(row.note).includes(query)) {
+        return 'note';
+    }
+    return 'name';
+}
+
+function filterResults(
+    rows,
+    query,
+    matcher = matchesEntityName,
+    limit = RESULT_LIMIT
+) {
     return rows
-        .filter((row) => matchesQuery(row, query))
+        .filter((row) => matcher(row, query))
         .sort((left, right) => {
             const leftPrefix = normalizeQuery(left.name).startsWith(query)
                 ? 0
@@ -190,28 +233,50 @@ function settledRows(result) {
         : [];
 }
 
+function buildUserTextMap(rows, fieldName) {
+    const map = new Map();
+    for (const row of Array.isArray(rows) ? rows : []) {
+        const userId = normalize(row?.userId);
+        if (userId) {
+            map.set(userId, row?.[fieldName] || '');
+        }
+    }
+    return map;
+}
+
 async function loadCatalog({ currentUserId, endpoint }) {
-    const [ownAvatars, ownWorlds, favoriteAvatars, favoriteWorlds, groups] =
-        await Promise.allSettled([
-            myAvatarRepository.getMyAvatars({ endpoint }),
-            worldProfileRepository.getAllWorldsByUser({
-                userId: currentUserId,
-                endpoint
-            }),
-            vrchatFavoriteRepository.getAllFavoriteAvatars({ endpoint }),
-            vrchatFavoriteRepository.getAllFavoriteWorlds({ endpoint }),
-            groupProfileRepository.getUserGroups({
-                userId: currentUserId,
-                endpoint
-            })
-        ]);
+    const [
+        ownAvatars,
+        ownWorlds,
+        favoriteAvatars,
+        favoriteWorlds,
+        groups,
+        userMemos,
+        userNotes
+    ] = await Promise.allSettled([
+        myAvatarRepository.getMyAvatars({ endpoint }),
+        worldProfileRepository.getAllWorldsByUser({
+            userId: currentUserId,
+            endpoint
+        }),
+        vrchatFavoriteRepository.getAllFavoriteAvatars({ endpoint }),
+        vrchatFavoriteRepository.getAllFavoriteWorlds({ endpoint }),
+        groupProfileRepository.getUserGroups({
+            userId: currentUserId,
+            endpoint
+        }),
+        memoRepository.getAllUserMemos(),
+        memoRepository.getAllUserNotes(currentUserId)
+    ]);
 
     const rejectedCount = [
         ownAvatars,
         ownWorlds,
         favoriteAvatars,
         favoriteWorlds,
-        groups
+        groups,
+        userMemos,
+        userNotes
     ].filter((result) => result.status === 'rejected').length;
 
     return {
@@ -225,7 +290,9 @@ async function loadCatalog({ currentUserId, endpoint }) {
         ownWorlds: settledRows(ownWorlds),
         favoriteAvatars: settledRows(favoriteAvatars),
         favoriteWorlds: settledRows(favoriteWorlds),
-        groups: settledRows(groups)
+        groups: settledRows(groups),
+        userMemos: settledRows(userMemos),
+        userNotes: settledRows(userNotes)
     };
 }
 
@@ -295,7 +362,7 @@ export function QuickSearchDialog({ open, onOpenChange }) {
     }, [currentEndpoint, currentUserId, open]);
 
     const results = useMemo(() => {
-        if (normalizedQuery.length < 2) {
+        if (normalizedQuery.length < USER_QUERY_MIN_LENGTH) {
             return {
                 friends: [],
                 ownAvatars: [],
@@ -307,22 +374,51 @@ export function QuickSearchDialog({ open, onOpenChange }) {
             };
         }
 
+        const canSearchDetails =
+            normalizedQuery.length >= DETAIL_QUERY_MIN_LENGTH;
+        const userMemoById = buildUserTextMap(catalog.userMemos, 'memo');
+        const userNoteById = buildUserTextMap(catalog.userNotes, 'note');
         const friends = Object.values(friendsById || {}).map((friend) => {
+            const friendId = normalize(friend?.id);
             const knownUser = knownFriendUsersById[friend.id] || null;
+            const memo =
+                userMemoById.get(friendId) ||
+                friend.memo ||
+                friend.$memo ||
+                friend.$nickName ||
+                knownUser?.memo ||
+                '';
+            const note =
+                userNoteById.get(friendId) ||
+                friend.note ||
+                knownUser?.note ||
+                '';
             const profile = {
                 ...(knownUser || {}),
                 ...friend,
                 displayName: friend.displayName || knownUser?.displayName,
-                username: friend.username || knownUser?.username
+                username: friend.username || knownUser?.username,
+                memo,
+                note
             };
+            const name = profile.displayName || profile.username || 'User';
             return {
                 id: profile.id || friend.id,
                 type: 'friend',
                 source: 'friends',
-                name: profile.displayName || profile.username || 'User',
+                name,
                 subtitle: profile.statusDescription || '',
-                memo: profile.memo || profile.$nickName,
-                note: profile.note,
+                memo,
+                note,
+                matchedField: matchedField(
+                    {
+                        name,
+                        memo,
+                        note
+                    },
+                    normalizedQuery
+                ),
+                userColour: profile.$userColour,
                 imageUrl: userImage(profile, true, '64'),
                 seedData: profile
             };
@@ -397,19 +493,25 @@ export function QuickSearchDialog({ open, onOpenChange }) {
         );
 
         return {
-            friends: filterResults(friends, normalizedQuery),
-            ownAvatars: filterResults(
-                dedupeResults(ownAvatars),
-                normalizedQuery
-            ),
-            favoriteAvatars: filterResults(favoriteAvatars, normalizedQuery),
-            ownWorlds: filterResults(dedupeResults(ownWorlds), normalizedQuery),
-            favoriteWorlds: filterResults(favoriteWorlds, normalizedQuery),
-            ownGroups: filterResults(
-                dedupeResults(ownGroupRows),
-                normalizedQuery
-            ),
-            joinedGroups: filterResults(joinedGroupRows, normalizedQuery)
+            friends: filterResults(friends, normalizedQuery, matchesFriend),
+            ownAvatars: canSearchDetails
+                ? filterResults(dedupeResults(ownAvatars), normalizedQuery)
+                : [],
+            favoriteAvatars: canSearchDetails
+                ? filterResults(favoriteAvatars, normalizedQuery)
+                : [],
+            ownWorlds: canSearchDetails
+                ? filterResults(dedupeResults(ownWorlds), normalizedQuery)
+                : [],
+            favoriteWorlds: canSearchDetails
+                ? filterResults(favoriteWorlds, normalizedQuery)
+                : [],
+            ownGroups: canSearchDetails
+                ? filterResults(dedupeResults(ownGroupRows), normalizedQuery)
+                : [],
+            joinedGroups: canSearchDetails
+                ? filterResults(joinedGroupRows, normalizedQuery)
+                : []
         };
     }, [
         catalog.favoriteAvatars,
@@ -417,6 +519,8 @@ export function QuickSearchDialog({ open, onOpenChange }) {
         catalog.groups,
         catalog.ownAvatars,
         catalog.ownWorlds,
+        catalog.userMemos,
+        catalog.userNotes,
         currentUserId,
         friendsById,
         groupInstances,
@@ -476,97 +580,134 @@ export function QuickSearchDialog({ open, onOpenChange }) {
                 }
             }}
         >
-            <DialogContent className="overflow-hidden p-0 sm:max-w-2xl">
+            <DialogContent
+                showCloseButton={false}
+                className="overflow-hidden p-0 sm:max-w-2xl"
+            >
                 <DialogHeader className="sr-only">
                     <DialogTitle>
                         {t('side_panel.search_placeholder')}
                     </DialogTitle>
+                    <DialogDescription>
+                        {t('side_panel.search_placeholder')}
+                    </DialogDescription>
                 </DialogHeader>
-                <div className="border-b p-3">
-                    <InputGroup className="border-0 shadow-none">
-                        <InputGroupAddon>
-                            <SearchIcon />
-                        </InputGroupAddon>
-                        <InputGroupInput
-                            autoFocus
-                            value={query}
-                            placeholder={t('side_panel.search_placeholder')}
-                            onChange={(event) => setQuery(event.target.value)}
-                        />
-                    </InputGroup>
-                </div>
-                <div className="max-h-[min(420px,55vh)] overflow-x-hidden overflow-y-auto p-2">
-                    {normalizedQuery.length < 2 ? (
-                        <div className="text-muted-foreground flex flex-col gap-2 p-2 text-sm">
-                            <div className="text-foreground font-medium">
-                                {t('side_panel.search_categories')}
+                <Command shouldFilter={false} className="rounded-md! p-0!">
+                    <CommandInput
+                        autoFocus
+                        value={query}
+                        aria-label={t('side_panel.search_placeholder')}
+                        placeholder={t('side_panel.search_placeholder')}
+                        onValueChange={setQuery}
+                    />
+                    <CommandList className="max-h-[min(400px,50vh)]">
+                        {normalizedQuery.length < USER_QUERY_MIN_LENGTH ? (
+                            <CommandGroup
+                                heading={t('side_panel.search_categories')}
+                            >
+                                <CommandItem
+                                    value="hint-friends"
+                                    disabled
+                                    className="gap-3 opacity-70"
+                                >
+                                    <UsersIcon />
+                                    <span className="min-w-0 flex-1 truncate">
+                                        {t('side_panel.search_friends')}
+                                    </span>
+                                    <CommandShortcut className="max-w-[45%] truncate tracking-normal">
+                                        {t('side_panel.search_scope_all')}
+                                    </CommandShortcut>
+                                </CommandItem>
+                                <CommandItem
+                                    value="hint-avatars"
+                                    disabled
+                                    className="gap-3 opacity-70"
+                                >
+                                    <ImageIcon />
+                                    <span className="min-w-0 flex-1 truncate">
+                                        {t('side_panel.search_avatars')}
+                                    </span>
+                                    <CommandShortcut className="max-w-[45%] truncate tracking-normal">
+                                        {t('side_panel.search_scope_avatars')}
+                                    </CommandShortcut>
+                                </CommandItem>
+                                <CommandItem
+                                    value="hint-worlds"
+                                    disabled
+                                    className="gap-3 opacity-70"
+                                >
+                                    <GlobeIcon />
+                                    <span className="min-w-0 flex-1 truncate">
+                                        {t('side_panel.search_worlds')}
+                                    </span>
+                                    <CommandShortcut className="max-w-[45%] truncate tracking-normal">
+                                        {t('side_panel.search_scope_worlds')}
+                                    </CommandShortcut>
+                                </CommandItem>
+                                <CommandItem
+                                    value="hint-groups"
+                                    disabled
+                                    className="gap-3 opacity-70"
+                                >
+                                    <UsersIcon />
+                                    <span className="min-w-0 flex-1 truncate">
+                                        {t('side_panel.search_groups')}
+                                    </span>
+                                    <CommandShortcut className="max-w-[45%] truncate tracking-normal">
+                                        {t('side_panel.search_scope_joined')}
+                                    </CommandShortcut>
+                                </CommandItem>
+                            </CommandGroup>
+                        ) : hasResults ? (
+                            <>
+                                <ResultGroup
+                                    title={t('side_panel.friends')}
+                                    items={results.friends}
+                                    onSelect={selectResult}
+                                />
+                                <ResultGroup
+                                    title={t('side_panel.search_own_avatars')}
+                                    items={results.ownAvatars}
+                                    onSelect={selectResult}
+                                />
+                                <ResultGroup
+                                    title={t('side_panel.search_fav_avatars')}
+                                    items={results.favoriteAvatars}
+                                    onSelect={selectResult}
+                                />
+                                <ResultGroup
+                                    title={t('side_panel.search_own_worlds')}
+                                    items={results.ownWorlds}
+                                    onSelect={selectResult}
+                                />
+                                <ResultGroup
+                                    title={t('side_panel.search_fav_worlds')}
+                                    items={results.favoriteWorlds}
+                                    onSelect={selectResult}
+                                />
+                                <ResultGroup
+                                    title={t('side_panel.search_own_groups')}
+                                    items={results.ownGroups}
+                                    onSelect={selectResult}
+                                />
+                                <ResultGroup
+                                    title={t('side_panel.search_joined_groups')}
+                                    items={results.joinedGroups}
+                                    onSelect={selectResult}
+                                />
+                            </>
+                        ) : (
+                            <CommandEmpty>
+                                {t('side_panel.search_no_results')}
+                            </CommandEmpty>
+                        )}
+                        {catalog.status === 'error' && catalog.detail ? (
+                            <div className="text-destructive px-2 pb-2 text-xs">
+                                {catalog.detail}
                             </div>
-                            <div>
-                                {t('side_panel.search_friends')} -{' '}
-                                {t('side_panel.search_scope_all')}
-                            </div>
-                            <div>
-                                {t('side_panel.search_avatars')} -{' '}
-                                {t('side_panel.search_scope_avatars')}
-                            </div>
-                            <div>
-                                {t('side_panel.search_worlds')} -{' '}
-                                {t('side_panel.search_scope_worlds')}
-                            </div>
-                            <div>
-                                {t('side_panel.search_groups')} -{' '}
-                                {t('side_panel.search_scope_joined')}
-                            </div>
-                        </div>
-                    ) : hasResults ? (
-                        <>
-                            <ResultGroup
-                                title={t('side_panel.friends')}
-                                items={results.friends}
-                                onSelect={selectResult}
-                            />
-                            <ResultGroup
-                                title={t('side_panel.search_own_avatars')}
-                                items={results.ownAvatars}
-                                onSelect={selectResult}
-                            />
-                            <ResultGroup
-                                title={t('side_panel.search_fav_avatars')}
-                                items={results.favoriteAvatars}
-                                onSelect={selectResult}
-                            />
-                            <ResultGroup
-                                title={t('side_panel.search_own_worlds')}
-                                items={results.ownWorlds}
-                                onSelect={selectResult}
-                            />
-                            <ResultGroup
-                                title={t('side_panel.search_fav_worlds')}
-                                items={results.favoriteWorlds}
-                                onSelect={selectResult}
-                            />
-                            <ResultGroup
-                                title={t('side_panel.search_own_groups')}
-                                items={results.ownGroups}
-                                onSelect={selectResult}
-                            />
-                            <ResultGroup
-                                title={t('side_panel.search_joined_groups')}
-                                items={results.joinedGroups}
-                                onSelect={selectResult}
-                            />
-                        </>
-                    ) : (
-                        <div className="text-muted-foreground py-8 text-center text-sm">
-                            {t('side_panel.search_no_results')}
-                        </div>
-                    )}
-                    {catalog.status === 'error' && catalog.detail ? (
-                        <div className="text-destructive px-2 pb-2 text-xs">
-                            {catalog.detail}
-                        </div>
-                    ) : null}
-                </div>
+                        ) : null}
+                    </CommandList>
+                </Command>
             </DialogContent>
         </Dialog>
     );

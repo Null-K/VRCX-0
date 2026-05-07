@@ -1,6 +1,7 @@
 import { GlobeIcon, ImageIcon, UserIcon, UsersIcon } from 'lucide-react';
 
-import { Button } from '@/ui/shadcn/button';
+import { cn } from '@/lib/utils';
+import { CommandGroup, CommandItem } from '@/ui/shadcn/command';
 
 export function entityTypeLabel(type) {
     switch (type) {
@@ -26,37 +27,56 @@ function ResultRow({ item, onSelect }) {
               : item.type === 'world'
                 ? GlobeIcon
                 : UsersIcon;
+    const isFriend = item.type === 'friend';
 
     return (
-        <Button
-            type="button"
-            variant="ghost"
-            className="h-auto w-full justify-start gap-3 px-2 py-2 text-left font-normal"
-            onClick={() => onSelect(item)}
+        <CommandItem
+            value={[item.name, item.memo, item.note, item.id]
+                .filter(Boolean)
+                .join(' ')}
+            className="gap-3"
+            onSelect={() => onSelect(item)}
         >
-            <span className="bg-muted flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-md [&>svg]:size-4">
-                {item.imageUrl ? (
-                    <img
-                        src={item.imageUrl}
-                        alt=""
-                        className="size-full object-cover"
-                        loading="lazy"
-                    />
-                ) : (
-                    <Icon className="text-muted-foreground" />
-                )}
-            </span>
-            <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-medium">
+            {item.imageUrl ? (
+                <img
+                    src={item.imageUrl}
+                    alt=""
+                    className={cn(
+                        'size-6 shrink-0 object-cover',
+                        isFriend ? 'rounded-full' : 'rounded'
+                    )}
+                    loading="lazy"
+                />
+            ) : (
+                <Icon className="size-4 shrink-0" />
+            )}
+            {isFriend ? (
+                <div className="flex min-w-0 flex-1 flex-col">
+                    <span
+                        className="truncate"
+                        style={
+                            item.userColour ? { color: item.userColour } : null
+                        }
+                    >
+                        {item.name || entityTypeLabel(item.type)}
+                    </span>
+                    {item.matchedField !== 'name' && item.memo ? (
+                        <span className="text-muted-foreground truncate text-xs">
+                            Memo: {item.memo}
+                        </span>
+                    ) : null}
+                    {item.matchedField !== 'name' && item.note ? (
+                        <span className="text-muted-foreground truncate text-xs">
+                            Note: {item.note}
+                        </span>
+                    ) : null}
+                </div>
+            ) : (
+                <span className="min-w-0 flex-1 truncate">
                     {item.name || entityTypeLabel(item.type)}
                 </span>
-                {item.subtitle ? (
-                    <span className="text-muted-foreground block truncate text-xs">
-                        {item.subtitle}
-                    </span>
-                ) : null}
-            </span>
-        </Button>
+            )}
+        </CommandItem>
     );
 }
 
@@ -65,10 +85,7 @@ export function ResultGroup({ title, items, onSelect }) {
         return null;
     }
     return (
-        <div className="py-1">
-            <div className="text-muted-foreground px-2 py-1 text-xs font-medium">
-                {title}
-            </div>
+        <CommandGroup heading={title}>
             {items.map((item) => (
                 <ResultRow
                     key={`${item.type}:${item.source}:${item.id}`}
@@ -76,6 +93,6 @@ export function ResultGroup({ title, items, onSelect }) {
                     onSelect={onSelect}
                 />
             ))}
-        </div>
+        </CommandGroup>
     );
 }
