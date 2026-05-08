@@ -71,7 +71,7 @@ pub fn app__set_tray_icon_notification(app_handle: AppHandle, notify: Option<boo
 pub fn app__restart_application(app_handle: AppHandle) -> Result<(), AppError> {
     #[cfg(debug_assertions)]
     {
-        tracing::warn!("app__restart_application ignored in dev build; restart VRCX manually");
+        tracing::warn!("app__restart_application ignored in dev build; restart VRCX-0 manually");
         let _ = app_handle;
         Ok(())
     }

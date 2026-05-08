@@ -136,7 +136,7 @@ async function processScreenshot(
             const currentUser =
                 useRuntimeStore.getState().auth.currentUserSnapshot || {};
             const metadata = {
-                application: 'VRCX',
+                application: 'VRCX-0',
                 version: 1,
                 author: {
                     id:

@@ -18,7 +18,7 @@ pub fn run() {
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             bootstrap::show_main_window(app);
         }))
-        .register_asynchronous_uri_scheme_protocol("vrcx-img", |_ctx, request, responder| {
+        .register_asynchronous_uri_scheme_protocol("vrcx-0-img", |_ctx, request, responder| {
             tauri::async_runtime::spawn_blocking(move || {
                 responder.respond(bootstrap::screenshot_protocol_response(request));
             });

@@ -142,7 +142,7 @@ pub fn has_vrcx_metadata(path: &str) -> bool {
                 && serde_json::from_str::<ScreenshotMetadata>(&s)
                     .ok()
                     .and_then(|metadata| metadata.application)
-                    .is_some_and(|application| application == "VRCX")
+                    .is_some_and(|application| application == "VRCX" || application == "VRCX-0")
         })
 }
 

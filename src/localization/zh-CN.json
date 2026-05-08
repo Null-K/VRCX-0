@@ -1158,7 +1158,7 @@
                     "vrchat_notes": "显示线上备注",
                     "vrchat_notes_description": "显示 VRChat 服务器上保存的备注",
                     "vrcx_memos": "显示本地备注",
-                    "vrcx_memos_description": "显示在 VRCX 中本地保存的备注",
+                    "vrcx_memos_description": "显示在 VRCX-0 中本地保存的备注",
                     "recent_action_cooldown": "显示“最近操作”图标",
                     "recent_action_cooldown_description": "在最近的邀请和加入申请操作上显示一个时钟图标。",
                     "recent_action_cooldown_minutes": "冷却时间（分钟）"
@@ -1292,7 +1292,7 @@
                         "header": "VRChat"
                     },
                     "vrcx_settings": {
-                        "header": "VRCX"
+                        "header": "VRCX-0"
                     },
                     "relaunch_vrchat": {
                         "header": "崩溃后重启",
@@ -1439,7 +1439,7 @@
                         "purge_confirm_title": "清理模型变动记录",
                         "purge_confirm_description_1": "这将永久删除数据库中的模型变动记录并回收磁盘空间。",
                         "purge_confirm_description_2": "此操作无法撤销！",
-                        "purge_confirm_description_3": "VRCX 将在操作完成后重启。",
+                        "purge_confirm_description_3": "VRCX-0 将在操作完成后重启。",
                         "purge_confirm_alert": "强烈建议在继续之前备份你的数据库文件！",
                         "purge_confirm_button": "清理 & 重启",
                         "purge_in_progress": "正在清理模型变动的相关数据...",
@@ -2871,8 +2871,8 @@
             "migration_restarting": "VRCX-0 将重新启动以完成迁移工作",
             "upgrade_complete": "数据库升级完成",
             "upgrade_in_progress_title": "数据库升级进行中",
-            "upgrade_in_progress_description": "正在将数据库从版本 {from} 更新到 {to}，请不要关闭 VRCX。",
-            "upgrade_in_progress_initializing": "正在初始化数据库升级流程，请不要关闭 VRCX。",
+            "upgrade_in_progress_description": "正在将数据库从版本 {from} 更新到 {to}，请不要关闭 VRCX-0。",
+            "upgrade_in_progress_initializing": "正在初始化数据库升级流程，请不要关闭 VRCX-0。",
             "upgrade_in_progress_wait": "在升级完成前，交互操作将被暂时禁止。",
             "upgrade_failed_title": "数据库升级失败",
             "upgrade_failed_description": "数据库升级失败，请查看调试控制台以获取详细信息。",
@@ -3231,7 +3231,7 @@
     },
     "onboarding": {
         "welcome": {
-            "title": "欢迎使用 VRCX",
+            "title": "欢迎使用 VRCX-0",
             "subtitle": "这里有一些你可能没注意到的奇妙功能",
             "features": {
                 "user_profiles": {
@@ -3254,13 +3254,13 @@
             "cta": "开始使用"
         },
         "whatsnew": {
-            "title": "VRCX 更新内容",
+            "title": "VRCX-0 更新内容",
             "subtitle": "本次更新的变更如下。",
             "cta": "知道了",
             "common": {
                 "got_it": "知道了",
                 "view_changelog": "查看全部更改",
-                "support": "支持 VRCX"
+                "support": "支持 VRCX-0"
             },
             "releases": {
                 "2026_04_10": {

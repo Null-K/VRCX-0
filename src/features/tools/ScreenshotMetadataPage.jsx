@@ -158,7 +158,7 @@ export function ScreenshotMetadataPage() {
             setMetadataError('');
             setSelectedPath(nextMetadata.filePath);
             setImageUrl(
-                `${convertFileSrc(nextMetadata.filePath, 'vrcx-img')}?v=${imageVersionRef.current}`
+                `${convertFileSrc(nextMetadata.filePath, 'vrcx-0-img')}?v=${imageVersionRef.current}`
             );
         } catch (error) {
             if (metadataRequestRef.current !== requestId) {

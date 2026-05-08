@@ -368,7 +368,7 @@ export async function checkVRChatDebugLogging() {
     useModalStore.getState().alert({
         title: 'Enable debug logging',
         description:
-            'VRCX noticed VRChat debug logging is disabled. Enable debug logging in VRChat quick menu settings > debug > enable debug logging, then rejoin the instance or restart VRChat.'
+            'VRCX-0 noticed VRChat debug logging is disabled. Enable debug logging in VRChat quick menu settings > debug > enable debug logging, then rejoin the instance or restart VRChat.'
     });
 }
 
