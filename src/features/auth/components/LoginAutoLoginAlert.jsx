@@ -27,12 +27,19 @@ export function LoginAutoLoginAlert({
                     {t('common.generated.generated.auto_login')}
                 </Badge>
                 <span className="font-medium">{target}</span>
+                {state.status === 'scheduled' && state.detail ? (
+                    <span className="text-muted-foreground">
+                        {state.detail}
+                    </span>
+                ) : null}
                 {state.status !== 'scheduled' && state.status !== 'idle' ? (
                     <span className="text-muted-foreground">
                         {getAutoLoginStateLabel(state.status)}
                     </span>
                 ) : null}
-                {state.remainingSeconds > 0 ? (
+                {state.status === 'scheduled' &&
+                !state.detail &&
+                state.remainingSeconds > 0 ? (
                     <span className="text-muted-foreground">
                         {state.remainingSeconds}
                         {t('common.time_units.s')}

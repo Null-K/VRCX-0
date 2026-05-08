@@ -24,7 +24,9 @@ export function useLoginAutoLogin({
         detail: '',
         userId: ''
     });
+    const [autoLoginRetryNonce, setAutoLoginRetryNonce] = useState(0);
     const autoLoginSuppressedKeyRef = useRef('');
+    const autoLoginInFlightKeyRef = useRef('');
     const autoLoginAbortRef = useRef(null);
     const isDatabaseBlocked = !databaseReady;
     const isAutoLoginActive =
@@ -76,8 +78,13 @@ export function useLoginAutoLogin({
     ) {
         const controller = autoLoginAbortRef.current;
         if (controller) {
+            if (autoLoginInFlightKeyRef.current) {
+                autoLoginSuppressedKeyRef.current =
+                    autoLoginInFlightKeyRef.current;
+            }
             controller.abort();
             autoLoginAbortRef.current = null;
+            autoLoginInFlightKeyRef.current = '';
         }
 
         setAutoLoginState((current) => {
@@ -99,12 +106,14 @@ export function useLoginAutoLogin({
 
     function retryAutoLogin() {
         autoLoginSuppressedKeyRef.current = '';
+        autoLoginInFlightKeyRef.current = '';
         setAutoLoginState({
             status: 'idle',
             remainingSeconds: 0,
             detail: '',
             userId: ''
         });
+        setAutoLoginRetryNonce((current) => current + 1);
     }
 
     useEffect(() => {
@@ -133,12 +142,13 @@ export function useLoginAutoLogin({
         if (
             !userId ||
             !autoLoginSnapshotKey ||
-            autoLoginSuppressedKeyRef.current === autoLoginSnapshotKey
+            autoLoginSuppressedKeyRef.current === autoLoginSnapshotKey ||
+            autoLoginInFlightKeyRef.current === autoLoginSnapshotKey
         ) {
             return undefined;
         }
 
-        autoLoginSuppressedKeyRef.current = autoLoginSnapshotKey;
+        autoLoginInFlightKeyRef.current = autoLoginSnapshotKey;
         const controller = new AbortController();
         autoLoginAbortRef.current = controller;
         let active = true;
@@ -177,7 +187,7 @@ export function useLoginAutoLogin({
                     remainingSeconds,
                     detail:
                         remainingSeconds > 0
-                            ? t('view.auth.auto_login.starts_in', {
+                            ? t('message.auto_login_delay_countdown', {
                                   seconds: remainingSeconds
                               })
                             : savedCredential
@@ -199,6 +209,15 @@ export function useLoginAutoLogin({
                 }
 
                 autoLoginAbortRef.current = null;
+                if (
+                    autoLoginInFlightKeyRef.current === autoLoginSnapshotKey
+                ) {
+                    autoLoginInFlightKeyRef.current = '';
+                }
+                if (result.status !== 'skipped') {
+                    autoLoginSuppressedKeyRef.current = autoLoginSnapshotKey;
+                }
+
                 if (result.snapshot) {
                     applySnapshot(result.snapshot);
                 }
@@ -271,6 +290,12 @@ export function useLoginAutoLogin({
                 }
 
                 autoLoginAbortRef.current = null;
+                if (
+                    autoLoginInFlightKeyRef.current === autoLoginSnapshotKey
+                ) {
+                    autoLoginInFlightKeyRef.current = '';
+                }
+                autoLoginSuppressedKeyRef.current = autoLoginSnapshotKey;
                 setAutoLoginState({
                     status: 'failed',
                     remainingSeconds: 0,
@@ -296,12 +321,23 @@ export function useLoginAutoLogin({
             if (autoLoginAbortRef.current === controller) {
                 autoLoginAbortRef.current = null;
             }
+            if (autoLoginInFlightKeyRef.current === autoLoginSnapshotKey) {
+                autoLoginInFlightKeyRef.current = '';
+            }
         };
-    }, [databaseReady, isAutoLoginStartBlocked, isLoading, snapshot, t]);
+    }, [
+        autoLoginRetryNonce,
+        databaseReady,
+        isAutoLoginStartBlocked,
+        isLoading,
+        snapshot,
+        t
+    ]);
 
     useEffect(
         () => () => {
             autoLoginAbortRef.current?.abort();
+            autoLoginInFlightKeyRef.current = '';
         },
         []
     );

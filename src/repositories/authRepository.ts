@@ -26,6 +26,8 @@ interface SavedCredentialRecord {
 
 type SavedCredentialsMap = Record<string, SavedCredentialRecord>;
 
+const MAX_AUTO_LOGIN_DELAY_SECONDS = 10;
+
 interface RecordLoginSuccessInput {
     user?: GenericRecord;
     loginParams?: GenericRecord;
@@ -122,6 +124,20 @@ function sortSavedCredentials(
         ).toLowerCase();
         return leftName.localeCompare(rightName);
     });
+}
+
+function normalizeAutoLoginDelaySeconds(value: unknown): number {
+    const parsed =
+        typeof value === 'number'
+            ? value
+            : Number.parseInt(String(value ?? ''), 10);
+    if (!Number.isFinite(parsed)) {
+        return 0;
+    }
+    return Math.min(
+        MAX_AUTO_LOGIN_DELAY_SECONDS,
+        Math.max(0, Math.trunc(parsed))
+    );
 }
 
 function resolveAutoLoginStatus({
@@ -343,11 +359,13 @@ async function getSavedAuthSnapshot() {
         await configRepository.remove('lastUserLoggedIn');
     }
 
+    const normalizedAutoLoginDelaySeconds =
+        normalizeAutoLoginDelaySeconds(autoLoginDelaySeconds);
     const autoLogin = resolveAutoLoginStatus({
         lastUserLoggedIn,
         savedCredentials,
         autoLoginDelayEnabled,
-        autoLoginDelaySeconds: Number(autoLoginDelaySeconds) || 0
+        autoLoginDelaySeconds: normalizedAutoLoginDelaySeconds
     });
 
     return {
@@ -360,9 +378,7 @@ async function getSavedAuthSnapshot() {
         ),
         enableCustomEndpoint: Boolean(enableCustomEndpoint),
         autoLoginDelayEnabled: Boolean(autoLoginDelayEnabled),
-        autoLoginDelaySeconds: Number.isFinite(autoLoginDelaySeconds)
-            ? autoLoginDelaySeconds
-            : 0,
+        autoLoginDelaySeconds: normalizedAutoLoginDelaySeconds,
         autoLoginStatus: autoLogin.status,
         autoLoginReason: autoLogin.reason
     };

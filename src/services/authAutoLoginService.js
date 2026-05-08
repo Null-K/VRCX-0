@@ -18,6 +18,8 @@ import {
 import { applySavedAuthSnapshot } from './authSnapshotService.js';
 import i18n from './i18nService.js';
 
+const MAX_AUTO_LOGIN_DELAY_SECONDS = 10;
+
 function createAutoLoginAbortError() {
     const error = new Error('Automatic login was cancelled.');
     error.code = 'AUTH_AUTO_LOGIN_CANCELLED';
@@ -51,56 +53,108 @@ function isMissingCredentialsError(error) {
     );
 }
 
-function waitWithAbort(ms, signal) {
+function normalizeAutoLoginDelaySeconds(seconds) {
+    const parsed =
+        typeof seconds === 'number'
+            ? seconds
+            : Number.parseInt(String(seconds ?? ''), 10);
+    if (!Number.isFinite(parsed)) {
+        return 0;
+    }
+    return Math.min(
+        MAX_AUTO_LOGIN_DELAY_SECONDS,
+        Math.max(0, Math.trunc(parsed))
+    );
+}
+
+function waitForAutoLoginDelay(seconds, { signal, onCountdown } = {}) {
+    const delaySeconds = normalizeAutoLoginDelaySeconds(seconds);
+    if (delaySeconds <= 0) {
+        return Promise.resolve();
+    }
+
     return new Promise((resolve, reject) => {
         if (signal?.aborted) {
             reject(createAutoLoginAbortError());
             return;
         }
 
-        const timeoutId = window.setTimeout(() => {
-            cleanup();
-            resolve();
-        }, ms);
-
-        function onAbort() {
-            window.clearTimeout(timeoutId);
-            cleanup();
-            reject(createAutoLoginAbortError());
-        }
+        const deadline = Date.now() + delaySeconds * 1000;
+        let timeoutId = null;
+        let lastRemainingSeconds = null;
+        let settled = false;
 
         function cleanup() {
+            if (timeoutId !== null) {
+                window.clearTimeout(timeoutId);
+                timeoutId = null;
+            }
             signal?.removeEventListener('abort', onAbort);
         }
 
+        function settle(callback, value) {
+            if (settled) {
+                return;
+            }
+            settled = true;
+            cleanup();
+            callback(value);
+        }
+
+        function onAbort() {
+            settle(reject, createAutoLoginAbortError());
+        }
+
+        function tick() {
+            if (signal?.aborted) {
+                onAbort();
+                return;
+            }
+
+            const remainingMs = deadline - Date.now();
+            if (remainingMs <= 0) {
+                settle(resolve);
+                return;
+            }
+
+            const remainingSeconds = Math.ceil(remainingMs / 1000);
+            if (remainingSeconds !== lastRemainingSeconds) {
+                lastRemainingSeconds = remainingSeconds;
+                onCountdown?.(remainingSeconds);
+            }
+
+            timeoutId = window.setTimeout(
+                tick,
+                Math.min(1000, Math.max(1, remainingMs))
+            );
+        }
+
         signal?.addEventListener('abort', onAbort, { once: true });
+        tick();
     });
 }
 
 async function applyAutoLoginDelay(seconds, { signal, onCountdown } = {}) {
-    if (!seconds || seconds <= 0) {
+    const delaySeconds = normalizeAutoLoginDelaySeconds(seconds);
+    if (delaySeconds <= 0) {
         onCountdown?.(0);
         return;
     }
 
-    let toastId = null;
+    const message = await i18n.t('message.auto_login_delay_countdown', {
+        seconds: delaySeconds
+    });
+    if (signal?.aborted) {
+        throw createAutoLoginAbortError();
+    }
 
+    const toastId = toast.info(message, {
+        duration: delaySeconds * 1000
+    });
     try {
-        for (let remaining = seconds; remaining > 0; remaining -= 1) {
-            const message = await i18n.t('message.auto_login_delay_countdown', {
-                seconds: remaining
-            });
-            if (toastId) {
-                toast.dismiss(toastId);
-            }
-            toastId = toast.info(message, { duration: Infinity });
-            onCountdown?.(remaining);
-            await waitWithAbort(1000, signal);
-        }
+        await waitForAutoLoginDelay(delaySeconds, { signal, onCountdown });
     } finally {
-        if (toastId) {
-            toast.dismiss(toastId);
-        }
+        toast.dismiss(toastId);
         onCountdown?.(0);
     }
 }
