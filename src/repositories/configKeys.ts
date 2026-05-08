@@ -45,6 +45,8 @@ export const ConfigKeys = {
     sidebarSortMethod2: { type: 'string', default: 'Sort Alphabetically' },
     sidebarSortMethod3: { type: 'string', default: '' },
     sidebarFavoriteGroupOrder: { type: 'string', default: null },
+    sidebarTabLayout: { type: 'string', default: null },
+    sidebarTabDisplayMode: { type: 'string', default: 'auto' },
 
     // ── Nav ──────────────────────────────────────────
     navIsCollapsed: { type: 'bool', default: false },

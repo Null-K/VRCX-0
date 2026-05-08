@@ -1,7 +1,8 @@
 import {
     ChevronDownIcon,
     MoreHorizontalIcon,
-    RefreshCwIcon
+    RefreshCwIcon,
+    SlidersHorizontalIcon
 } from 'lucide-react';
 import { cloneElement, isValidElement } from 'react';
 
@@ -110,6 +111,7 @@ export function SidePanelSettingsPopover({
     onToggleFavoriteGroup,
     orderedFavoriteGroupItemsLength,
     onOpenFavoriteGroupOrderDialog,
+    onOpenCustomTabsDialog,
     t
 }) {
     return (
@@ -149,6 +151,20 @@ export function SidePanelSettingsPopover({
                             <RefreshCwIcon data-icon="inline-start" />
                         )}
                         {t('side_panel.refresh_tooltip')}
+                    </Button>
+                    <Separator />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full justify-start"
+                        onClick={() => {
+                            onOpenChange(false);
+                            onOpenCustomTabsDialog();
+                        }}
+                    >
+                        <SlidersHorizontalIcon data-icon="inline-start" />
+                        {t('side_panel.settings.custom_tabs.configure')}
                     </Button>
                     <Separator />
                     <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">

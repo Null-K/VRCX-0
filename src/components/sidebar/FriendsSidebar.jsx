@@ -14,6 +14,11 @@ import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useShellStore } from '@/state/shellStore.js';
 
 import {
+    buildFavoriteCollectionFriendIdSet,
+    buildFavoriteCollectionSameInstanceGroups,
+    buildFavoriteCollectionSidebarVirtualRows
+} from './friends-sidebar/favoriteCollectionSidebarRows.js';
+import {
     buildFavoriteIdSet,
     buildSameInstanceGroups,
     normalizeLocationStatus,
@@ -33,7 +38,11 @@ import { useFriendsSidebarActions } from './friends-sidebar/useFriendsSidebarAct
 import { useFriendsSidebarPreferences } from './friends-sidebar/useFriendsSidebarPreferences.js';
 
 const EMPTY_CURRENT_LOCATION_PLAYER_IDS = Object.freeze([]);
-export function FriendsSidebar({ prefs }) {
+export function FriendsSidebar({
+    prefs,
+    excludedFavoriteGroupKeys = [],
+    favoriteCollectionTab = null
+}) {
     const { t } = useTranslation();
     const themeMode = useShellStore((state) => state.themeMode);
     const timeUnitLabels = useShellStore((state) => state.timeUnitLabels);
@@ -182,6 +191,31 @@ export function FriendsSidebar({ prefs }) {
         () => buildFavoriteIdSet(favoriteFriendIds, localFriendFavorites),
         [favoriteFriendIds, localFriendFavorites]
     );
+    const favoriteCollectionIdSet = useMemo(() => {
+        if (!favoriteCollectionTab) {
+            return null;
+        }
+        return buildFavoriteCollectionFriendIdSet({
+            sourceGroupKeys: favoriteCollectionTab.sourceGroupKeys,
+            groupedFavoriteFriendIdsByGroupKey,
+            localFriendFavorites
+        });
+    }, [
+        favoriteCollectionTab,
+        groupedFavoriteFriendIdsByGroupKey,
+        localFriendFavorites
+    ]);
+    const favoriteCollectionRows = useMemo(() => {
+        if (!favoriteCollectionIdSet) {
+            return [];
+        }
+        return sortRows(
+            rows.filter((friend) =>
+                favoriteCollectionIdSet.has(normalizeId(friend?.id))
+            ),
+            prefs
+        );
+    }, [favoriteCollectionIdSet, prefs, rows]);
     const allFavoriteGroupKeys = useMemo(
         () => [
             ...(favoriteFriendGroups || [])
@@ -194,15 +228,30 @@ export function FriendsSidebar({ prefs }) {
         ],
         [favoriteFriendGroups, localFriendFavoriteGroups, localFriendFavorites]
     );
+    const excludedFavoriteGroupKeySet = useMemo(
+        () =>
+            new Set(
+                (excludedFavoriteGroupKeys || [])
+                    .map((key) => normalizeId(key))
+                    .filter(Boolean)
+            ),
+        [excludedFavoriteGroupKeys]
+    );
     const selectedFavoriteGroupKeys = useMemo(() => {
         const configured = Array.isArray(prefs.sidebarFavoriteGroups)
             ? prefs.sidebarFavoriteGroups.filter(Boolean)
             : [];
+        const removeExcluded = (keys) =>
+            keys.filter((key) => !excludedFavoriteGroupKeySet.has(key));
         if (!configured.length) {
-            return new Set(allFavoriteGroupKeys);
+            return new Set(removeExcluded(allFavoriteGroupKeys));
         }
-        return new Set(configured);
-    }, [allFavoriteGroupKeys, prefs.sidebarFavoriteGroups]);
+        return new Set(removeExcluded(configured));
+    }, [
+        allFavoriteGroupKeys,
+        excludedFavoriteGroupKeySet,
+        prefs.sidebarFavoriteGroups
+    ]);
     const hasFavoriteGroupFilter = useMemo(
         () =>
             Array.isArray(prefs.sidebarFavoriteGroups) &&
@@ -240,10 +289,15 @@ export function FriendsSidebar({ prefs }) {
         localFriendFavorites,
         selectedFavoriteGroupKeys
     ]);
-    const excludedFavoriteIds = hasFavoriteGroupFilter
+    const excludedFavoriteIds = excludedFavoriteGroupKeySet.size
         ? selectedFavoriteIds
-        : favoriteIds;
+        : hasFavoriteGroupFilter
+          ? selectedFavoriteIds
+          : favoriteIds;
     const sameInstanceGroups = useMemo(() => {
+        if (favoriteCollectionTab) {
+            return [];
+        }
         if (!prefs.sidebarGroupByInstance) {
             return [];
         }
@@ -253,7 +307,84 @@ export function FriendsSidebar({ prefs }) {
             currentLocationSnapshot,
             sameInstanceFallbackJoinTimesRef.current
         );
-    }, [currentLocationSnapshot, prefs, rows]);
+    }, [currentLocationSnapshot, favoriteCollectionTab, prefs, rows]);
+    const favoriteCollectionSameInstanceGroups = useMemo(() => {
+        if (!favoriteCollectionTab) {
+            return [];
+        }
+        return buildFavoriteCollectionSameInstanceGroups({
+            rows: favoriteCollectionRows,
+            prefs,
+            currentLocationSnapshot,
+            fallbackJoinTimes: sameInstanceFallbackJoinTimesRef.current
+        });
+    }, [
+        currentLocationSnapshot,
+        favoriteCollectionRows,
+        favoriteCollectionTab,
+        prefs
+    ]);
+    const favoriteCollectionSameInstanceIds = useMemo(
+        () =>
+            new Set(
+                favoriteCollectionSameInstanceGroups.flatMap((group) =>
+                    group.rows.map((friend) => friend.id)
+                )
+            ),
+        [favoriteCollectionSameInstanceGroups]
+    );
+    const favoriteCollectionOnlineRows = useMemo(() => {
+        if (!favoriteCollectionIdSet) {
+            return [];
+        }
+        return sortRows(
+            onlineIds
+                .map((id) => friendsById[id])
+                .filter(
+                    (friend) =>
+                        friend &&
+                        favoriteCollectionIdSet.has(normalizeId(friend.id)) &&
+                        !favoriteCollectionSameInstanceIds.has(friend.id)
+                ),
+            prefs
+        );
+    }, [
+        favoriteCollectionIdSet,
+        favoriteCollectionSameInstanceIds,
+        friendsById,
+        onlineIds,
+        prefs
+    ]);
+    const favoriteCollectionActiveRows = useMemo(() => {
+        if (!favoriteCollectionIdSet) {
+            return [];
+        }
+        return sortActiveRows(
+            activeIds
+                .map((id) => friendsById[id])
+                .filter(
+                    (friend) =>
+                        friend &&
+                        favoriteCollectionIdSet.has(normalizeId(friend.id))
+                ),
+            prefs
+        );
+    }, [activeIds, favoriteCollectionIdSet, friendsById, prefs]);
+    const favoriteCollectionOfflineRows = useMemo(() => {
+        if (!favoriteCollectionIdSet) {
+            return [];
+        }
+        return sortRows(
+            offlineIds
+                .map((id) => friendsById[id])
+                .filter(
+                    (friend) =>
+                        friend &&
+                        favoriteCollectionIdSet.has(normalizeId(friend.id))
+                ),
+            prefs
+        );
+    }, [favoriteCollectionIdSet, friendsById, offlineIds, prefs]);
     const sameInstanceIds = useMemo(
         () =>
             new Set(
@@ -264,61 +395,78 @@ export function FriendsSidebar({ prefs }) {
         [sameInstanceGroups]
     );
     const onlineIdSet = useMemo(() => new Set(onlineIds), [onlineIds]);
-    const favoriteRows = useMemo(
-        () =>
-            sortRows(
-                rows.filter((friend) => {
-                    const source = readFriendStatusSource(friend);
-                    const state = normalizeLocationStatus(
-                        source?.stateBucket || source?.state
-                    );
-                    return (
-                        selectedFavoriteIds.has(normalizeId(friend?.id)) &&
-                        state === 'online' &&
+    const favoriteRows = useMemo(() => {
+        if (favoriteCollectionTab) {
+            return [];
+        }
+        return sortRows(
+            rows.filter((friend) => {
+                const source = readFriendStatusSource(friend);
+                const state = normalizeLocationStatus(
+                    source?.stateBucket || source?.state
+                );
+                return (
+                    selectedFavoriteIds.has(normalizeId(friend?.id)) &&
+                    state === 'online' &&
+                    !(
+                        prefs.isHideFriendsInSameInstance &&
+                        sameInstanceIds.has(friend.id)
+                    )
+                );
+            }),
+            prefs
+        );
+    }, [
+        favoriteCollectionTab,
+        prefs,
+        rows,
+        sameInstanceIds,
+        selectedFavoriteIds
+    ]);
+    const onlineRows = useMemo(() => {
+        if (favoriteCollectionTab) {
+            return [];
+        }
+        return sortRows(
+            onlineIds
+                .map((id) => friendsById[id])
+                .filter(
+                    (friend) =>
+                        friend &&
+                        !excludedFavoriteIds.has(normalizeId(friend.id)) &&
                         !(
                             prefs.isHideFriendsInSameInstance &&
                             sameInstanceIds.has(friend.id)
                         )
-                    );
-                }),
-                prefs
-            ),
-        [prefs, rows, sameInstanceIds, selectedFavoriteIds]
-    );
-    const onlineRows = useMemo(
-        () =>
-            sortRows(
-                onlineIds
-                    .map((id) => friendsById[id])
-                    .filter(
-                        (friend) =>
-                            friend &&
-                            !excludedFavoriteIds.has(normalizeId(friend.id)) &&
-                            !(
-                                prefs.isHideFriendsInSameInstance &&
-                                sameInstanceIds.has(friend.id)
-                            )
-                    ),
-                prefs
-            ),
-        [excludedFavoriteIds, friendsById, onlineIds, prefs, sameInstanceIds]
-    );
-    const activeRows = useMemo(
-        () =>
-            sortActiveRows(
-                activeIds.map((id) => friendsById[id]).filter(Boolean),
-                prefs
-            ),
-        [activeIds, friendsById, prefs]
-    );
-    const offlineRows = useMemo(
-        () =>
-            sortRows(
-                offlineIds.map((id) => friendsById[id]).filter(Boolean),
-                prefs
-            ),
-        [offlineIds, friendsById, prefs]
-    );
+                ),
+            prefs
+        );
+    }, [
+        excludedFavoriteIds,
+        favoriteCollectionTab,
+        friendsById,
+        onlineIds,
+        prefs,
+        sameInstanceIds
+    ]);
+    const activeRows = useMemo(() => {
+        if (favoriteCollectionTab) {
+            return [];
+        }
+        return sortActiveRows(
+            activeIds.map((id) => friendsById[id]).filter(Boolean),
+            prefs
+        );
+    }, [activeIds, favoriteCollectionTab, friendsById, prefs]);
+    const offlineRows = useMemo(() => {
+        if (favoriteCollectionTab) {
+            return [];
+        }
+        return sortRows(
+            offlineIds.map((id) => friendsById[id]).filter(Boolean),
+            prefs
+        );
+    }, [favoriteCollectionTab, offlineIds, friendsById, prefs]);
     const favoriteGroupSections = useMemo(() => {
         if (!prefs.isSidebarDivideByFriendGroup) {
             return [];
@@ -438,6 +586,22 @@ export function FriendsSidebar({ prefs }) {
     ]);
 
     const virtualRows = useMemo(() => {
+        if (favoriteCollectionTab) {
+            return buildFavoriteCollectionSidebarVirtualRows({
+                activeRows: favoriteCollectionActiveRows,
+                currentUserId,
+                emptyText: t(
+                    'side_panel.settings.custom_tabs.empty_favorite_collection'
+                ),
+                loadStatus,
+                offlineRows: favoriteCollectionOfflineRows,
+                onlineRows: favoriteCollectionOnlineRows,
+                openGroups,
+                rowsLength: favoriteCollectionRows.length,
+                sameInstanceGroups: favoriteCollectionSameInstanceGroups,
+                t
+            });
+        }
         return buildFriendsSidebarVirtualRows({
             activeRows,
             currentUser,
@@ -459,6 +623,12 @@ export function FriendsSidebar({ prefs }) {
         currentUser,
         currentUserId,
         favoriteGroupSections,
+        favoriteCollectionActiveRows,
+        favoriteCollectionOfflineRows,
+        favoriteCollectionOnlineRows,
+        favoriteCollectionRows.length,
+        favoriteCollectionSameInstanceGroups,
+        favoriteCollectionTab,
         favoriteRows,
         gameState,
         loadStatus,

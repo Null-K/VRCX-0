@@ -2,9 +2,11 @@ import { forwardRef, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import { buildFavoriteCollectionFriendIdSet } from '@/components/sidebar/friends-sidebar/favoriteCollectionSidebarRows.js';
 import { cn } from '@/lib/utils.js';
 import { configRepository } from '@/repositories/index.js';
 import { refreshCurrentUserFriendsAndFavorites } from '@/services/backgroundMaintenanceService.js';
+import { getNavIconComponent } from '@/shared/constants/navIcons.js';
 import { useFavoriteStore } from '@/state/favoriteStore.js';
 import { useFriendRosterStore } from '@/state/friendRosterStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
@@ -12,6 +14,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
 import { FriendsSidebar } from './FriendsSidebar.jsx';
 import { GroupsSidebar } from './GroupsSidebar.jsx';
+import {
+    DEFAULT_SIDEBAR_TAB_LAYOUT,
+    getVisibleFavoriteCollectionSourceGroupKeys,
+    getVisibleSidebarTabs,
+    normalizeSidebarTabDisplayMode,
+    normalizeSidebarTabLayout,
+    serializeSidebarTabLayout,
+    sidebarTabFallbackIcon
+} from './side-panel/sidebarTabLayout.js';
+import { SidePanelCustomTabsDialog } from './side-panel/SidePanelCustomTabsDialog.js';
 import { SidePanelFavoriteGroupOrderDialog } from './side-panel/SidePanelFavoriteGroupOrderDialog.jsx';
 import { SidePanelSettingsPopover } from './side-panel/SidePanelSettingsPopover.jsx';
 
@@ -24,7 +36,9 @@ const defaultPrefs = {
     sidebarSortMethod2: 'Sort Alphabetically',
     sidebarSortMethod3: '',
     sidebarFavoriteGroups: [],
-    sidebarFavoriteGroupOrder: []
+    sidebarFavoriteGroupOrder: [],
+    sidebarTabLayout: DEFAULT_SIDEBAR_TAB_LAYOUT,
+    sidebarTabDisplayMode: 'auto'
 };
 
 function parseConfigArray(value) {
@@ -184,6 +198,12 @@ export const SidePanel = forwardRef(function SidePanel(
     const localFriendFavoriteGroups = useFavoriteStore(
         (state) => state.localFriendFavoriteGroups
     );
+    const groupedFavoriteFriendIdsByGroupKey = useFavoriteStore(
+        (state) => state.groupedFavoriteFriendIdsByGroupKey
+    );
+    const localFriendFavorites = useFavoriteStore(
+        (state) => state.localFriendFavorites
+    );
     const groupInstancesState = useRuntimeStore(
         (state) => state.groupInstances
     );
@@ -197,6 +217,7 @@ export const SidePanel = forwardRef(function SidePanel(
     const [activeTab, setActiveTab] = useState('friends');
     const [prefs, setPrefs] = useState(defaultPrefs);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    const [customTabsDialogOpen, setCustomTabsDialogOpen] = useState(false);
     const totalFriendCount = Object.keys(friendsById || {}).length;
 
     useEffect(() => {
@@ -213,7 +234,9 @@ export const SidePanel = forwardRef(function SidePanel(
             ),
             configRepository.getString('sidebarSortMethod3', ''),
             configRepository.getString('sidebarFavoriteGroups', '[]'),
-            configRepository.getString('sidebarFavoriteGroupOrder', '[]')
+            configRepository.getString('sidebarFavoriteGroupOrder', '[]'),
+            configRepository.getString('sidebarTabLayout', '[]'),
+            configRepository.getString('sidebarTabDisplayMode', 'auto')
         ])
             .then(
                 ([
@@ -225,7 +248,9 @@ export const SidePanel = forwardRef(function SidePanel(
                     sidebarSortMethod2,
                     sidebarSortMethod3,
                     sidebarFavoriteGroups,
-                    sidebarFavoriteGroupOrder
+                    sidebarFavoriteGroupOrder,
+                    sidebarTabLayout,
+                    sidebarTabDisplayMode
                 ]) => {
                     if (!active) {
                         return;
@@ -249,6 +274,11 @@ export const SidePanel = forwardRef(function SidePanel(
                         ),
                         sidebarFavoriteGroupOrder: parseConfigArray(
                             sidebarFavoriteGroupOrder
+                        ),
+                        sidebarTabLayout:
+                            normalizeSidebarTabLayout(sidebarTabLayout),
+                        sidebarTabDisplayMode: normalizeSidebarTabDisplayMode(
+                            sidebarTabDisplayMode
                         )
                     });
                 }
@@ -259,44 +289,133 @@ export const SidePanel = forwardRef(function SidePanel(
         };
     }, []);
 
+    const favoriteGroupItems = useMemo(
+        () =>
+            [
+                ...(favoriteFriendGroups || []).map((group) => ({
+                    key: group.key,
+                    label: group.displayName || group.name || group.key,
+                    source: 'remote'
+                })),
+                ...(localFriendFavoriteGroups || []).map((groupName) => ({
+                    key: `local:${groupName}`,
+                    label: groupName,
+                    source: 'local'
+                }))
+            ].filter((group) => group.key),
+        [favoriteFriendGroups, localFriendFavoriteGroups]
+    );
+    const tabLayout = useMemo(
+        () => normalizeSidebarTabLayout(prefs.sidebarTabLayout),
+        [prefs.sidebarTabLayout]
+    );
+    const visibleTabLayout = useMemo(
+        () => getVisibleSidebarTabs(tabLayout),
+        [tabLayout]
+    );
+    const visibleFavoriteCollectionSourceGroupKeys = useMemo(
+        () => getVisibleFavoriteCollectionSourceGroupKeys(tabLayout),
+        [tabLayout]
+    );
+    const customTabCountById = useMemo(() => {
+        const counts = new Map();
+        for (const item of visibleTabLayout) {
+            if (item.type !== 'favoriteCollection') {
+                continue;
+            }
+            const ids = buildFavoriteCollectionFriendIdSet({
+                sourceGroupKeys: item.sourceGroupKeys,
+                groupedFavoriteFriendIdsByGroupKey,
+                localFriendFavorites
+            });
+            let count = 0;
+            for (const id of ids) {
+                if (friendsById?.[id]) {
+                    count += 1;
+                }
+            }
+            counts.set(item.id, count);
+        }
+        return counts;
+    }, [
+        friendsById,
+        groupedFavoriteFriendIdsByGroupKey,
+        localFriendFavorites,
+        visibleTabLayout
+    ]);
     const tabItems = useMemo(
-        () => [
-            {
-                value: 'friends',
-                label: t(
+        () =>
+            visibleTabLayout.map((item) => {
+                if (item.type === 'favoriteCollection') {
+                    const count = customTabCountById.get(item.id) || 0;
+                    const label = `${item.name} (${count})`;
+                    return {
+                        value: item.id,
+                        label,
+                        title: label,
+                        icon: item.icon,
+                        layoutItem: item
+                    };
+                }
+                if (item.systemTab === 'groups') {
+                    const label = t(
+                        'component.side_panel.generated_dynamic.value_value',
+                        {
+                            value: t('side_panel.groups'),
+                            value2: groupInstances.length
+                        }
+                    );
+                    return {
+                        value: 'groups',
+                        label,
+                        title: label,
+                        icon: item.icon,
+                        layoutItem: item
+                    };
+                }
+                const label = t(
                     'component.side_panel.generated_dynamic.value_value_value',
                     {
                         value: t('side_panel.friends'),
                         value2: onlineIds.length,
                         value3: totalFriendCount
                     }
-                )
-            },
-            {
-                value: 'groups',
-                label: t('component.side_panel.generated_dynamic.value_value', {
-                    value: t('side_panel.groups'),
-                    value2: groupInstances.length
-                })
-            }
-        ],
-        [groupInstances.length, onlineIds.length, t, totalFriendCount]
+                );
+                return {
+                    value: 'friends',
+                    label,
+                    title: label,
+                    icon: item.icon,
+                    layoutItem: item
+                };
+            }),
+        [
+            customTabCountById,
+            groupInstances.length,
+            onlineIds.length,
+            t,
+            totalFriendCount,
+            visibleTabLayout
+        ]
+    );
+    const tabDisplayMode = normalizeSidebarTabDisplayMode(
+        prefs.sidebarTabDisplayMode
+    );
+    const showTabText =
+        tabDisplayMode === 'iconText' ||
+        (tabDisplayMode === 'auto' && tabItems.length <= 2);
+    const groupsTabVisible = visibleTabLayout.some(
+        (item) => item.type === 'system' && item.systemTab === 'groups'
     );
 
-    const favoriteGroupItems = useMemo(
-        () =>
-            [
-                ...(favoriteFriendGroups || []).map((group) => ({
-                    key: group.key,
-                    label: group.displayName || group.name || group.key
-                })),
-                ...(localFriendFavoriteGroups || []).map((groupName) => ({
-                    key: `local:${groupName}`,
-                    label: groupName
-                }))
-            ].filter((group) => group.key),
-        [favoriteFriendGroups, localFriendFavoriteGroups]
-    );
+    useEffect(() => {
+        if (
+            tabItems.length &&
+            !tabItems.some((item) => item.value === activeTab)
+        ) {
+            setActiveTab(tabItems[0].value);
+        }
+    }, [activeTab, tabItems]);
     const allFavoriteGroupKeys = useMemo(
         () => favoriteGroupItems.map((group) => group.key),
         [favoriteGroupItems]
@@ -402,6 +521,25 @@ export const SidePanel = forwardRef(function SidePanel(
         }
     }
 
+    function saveCustomTabs(nextLayout, nextDisplayMode) {
+        const normalizedLayout = normalizeSidebarTabLayout(nextLayout);
+        const normalizedDisplayMode =
+            normalizeSidebarTabDisplayMode(nextDisplayMode);
+        setPrefs((current) => ({
+            ...current,
+            sidebarTabLayout: normalizedLayout,
+            sidebarTabDisplayMode: normalizedDisplayMode
+        }));
+        void configRepository.setString(
+            'sidebarTabLayout',
+            serializeSidebarTabLayout(normalizedLayout)
+        );
+        void configRepository.setString(
+            'sidebarTabDisplayMode',
+            normalizedDisplayMode
+        );
+    }
+
     return (
         <aside
             ref={ref}
@@ -416,14 +554,41 @@ export const SidePanel = forwardRef(function SidePanel(
                 onValueChange={setActiveTab}
                 className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pt-2 pb-2"
             >
-                <div className="flex shrink-0 items-center gap-2">
-                    <TabsList>
-                        {tabItems.map((item) => (
-                            <TabsTrigger key={item.value} value={item.value}>
-                                {item.label}
-                            </TabsTrigger>
-                        ))}
-                    </TabsList>
+                <div className="flex min-w-0 shrink-0 items-center gap-2">
+                    <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
+                        <TabsList className="min-w-max justify-start">
+                            {tabItems.map((item) => {
+                                const Icon = getNavIconComponent(
+                                    item.icon,
+                                    sidebarTabFallbackIcon(item.layoutItem)
+                                );
+                                return (
+                                    <TabsTrigger
+                                        key={item.value}
+                                        value={item.value}
+                                        title={item.title}
+                                        className={cn(
+                                            'min-w-0 flex-none',
+                                            showTabText
+                                                ? 'max-w-40'
+                                                : 'w-8 px-1'
+                                        )}
+                                    >
+                                        <Icon data-icon="inline-start" />
+                                        <span
+                                            className={cn(
+                                                showTabText
+                                                    ? 'min-w-0 truncate'
+                                                    : 'sr-only'
+                                            )}
+                                        >
+                                            {item.label}
+                                        </span>
+                                    </TabsTrigger>
+                                );
+                            })}
+                        </TabsList>
+                    </div>
                     <SidePanelSettingsPopover
                         open={settingsPopoverOpen}
                         onOpenChange={setSettingsPopoverOpen}
@@ -447,6 +612,9 @@ export const SidePanel = forwardRef(function SidePanel(
                         onOpenFavoriteGroupOrderDialog={() =>
                             setFavoriteGroupOrderDialogOpen(true)
                         }
+                        onOpenCustomTabsDialog={() =>
+                            setCustomTabsDialogOpen(true)
+                        }
                         t={t}
                     />
                 </div>
@@ -454,14 +622,35 @@ export const SidePanel = forwardRef(function SidePanel(
                     value="friends"
                     className="mt-1 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
                 >
-                    <FriendsSidebar prefs={prefs} />
+                    <FriendsSidebar
+                        prefs={prefs}
+                        excludedFavoriteGroupKeys={
+                            visibleFavoriteCollectionSourceGroupKeys
+                        }
+                    />
                 </TabsContent>
-                <TabsContent
-                    value="groups"
-                    className="mt-1 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
-                >
-                    <GroupsSidebar />
-                </TabsContent>
+                {groupsTabVisible ? (
+                    <TabsContent
+                        value="groups"
+                        className="mt-1 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+                    >
+                        <GroupsSidebar />
+                    </TabsContent>
+                ) : null}
+                {visibleTabLayout
+                    .filter((item) => item.type === 'favoriteCollection')
+                    .map((item) => (
+                        <TabsContent
+                            key={item.id}
+                            value={item.id}
+                            className="mt-1 min-h-0 flex-1 overflow-hidden data-[state=inactive]:hidden"
+                        >
+                            <FriendsSidebar
+                                prefs={prefs}
+                                favoriteCollectionTab={item}
+                            />
+                        </TabsContent>
+                    ))}
             </Tabs>
             <SidePanelFavoriteGroupOrderDialog
                 open={favoriteGroupOrderDialogOpen}
@@ -470,6 +659,15 @@ export const SidePanel = forwardRef(function SidePanel(
                 onMove={moveFavoriteGroupOrder}
                 onReset={resetFavoriteGroupOrder}
                 onConfirm={confirmFavoriteGroupOrder}
+                t={t}
+            />
+            <SidePanelCustomTabsDialog
+                open={customTabsDialogOpen}
+                onOpenChange={setCustomTabsDialogOpen}
+                layout={tabLayout}
+                displayMode={tabDisplayMode}
+                favoriteGroupItems={favoriteGroupItems}
+                onSave={saveCustomTabs}
                 t={t}
             />
         </aside>

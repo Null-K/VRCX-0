@@ -222,7 +222,33 @@
             "sort_tertiary": "第三排序方式",
             "favorite_groups": "收藏分组",
             "favorite_groups_placeholder": "所有群组",
-            "edit_group_order": "编辑分组顺序"
+            "edit_group_order": "编辑分组顺序",
+            "custom_tabs": {
+                "configure": "自定义标签",
+                "title": "自定义侧栏标签",
+                "display_mode": "标签显示",
+                "display_auto": "自动",
+                "display_icon_text": "图标 + 文本",
+                "display_icon_only": "仅图标",
+                "tab_layout": "标签布局",
+                "tab_name": "标签名称",
+                "visible": "显示",
+                "add_favorite_tab": "添加收藏标签",
+                "favorite_collection_default": "收藏集合",
+                "remote_groups": "VRChat 收藏分组",
+                "local_groups": "本地收藏分组",
+                "no_favorite_groups": "未加载收藏分组",
+                "empty_favorite_collection": "此收藏标签中没有好友。",
+                "generated_dynamic": {
+                    "drag_value": "拖动 {value}",
+                    "icon_for_value": "{value} 的图标",
+                    "hide_value": "隐藏 {value}",
+                    "show_value": "显示 {value}",
+                    "move_value_up": "上移 {value}",
+                    "move_value_down": "下移 {value}",
+                    "delete_value": "删除 {value}"
+                }
+            }
         },
         "notifications": "通知",
         "notification_center": {

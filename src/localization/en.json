@@ -322,7 +322,33 @@
             "sort_tertiary": "Then by",
             "favorite_groups": "Favorite Groups",
             "favorite_groups_placeholder": "All Groups",
-            "edit_group_order": "Edit Group Order"
+            "edit_group_order": "Edit Group Order",
+            "custom_tabs": {
+                "configure": "Customize tabs",
+                "title": "Customize Sidebar Tabs",
+                "display_mode": "Tab display",
+                "display_auto": "Auto",
+                "display_icon_text": "Icon + Text",
+                "display_icon_only": "Icon Only",
+                "tab_layout": "Tab Layout",
+                "tab_name": "Tab name",
+                "visible": "Visible",
+                "add_favorite_tab": "Add Favorite Tab",
+                "favorite_collection_default": "Favorite Collection",
+                "remote_groups": "VRChat Favorite Groups",
+                "local_groups": "Local Favorite Groups",
+                "no_favorite_groups": "No favorite groups loaded",
+                "empty_favorite_collection": "No friends in this favorite tab.",
+                "generated_dynamic": {
+                    "drag_value": "Drag {value}",
+                    "icon_for_value": "Icon for {value}",
+                    "hide_value": "Hide {value}",
+                    "show_value": "Show {value}",
+                    "move_value_up": "Move {value} up",
+                    "move_value_down": "Move {value} down",
+                    "delete_value": "Delete {value}"
+                }
+            }
         },
         "notifications": "Notifications",
         "notification_center": {
