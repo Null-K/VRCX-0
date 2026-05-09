@@ -12,7 +12,10 @@ import {
     recordCurrentUserSnapshot,
     recordFriendPatch
 } from './domainIngestionService.js';
-import { recordFriendLogUnfriendByUserId } from './friendBootstrapService.js';
+import {
+    recordFriendLogFriendByUserId,
+    recordFriendLogUnfriendByUserId
+} from './friendBootstrapService.js';
 import { applyCurrentUserLocationEvent } from './realtime-presence/currentUserLocationFallback.js';
 import { dispatchRealtimePresenceMessage } from './realtime-presence/dispatcher.js';
 import {
@@ -209,10 +212,26 @@ export async function handleRealtimePresenceEvent(message) {
                         userPatch,
                         currentStateBucket
                     );
-                    if (changed) {
+                    let historyCount = 0;
+                    try {
+                        const runtimeState = useRuntimeStore.getState();
+                        const result = await recordFriendLogFriendByUserId({
+                            currentUserId: runtimeState.auth.currentUserId,
+                            targetUserId: userId,
+                            targetUser: userPatch,
+                            stateBucket: currentStateBucket
+                        });
+                        historyCount = result?.historyCount ?? 0;
+                    } catch (error) {
+                        console.warn(
+                            'Friend log add recording failed:',
+                            error
+                        );
+                    }
+                    if (changed || historyCount > 0) {
                         notifyFriendLogMenu();
                     }
-                    return changed;
+                    return changed || historyCount > 0;
                 }
                 case 'friend-delete': {
                     const userId = normalizeUserId(content.userId);

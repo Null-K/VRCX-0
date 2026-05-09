@@ -1,4 +1,3 @@
-import { friendLogRepository } from '@/repositories/index.js';
 import vrchatFriendRepository from '@/repositories/vrchatFriendRepository.js';
 import { handleRealtimePresenceEvent } from '@/services/realtimePresenceService.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
@@ -40,20 +39,7 @@ async function deleteFriend({
         };
     }
 
-    const entry = {
-        created_at: new Date().toJSON(),
-        type: 'Unfriend',
-        userId: normalizedUserId,
-        displayName: friend?.displayName || normalizedUserId,
-        friendNumber: friend?.$friendNumber ?? friend?.friendNumber ?? null
-    };
-
-    await friendLogRepository.deleteFriendLogCurrentArray(
-        currentUserId,
-        [normalizedUserId],
-        { historyEntries: [entry] }
-    );
-    handleRealtimePresenceEvent({
+    await handleRealtimePresenceEvent({
         type: 'friend-delete',
         content: {
             userId: normalizedUserId
@@ -62,8 +48,7 @@ async function deleteFriend({
 
     return {
         stale: false,
-        userId: normalizedUserId,
-        entry
+        userId: normalizedUserId
     };
 }
 

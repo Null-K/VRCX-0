@@ -1,3 +1,9 @@
+import {
+    recordFriendLogFriendByUserId,
+    registerFriendLogExplicitAddIntent
+} from '@/services/friendBootstrapService.js';
+import { useShellStore } from '@/state/shellStore.js';
+
 export function useVrcNotificationPageActions({
     canInviteFromCurrentLocation,
     convertFileUrlToImageUrl,
@@ -175,6 +181,7 @@ export function useVrcNotificationPageActions({
         setReloadToken((value) => value + 1);
     }
     async function acceptFriendRequest(notification) {
+        let clearFriendLogAddIntent = () => {};
         try {
             const result = await confirm({
                 title: t(
@@ -190,15 +197,37 @@ export function useVrcNotificationPageActions({
             if (!result.ok) {
                 return;
             }
+            clearFriendLogAddIntent = registerFriendLogExplicitAddIntent({
+                currentUserId,
+                targetUserId: notification.senderUserId
+            });
             await notificationRepository.acceptFriendRequest({
                 id: notification.id,
                 endpoint
             });
+            try {
+                const friendLogResult = await recordFriendLogFriendByUserId({
+                    currentUserId,
+                    targetUserId: notification.senderUserId,
+                    targetUser: {
+                        id: notification.senderUserId,
+                        displayName: notification.senderUsername
+                    },
+                    stateBucket: 'offline'
+                });
+                if (friendLogResult?.historyCount > 0) {
+                    useShellStore.getState().notifyMenu('friend-log');
+                }
+            } catch (error) {
+                clearFriendLogAddIntent();
+                console.warn('Friend log add recording failed:', error);
+            }
             await expireNotificationLocally(notification);
             toast.success(
                 t('view.notification.generated.friend_request_accepted')
             );
         } catch (error) {
+            clearFriendLogAddIntent();
             if (error?.status === 404) {
                 await expireNotificationLocally(notification);
                 return;

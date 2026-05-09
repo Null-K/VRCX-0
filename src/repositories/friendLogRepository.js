@@ -61,6 +61,9 @@ async function replaceFriendLogCurrent(userId, entries = [], options = {}) {
     const historyEntries = Array.isArray(options?.historyEntries)
         ? options.historyEntries
         : [];
+    const addedHistoryEntries = Array.isArray(options?.addedHistoryEntries)
+        ? options.addedHistoryEntries
+        : [];
 
     const historyCount = await sqliteRepository.transaction(async (tx) => {
         let writtenHistoryCount = 0;
@@ -82,6 +85,27 @@ async function replaceFriendLogCurrent(userId, entries = [], options = {}) {
                 )
             );
             if (Number.isFinite(affectedRows) && affectedRows > 0) {
+                await addFriendLogHistoryEntry(tx, userPrefix, entry);
+                writtenHistoryCount += 1;
+            }
+        }
+
+        for (const entry of addedHistoryEntries) {
+            const targetUserId =
+                typeof entry?.userId === 'string'
+                    ? entry.userId.trim()
+                    : String(entry?.userId ?? '').trim();
+            if (!targetUserId) {
+                continue;
+            }
+
+            const existingRows = await tx.query(
+                `SELECT user_id FROM ${userPrefix}_friend_log_current WHERE user_id = @user_id LIMIT 1`,
+                {
+                    '@user_id': targetUserId
+                }
+            );
+            if (!Array.isArray(existingRows) || existingRows.length === 0) {
                 await addFriendLogHistoryEntry(tx, userPrefix, entry);
                 writtenHistoryCount += 1;
             }
@@ -204,21 +228,97 @@ async function deleteFriendLogCurrentArray(
     };
 }
 
-async function upsertFriendLogCurrent(userId, entry) {
+async function upsertFriendLogCurrent(userId, entry, options = {}) {
     const userPrefix = normalizeUserTablePrefix(userId);
     if (!entry?.userId) {
-        return;
+        return {
+            userId:
+                typeof userId === 'string'
+                    ? userId.trim()
+                    : String(userId ?? '').trim(),
+            targetUserId: '',
+            count: 0,
+            inserted: false,
+            historyCount: 0
+        };
     }
 
-    await sqliteRepository.executeNonQuery(
-        `INSERT OR REPLACE INTO ${userPrefix}_friend_log_current (user_id, display_name, trust_level, friend_number) VALUES (@user_id, @display_name, @trust_level, @friend_number)`,
-        {
-            '@user_id': entry.userId,
-            '@display_name': entry.displayName ?? '',
-            '@trust_level': entry.trustLevel ?? 'Visitor',
-            '@friend_number': Number.parseInt(entry.friendNumber ?? 0, 10) || 0
+    const targetUserId =
+        typeof entry.userId === 'string'
+            ? entry.userId.trim()
+            : String(entry.userId ?? '').trim();
+    if (!targetUserId) {
+        return {
+            userId:
+                typeof userId === 'string'
+                    ? userId.trim()
+                    : String(userId ?? '').trim(),
+            targetUserId: '',
+            count: 0,
+            inserted: false,
+            historyCount: 0
+        };
+    }
+
+    const historyEntry = options?.historyEntry;
+    const forceHistory = Boolean(options?.forceHistory);
+    const transactionResult = await sqliteRepository.transaction(async (tx) => {
+        const insertCount = Number(
+            await tx.executeNonQuery(
+                `INSERT OR IGNORE INTO ${userPrefix}_friend_log_current (user_id, display_name, trust_level, friend_number) VALUES (@user_id, @display_name, @trust_level, @friend_number)`,
+                {
+                    '@user_id': targetUserId,
+                    '@display_name': entry.displayName ?? '',
+                    '@trust_level': entry.trustLevel ?? 'Visitor',
+                    '@friend_number':
+                        Number.parseInt(entry.friendNumber ?? 0, 10) || 0
+                }
+            )
+        );
+        const inserted = Number.isFinite(insertCount) && insertCount > 0;
+
+        if (!inserted) {
+            await tx.executeNonQuery(
+                `UPDATE ${userPrefix}_friend_log_current SET display_name = @display_name, trust_level = @trust_level, friend_number = CASE WHEN @friend_number > 0 THEN @friend_number ELSE friend_number END WHERE user_id = @user_id`,
+                {
+                    '@user_id': targetUserId,
+                    '@display_name': entry.displayName ?? '',
+                    '@trust_level': entry.trustLevel ?? 'Visitor',
+                    '@friend_number':
+                        Number.parseInt(entry.friendNumber ?? 0, 10) || 0
+                }
+            );
         }
-    );
+
+        let historyCount = 0;
+        if (
+            (inserted || forceHistory) &&
+            historyEntry?.type &&
+            historyEntry?.userId
+        ) {
+            await addFriendLogHistoryEntry(tx, userPrefix, {
+                ...historyEntry,
+                userId: targetUserId
+            });
+            historyCount = 1;
+        }
+
+        return {
+            inserted,
+            historyCount
+        };
+    });
+
+    return {
+        userId:
+            typeof userId === 'string'
+                ? userId.trim()
+                : String(userId ?? '').trim(),
+        targetUserId,
+        count: 1,
+        inserted: Boolean(transactionResult?.inserted),
+        historyCount: transactionResult?.historyCount ?? 0
+    };
 }
 
 async function deleteFriendLogCurrent(userId, targetUserId) {

@@ -7,8 +7,13 @@ import {
     vrchatFriendRepository
 } from '@/repositories/index.js';
 import { openGroupDialog } from '@/services/dialogService.js';
+import {
+    recordFriendLogFriendByUserId,
+    registerFriendLogExplicitAddIntent
+} from '@/services/friendBootstrapService.js';
 import friendRelationshipService from '@/services/friendRelationshipService.js';
 import { recordRecentAction } from '@/services/recentActionService.js';
+import { useShellStore } from '@/state/shellStore.js';
 
 import { normalizeUserId } from './userProfileFields.js';
 import { useUserInviteActions } from './useUserInviteActions.js';
@@ -272,6 +277,7 @@ export function useUserDialogActions({
         }
 
         let incomingNotification = null;
+        let clearFriendLogAddIntent = () => {};
         try {
             if (isSendAction) {
                 incomingNotification =
@@ -297,6 +303,13 @@ export function useUserDialogActions({
                     );
                     return;
                 }
+                if (action === 'accept') {
+                    clearFriendLogAddIntent =
+                        registerFriendLogExplicitAddIntent({
+                            currentUserId,
+                            targetUserId: rosterUserId
+                        });
+                }
                 const response =
                     action === 'accept'
                         ? await notificationRepository.acceptFriendRequest({
@@ -307,6 +320,28 @@ export function useUserDialogActions({
                               userId: rosterUserId,
                               endpoint: requestEndpoint
                           });
+                if (action === 'accept') {
+                    try {
+                        const friendLogResult =
+                            await recordFriendLogFriendByUserId({
+                                currentUserId,
+                                targetUserId: rosterUserId,
+                                targetUser: requestProfile,
+                                stateBucket:
+                                    requestProfile?.stateBucket ||
+                                    requestProfile?.state ||
+                                    'offline'
+                            });
+                        if (friendLogResult?.historyCount > 0) {
+                            useShellStore.getState().notifyMenu('friend-log');
+                        }
+                    } catch (error) {
+                        console.warn(
+                            'Friend log add recording failed:',
+                            error
+                        );
+                    }
+                }
                 if (incomingNotification) {
                     await notificationRepository.expireNotification({
                         userId: currentUserId,
@@ -450,6 +485,7 @@ export function useUserDialogActions({
                       })
             );
         } finally {
+            clearFriendLogAddIntent();
             actionStatusRef.current = 'idle';
             setActionStatus('idle');
         }

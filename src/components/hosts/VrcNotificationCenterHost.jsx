@@ -11,8 +11,13 @@ import {
 } from '@/repositories/index.js';
 import { checkCanInvite } from '@/shared/utils/invite.js';
 import { parseLocation } from '@/shared/utils/locationParser.js';
+import {
+    recordFriendLogFriendByUserId,
+    registerFriendLogExplicitAddIntent
+} from '@/services/friendBootstrapService.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
+import { useShellStore } from '@/state/shellStore.js';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore.js';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
@@ -164,6 +169,7 @@ export function VrcNotificationCenterHost() {
     }
 
     async function acceptFriendRequest(notification) {
+        let clearFriendLogAddIntent = () => {};
         try {
             const result = await confirm({
                 title: t(
@@ -177,15 +183,37 @@ export function VrcNotificationCenterHost() {
             if (!result.ok) {
                 return;
             }
+            clearFriendLogAddIntent = registerFriendLogExplicitAddIntent({
+                currentUserId,
+                targetUserId: notification.senderUserId
+            });
             await notificationRepository.acceptFriendRequest({
                 id: notification.id,
                 endpoint
             });
+            try {
+                const friendLogResult = await recordFriendLogFriendByUserId({
+                    currentUserId,
+                    targetUserId: notification.senderUserId,
+                    targetUser: {
+                        id: notification.senderUserId,
+                        displayName: notification.senderUsername
+                    },
+                    stateBucket: 'offline'
+                });
+                if (friendLogResult?.historyCount > 0) {
+                    useShellStore.getState().notifyMenu('friend-log');
+                }
+            } catch (error) {
+                clearFriendLogAddIntent();
+                console.warn('Friend log add recording failed:', error);
+            }
             await expireNotificationLocally(notification);
             toast.success(
                 t('view.notification.generated.friend_request_accepted')
             );
         } catch (error) {
+            clearFriendLogAddIntent();
             if (error?.status === 404) {
                 await expireNotificationLocally(notification);
                 return;
