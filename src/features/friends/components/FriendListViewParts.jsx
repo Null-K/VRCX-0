@@ -89,7 +89,7 @@ export function FriendListSearchFilterDropdown({ value, onChange }) {
                                 onChange(next);
                             }}
                         >
-                            {filter.label}
+                            {t(filter.labelKey)}
                         </DropdownMenuCheckboxItem>
                     ))}
                 </DropdownMenuGroup>

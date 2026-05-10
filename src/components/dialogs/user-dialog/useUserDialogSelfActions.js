@@ -135,14 +135,22 @@ export function useUserDialogSelfActions({
     const [selectedLanguageToAdd, setSelectedLanguageToAdd] = useState('');
 
     const selfStatusOptions = useMemo(
-        () =>
-            profile?.$isModerator
+        () => {
+            const baseOptions = selfStatusBaseOptions.map((option) => ({
+                ...option,
+                label: t(option.labelKey)
+            }));
+            return profile?.$isModerator
                 ? [
-                      ...selfStatusBaseOptions,
-                      { value: 'offline', label: 'Offline' }
+                      ...baseOptions,
+                      {
+                          value: 'offline',
+                          label: t('dialog.user.status.offline')
+                      }
                   ]
-                : selfStatusBaseOptions,
-        [profile?.$isModerator]
+                : baseOptions;
+        },
+        [profile?.$isModerator, t]
     );
     const languageOptionsMap = useMemo(
         () => new Map(languageOptions.map((option) => [option.key, option])),

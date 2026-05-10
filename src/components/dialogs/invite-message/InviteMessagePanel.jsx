@@ -26,8 +26,6 @@ import {
 import { Textarea } from '@/ui/shadcn/textarea';
 
 import {
-    dialogDescription,
-    dialogTitle,
     getInviteCooldownLabel,
     isInviteMessageOnCooldown,
     normalizeInviteMessageRows,
@@ -106,7 +104,9 @@ export function InviteMessagePanel({
             setError(
                 nextError instanceof Error
                     ? nextError.message
-                    : 'Failed to load invite message templates.'
+                    : t(
+                          'dialog.edit_invite_messages.generated.failed_to_load_templates'
+                      )
             );
         } finally {
             if (requestIdRef.current === requestId) {
@@ -146,8 +146,8 @@ export function InviteMessagePanel({
         if (!validation.ok) {
             setError(
                 validation.reason === 'too_large'
-                    ? 'Selected image is too large.'
-                    : 'Selected file is not an image.'
+                    ? t('message.image.generated.selected_image_is_too_large')
+                    : t('message.image.generated.selected_file_is_not_image')
             );
             return;
         }
@@ -160,7 +160,7 @@ export function InviteMessagePanel({
             setError(
                 nextError instanceof Error
                     ? nextError.message
-                    : 'Failed to read image.'
+                    : t('message.image.generated.failed_to_read_image')
             );
         }
     }
@@ -189,7 +189,8 @@ export function InviteMessagePanel({
             endpoint,
             messageType: resolvedMessageType,
             row,
-            message
+            message,
+            t
         });
     }
 
@@ -217,7 +218,9 @@ export function InviteMessagePanel({
             setError(
                 nextError instanceof Error
                     ? nextError.message
-                    : 'Failed to update message template.'
+                    : t(
+                          'dialog.edit_invite_messages.generated.failed_to_update_template'
+                      )
             );
         } finally {
             setSending(false);
@@ -265,7 +268,9 @@ export function InviteMessagePanel({
             setError(
                 nextError instanceof Error
                     ? nextError.message
-                    : 'Failed to use message template.'
+                    : t(
+                          'dialog.edit_invite_messages.generated.failed_to_use_template'
+                      )
             );
         } finally {
             setSending(false);
@@ -388,7 +393,12 @@ export function InviteMessagePanel({
                                                             type="button"
                                                             variant="ghost"
                                                             size="icon-xs"
-                                                            aria-label={`Edit slot ${row.slot}`}
+                                                            aria-label={t(
+                                                                'dialog.invite_message.generated_dynamic.edit_slot_value',
+                                                                {
+                                                                    value: row.slot
+                                                                }
+                                                            )}
                                                             disabled={
                                                                 sending ||
                                                                 editDisabled

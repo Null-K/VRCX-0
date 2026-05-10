@@ -201,29 +201,25 @@ function resolveStatusTone(friend, currentUser) {
 
     if (status === 'join me') {
         return {
-            dotClassName: 'bg-[var(--status-joinme)]',
-            label: 'Join Me'
+            dotClassName: 'bg-[var(--status-joinme)]'
         };
     }
 
     if (status === 'ask me') {
         return {
-            dotClassName: 'bg-[var(--status-askme)]',
-            label: 'Ask Me'
+            dotClassName: 'bg-[var(--status-askme)]'
         };
     }
 
     if (status === 'busy') {
         return {
-            dotClassName: 'bg-[var(--status-busy)]',
-            label: 'Busy'
+            dotClassName: 'bg-[var(--status-busy)]'
         };
     }
 
     if (status === 'online') {
         return {
-            dotClassName: 'bg-[var(--status-online)]',
-            label: 'Online'
+            dotClassName: 'bg-[var(--status-online)]'
         };
     }
 
@@ -243,15 +239,13 @@ function resolveStatusTone(friend, currentUser) {
                     : 'border-[var(--status-online)]';
         return {
             dotClassName: cn('bg-background', colorClassName),
-            label: 'Active',
             activeDot: true
         };
     }
 
     return {
         dotClassName:
-            status === 'offline' ? 'bg-[var(--status-offline)]' : 'hidden',
-        label: 'Offline'
+            status === 'offline' ? 'bg-[var(--status-offline)]' : 'hidden'
     };
 }
 
@@ -294,8 +288,8 @@ export function FriendLocationCard({
     onSendInvite,
     onRequestInvite,
     onSendBoop,
-    worldActionLabel = 'World',
-    groupActionLabel = 'Group'
+    worldActionLabel,
+    groupActionLabel
 }) {
     const { t } = useTranslation();
 
@@ -335,6 +329,10 @@ export function FriendLocationCard({
         : undefined;
     const resolvedDensityConfig = densityConfig || DEFAULT_CARD_DENSITY_CONFIG;
     const isDense = resolvedDensityConfig.layout === 'item';
+    const resolvedWorldActionLabel =
+        worldActionLabel || t('view.friend_list.generated.world');
+    const resolvedGroupActionLabel =
+        groupActionLabel || t('view.friend_list.generated.group');
     const locationLineClampClass = resolveLineClampClass(
         resolvedDensityConfig.locationLineClamp
     );
@@ -365,7 +363,11 @@ export function FriendLocationCard({
             {avatarUrl ? (
                 <img
                     src={avatarUrl}
-                    alt={friend?.displayName || friend?.id || 'Friend avatar'}
+                    alt={
+                        friend?.displayName ||
+                        friend?.id ||
+                        t('component.friend_location_card.generated.friend_avatar')
+                    }
                     loading="lazy"
                     className="rounded-full object-cover"
                     style={{
@@ -542,14 +544,14 @@ export function FriendLocationCard({
                         onSelect={onOpenWorld}
                     >
                         <GlobeIcon />
-                        {worldActionLabel}
+                        {resolvedWorldActionLabel}
                     </ContextMenuItem>
                     <ContextMenuItem
                         disabled={!canOpenGroup}
                         onSelect={onOpenGroup}
                     >
                         <UsersIcon />
-                        {groupActionLabel}
+                        {resolvedGroupActionLabel}
                     </ContextMenuItem>
                 </ContextMenuGroup>
                 <ContextMenuSeparator />
@@ -595,7 +597,10 @@ export function FriendLocationCard({
                     <ContextMenuItem
                         disabled={!friend?.id}
                         onSelect={() =>
-                            void copyCardText(friend?.id, 'User ID')
+                            void copyCardText(
+                                friend?.id,
+                                t('dialog.user.info.id')
+                            )
                         }
                     >
                         {t('dialog.user.info.copy_id')}
@@ -603,7 +608,10 @@ export function FriendLocationCard({
                     <ContextMenuItem
                         disabled={!rawLocation}
                         onSelect={() =>
-                            void copyCardText(rawLocation, 'Location')
+                            void copyCardText(
+                                rawLocation,
+                                t('dialog.new_instance.location')
+                            )
                         }
                     >
                         {t('common.actions.copy')}{' '}

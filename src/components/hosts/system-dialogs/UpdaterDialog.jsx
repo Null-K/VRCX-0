@@ -68,7 +68,7 @@ export function UpdaterDialog({ open, onOpenChange }) {
         let active = true;
         setLoading(true);
         setLatestRelease(null);
-        setDetail('Checking update state.');
+        setDetail(t('message.vrcx_updater.checking_update_state'));
 
         fetchLatestBranchRelease(STABLE_BRANCH, {
             hostArch,
@@ -85,8 +85,10 @@ export function UpdaterDialog({ open, onOpenChange }) {
                     nextRelease
                         ? ''
                         : canInstallUpdates
-                          ? 'No downloadable releases found.'
-                          : 'No releases found.'
+                          ? t(
+                                'message.vrcx_updater.no_downloadable_releases_found'
+                            )
+                          : t('message.vrcx_updater.no_releases_found')
                 );
             })
             .catch((error) => {
@@ -94,7 +96,9 @@ export function UpdaterDialog({ open, onOpenChange }) {
                     setDetail(
                         userFacingErrorMessage(
                             error,
-                            'Failed to load update releases.'
+                            t(
+                                'message.vrcx_updater.failed_to_load_update_releases'
+                            )
                         )
                     );
                 }
@@ -108,7 +112,7 @@ export function UpdaterDialog({ open, onOpenChange }) {
         return () => {
             active = false;
         };
-    }, [canInstallUpdates, hostArch, hostPlatform, open]);
+    }, [canInstallUpdates, hostArch, hostPlatform, open, t]);
 
     async function handleInstallUpdate() {
         if (
@@ -136,7 +140,10 @@ export function UpdaterDialog({ open, onOpenChange }) {
             await backend.app.RestartApplication();
         } catch (error) {
             setDetail(
-                userFacingErrorMessage(error, 'Failed to install update.')
+                userFacingErrorMessage(
+                    error,
+                    t('message.vrcx_updater.failed_install')
+                )
             );
         } finally {
             setDownloading(false);
@@ -181,7 +188,9 @@ export function UpdaterDialog({ open, onOpenChange }) {
                             </div>
                             <div className="text-muted-foreground text-xs">
                                 {progress === 100
-                                    ? 'Installing update.'
+                                    ? t(
+                                          'message.vrcx_updater.installing_update'
+                                      )
                                     : `${progress}%`}
                             </div>
                         </div>
@@ -190,7 +199,7 @@ export function UpdaterDialog({ open, onOpenChange }) {
                         <div className="text-muted-foreground text-sm">
                             {userFacingErrorMessage(
                                 visibleDetail,
-                                'Failed to update VRCX-0.'
+                                t('message.vrcx_updater.failed_install')
                             )}
                         </div>
                     ) : null}

@@ -151,7 +151,8 @@ export function GroupEventCard({
     const [bannerError, setBannerError] = useState(false);
     const closeTimerRef = useRef(null);
     const bannerUrl = bannerError ? '' : getEventBannerUrl(event, groupProfile);
-    const title = event.title || 'Untitled event';
+    const title =
+        event.title || t('dialog.group_calendar.event_card.untitled_event');
     const showGroupName = mode === 'timeline';
     const closeAfterMinutes =
         event.closeInstanceAfterEndMinutes ?? event.closeAfterEndMinutes ?? '';
@@ -271,7 +272,9 @@ export function GroupEventCard({
                                     type="button"
                                     size="icon-sm"
                                     variant="outline"
-                                    aria-label="Copy event link"
+                                    aria-label={t(
+                                        'dialog.tools.generated.copy_event_link'
+                                    )}
                                     onClick={stopAndRun(
                                         () => void copyEventLink(event, t)
                                     )}
@@ -286,8 +289,12 @@ export function GroupEventCard({
                                     }
                                     aria-label={
                                         isFollowing
-                                            ? 'Unfollow event'
-                                            : 'Follow event'
+                                            ? t(
+                                                  'dialog.tools.generated.unfollow_event'
+                                              )
+                                            : t(
+                                                  'dialog.tools.generated.follow_event'
+                                              )
                                     }
                                     disabled={!onToggleFollow}
                                     onClick={stopAndRun(() =>

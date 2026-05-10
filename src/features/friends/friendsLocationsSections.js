@@ -6,6 +6,12 @@ import {
     resolveLocationTarget
 } from './friendsLocationsRows.js';
 
+function localized(t, key, fallback, values = {}) {
+    return typeof t === 'function'
+        ? t(key, { defaultValue: fallback, ...values })
+        : fallback;
+}
+
 function appendLabel(labelsByFriendId, friendId, label) {
     const normalizedFriendId = normalizeId(friendId);
     const normalizedLabel =
@@ -24,7 +30,8 @@ function appendLabel(labelsByFriendId, friendId, label) {
 export function buildFavoriteGroupLabelsByFriendId({
     favoriteFriendGroups,
     groupedFavoriteFriendIdsByGroupKey,
-    localFriendFavorites
+    localFriendFavorites,
+    t
 }) {
     const labelsByFriendId = new Map();
 
@@ -48,7 +55,16 @@ export function buildFavoriteGroupLabelsByFriendId({
             continue;
         }
 
-        const label = `Local: ${groupName || 'Favorites'}`;
+        const label = localized(
+            t,
+            'view.friends_locations.local_group',
+            'Local: {name}',
+            {
+                name:
+                    groupName ||
+                    localized(t, 'view.friends_locations.favorite', 'Favorites')
+            }
+        );
         for (const friendId of friendIds) {
             appendLabel(labelsByFriendId, friendId, label);
         }
@@ -158,7 +174,8 @@ export function sortActiveFriendsBySidebarPrefs(friends, sortMethods) {
 function resolveFavoriteGroupLabels(
     friend,
     favoriteGroupLabelsByFriendId,
-    favoriteIds
+    favoriteIds,
+    t
 ) {
     const friendId = normalizeId(friend?.id);
     if (!friendId) {
@@ -170,12 +187,14 @@ function resolveFavoriteGroupLabels(
         return labels;
     }
 
-    return favoriteIds.has(friendId) ? ['Favorites'] : [];
+    return favoriteIds.has(friendId)
+        ? [localized(t, 'view.friends_locations.favorite', 'Favorites')]
+        : [];
 }
 
-function resolveInstanceSectionDescriptor(friend) {
+function resolveInstanceSectionDescriptor(friend, t) {
     const target = resolveLocationTarget(friend);
-    const summary = resolveLocationSummary(friend);
+    const summary = resolveLocationSummary(friend, t);
     const descriptor = {
         key: 'instance:unknown',
         title: '',
@@ -189,7 +208,7 @@ function resolveInstanceSectionDescriptor(friend) {
         return {
             ...descriptor,
             key: 'instance:offline',
-            title: 'Offline'
+            title: localized(t, 'location.offline', 'Offline')
         };
     }
 
@@ -197,7 +216,7 @@ function resolveInstanceSectionDescriptor(friend) {
         return {
             ...descriptor,
             key: `instance:private:${target.worldId || target.rawLocation || 'private'}`,
-            title: 'Private',
+            title: localized(t, 'location.private', 'Private'),
             description: '',
             worldId: target.worldId,
             rawLocation: target.rawLocation
@@ -208,7 +227,7 @@ function resolveInstanceSectionDescriptor(friend) {
         return {
             ...descriptor,
             key: `instance:traveling:${target.rawLocation || 'traveling'}`,
-            title: 'Traveling',
+            title: localized(t, 'location.traveling', 'Traveling'),
             description: summary.meta || '',
             worldId: target.worldId,
             groupId: target.groupId,
@@ -220,7 +239,10 @@ function resolveInstanceSectionDescriptor(friend) {
         return {
             ...descriptor,
             key: `instance:${target.rawLocation || target.worldId}`,
-            title: summary.label || target.worldId || 'World',
+            title:
+                summary.label ||
+                target.worldId ||
+                localized(t, 'view.friend_list.generated.world', 'World'),
             description: [summary.meta].filter(Boolean).join(' · '),
             worldId: target.worldId,
             groupId: target.groupId,
@@ -239,15 +261,19 @@ function resolveInstanceSectionDescriptor(friend) {
 
 export function buildSameInstanceSections({
     sameInstanceGroups,
-    displayInstanceInfo = true
+    displayInstanceInfo = true,
+    t
 }) {
     return sameInstanceGroups
         .map(({ location, friends }) => {
-            const descriptor = resolveInstanceSectionDescriptor({
-                ...friends[0],
-                location,
-                travelingToLocation: ''
-            });
+            const descriptor = resolveInstanceSectionDescriptor(
+                {
+                    ...friends[0],
+                    location,
+                    travelingToLocation: ''
+                },
+                t
+            );
 
             return {
                 ...descriptor,
@@ -277,13 +303,18 @@ export function buildFriendSections({
     friends,
     groupingMode,
     favoriteIds,
-    favoriteGroupLabelsByFriendId
+    favoriteGroupLabelsByFriendId,
+    t
 }) {
     if (groupingMode === 'flat') {
         return [
             {
                 key: 'flat',
-                title: 'All matching friends',
+                title: localized(
+                    t,
+                    'view.friends_locations.all_matching_friends',
+                    'All matching friends'
+                ),
                 description: '',
                 friends,
                 worldId: '',
@@ -299,10 +330,17 @@ export function buildFriendSections({
             const labels = resolveFavoriteGroupLabels(
                 friend,
                 favoriteGroupLabelsByFriendId,
-                favoriteIds
+                favoriteIds,
+                t
             );
             const label =
-                labels.length > 0 ? labels.join(' / ') : 'No favorite group';
+                labels.length > 0
+                    ? labels.join(' / ')
+                    : localized(
+                          t,
+                          'view.friends_locations.no_favorite_group',
+                          'No favorite group'
+                      );
             upsertSection(
                 sectionsByKey,
                 {
@@ -310,8 +348,16 @@ export function buildFriendSections({
                     title: label,
                     description:
                         labels.length > 0
-                            ? 'Favorite group segment'
-                            : 'Friend is not in a hydrated favorite group.',
+                            ? localized(
+                                  t,
+                                  'view.friends_locations.favorite_group_segment',
+                                  'Favorite group segment'
+                              )
+                            : localized(
+                                  t,
+                                  'view.friends_locations.friend_is_not_in_hydrated_favorite_group',
+                                  'Friend is not in a hydrated favorite group.'
+                              ),
                     worldId: '',
                     groupId: ''
                 },
@@ -322,16 +368,22 @@ export function buildFriendSections({
 
         upsertSection(
             sectionsByKey,
-            resolveInstanceSectionDescriptor(friend),
+            resolveInstanceSectionDescriptor(friend, t),
             friend
         );
     }
 
     return Array.from(sectionsByKey.values()).sort((left, right) => {
-        if (left.title === 'Offline' && right.title !== 'Offline') {
+        if (
+            left.key.startsWith('instance:offline') &&
+            !right.key.startsWith('instance:offline')
+        ) {
             return 1;
         }
-        if (right.title === 'Offline' && left.title !== 'Offline') {
+        if (
+            right.key.startsWith('instance:offline') &&
+            !left.key.startsWith('instance:offline')
+        ) {
             return -1;
         }
         return left.title.localeCompare(right.title, undefined, {

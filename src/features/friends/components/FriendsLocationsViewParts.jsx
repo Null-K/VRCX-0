@@ -4,6 +4,7 @@ import {
     LayersIcon,
     UsersIcon
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import { FriendLocationCard } from '@/components/friends/FriendLocationCard.jsx';
 import { EmptyState } from '@/components/layout/PageScaffold.jsx';
@@ -27,9 +28,10 @@ export function FriendsLocationsEmptyState({ title, description }) {
 export function FriendsLocationsSectionHeader({
     section,
     onOpenWorld,
-    onOpenGroup,
-    t
+    onOpenGroup
 }) {
+    const { t } = useTranslation();
+
     return (
         <div className="bg-card/50 flex h-full min-h-0 flex-col gap-1.5 overflow-hidden rounded-lg border px-3 py-2 md:flex-row md:items-center md:justify-between">
             <div className="flex min-w-0 flex-1 flex-col gap-1 overflow-hidden">
@@ -124,7 +126,8 @@ export function FriendsLocationCardItem({
     onRequestInvite,
     onSendBoop
 }) {
-    const location = resolveLocationSummary(friend);
+    const { t } = useTranslation();
+    const location = resolveLocationSummary(friend, t);
     const target = resolveLocationTarget(friend);
     const rawLocation = target.rawLocation;
     const groupHint = resolveFriendGroupName(friend);

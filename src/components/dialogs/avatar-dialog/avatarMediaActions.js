@@ -59,8 +59,8 @@ export function createAvatarImageUploadActions({
         if (!validation.ok) {
             const message =
                 validation.reason === 'too_large'
-                    ? 'Selected image is too large.'
-                    : 'Selected file is not an image.';
+                    ? t('message.image.generated.selected_image_is_too_large')
+                    : t('message.image.generated.selected_file_is_not_image');
             setDetail(message);
             toast.error(message);
             return;
@@ -135,7 +135,9 @@ export function createAvatarImageUploadActions({
             const message =
                 error instanceof Error
                     ? error.message
-                    : 'Failed to upload avatar image.';
+                    : t(
+                          'dialog.avatar.generated_toast.failed_to_upload_avatar_image'
+                      );
             setDetail(message);
             toast.error(message);
         } finally {

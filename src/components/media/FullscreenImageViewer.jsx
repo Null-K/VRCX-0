@@ -208,7 +208,7 @@ export function FullscreenImageViewer({
                                     variant="ghost"
                                     size="icon"
                                     disabled={copying || (!url && !sourcePath)}
-                                    aria-label={'Copy image'}
+                                    aria-label={t('message.image.copy')}
                                     onClick={() => void copyImage()}
                                 >
                                     {copying ? (
@@ -231,7 +231,7 @@ export function FullscreenImageViewer({
                                     disabled={
                                         downloading || (!url && !sourcePath)
                                     }
-                                    aria-label={'Download image'}
+                                    aria-label={t('message.image.download')}
                                     onClick={() => void downloadImage()}
                                 >
                                     {downloading ? (
@@ -255,7 +255,7 @@ export function FullscreenImageViewer({
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    aria-label={'Zoom out'}
+                                    aria-label={t('message.image.zoom_out')}
                                     onClick={zoomOut}
                                 >
                                     <ZoomOutIcon data-icon="inline-start" />
@@ -271,7 +271,7 @@ export function FullscreenImageViewer({
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    aria-label={'Zoom in'}
+                                    aria-label={t('message.image.zoom_in')}
                                     onClick={zoomIn}
                                 >
                                     <ZoomInIcon data-icon="inline-start" />
@@ -287,7 +287,9 @@ export function FullscreenImageViewer({
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    aria-label={'Rotate clockwise'}
+                                    aria-label={t(
+                                        'message.image.rotate_clockwise'
+                                    )}
                                     onClick={rotateClockwise}
                                 >
                                     <RotateCwIcon data-icon="inline-start" />
@@ -303,7 +305,9 @@ export function FullscreenImageViewer({
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    aria-label={'Rotate counterclockwise'}
+                                    aria-label={t(
+                                        'message.image.rotate_counterclockwise'
+                                    )}
                                     onClick={rotateCounterClockwise}
                                 >
                                     <RotateCcwIcon data-icon="inline-start" />
@@ -319,7 +323,7 @@ export function FullscreenImageViewer({
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    aria-label={'Reset'}
+                                    aria-label={t('message.image.reset')}
                                     onClick={resetTransform}
                                 >
                                     <RefreshCcwIcon data-icon="inline-start" />
@@ -339,7 +343,7 @@ export function FullscreenImageViewer({
                                     type="button"
                                     variant="ghost"
                                     size="icon"
-                                    aria-label={'Close'}
+                                    aria-label={t('message.image.close')}
                                     onClick={onClose}
                                 >
                                     <XIcon data-icon="inline-start" />

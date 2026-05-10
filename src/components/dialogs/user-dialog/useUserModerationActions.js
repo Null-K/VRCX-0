@@ -39,11 +39,11 @@ export function useUserModerationActions({
         const label =
             type === 'block'
                 ? enabled
-                    ? 'Block'
-                    : 'Unblock'
+                    ? t('dialog.user.actions.moderation_block')
+                    : t('dialog.user.actions.moderation_unblock')
                 : enabled
-                  ? 'Mute'
-                  : 'Unmute';
+                  ? t('dialog.user.actions.moderation_mute')
+                  : t('dialog.user.actions.moderation_unmute');
 
         actionStatusRef.current = `${type}:${enabled ? 'enable' : 'disable'}`;
         setActionStatus(actionStatusRef.current);
@@ -128,12 +128,20 @@ export function useUserModerationActions({
 
         const labelMap = {
             interactOff: enabled
-                ? 'Disable Avatar Interaction'
-                : 'Enable Avatar Interaction',
-            muteChat: enabled ? 'Disable Chatbox' : 'Enable Chatbox'
+                ? t('dialog.user.actions.moderation_disable_avatar_interaction')
+                : t('dialog.user.actions.moderation_enable_avatar_interaction'),
+            muteChat: enabled
+                ? t('dialog.user.actions.moderation_disable_chatbox')
+                : t('dialog.user.actions.moderation_enable_chatbox')
         };
         const label =
-            labelMap[type] || (enabled ? `Enable ${type}` : `Disable ${type}`);
+            labelMap[type] ||
+            t(
+                enabled
+                    ? 'dialog.user.generated_dynamic.enable_value'
+                    : 'dialog.user.generated_dynamic.disable_value',
+                { value: type }
+            );
 
         actionStatusRef.current = `${type}:${enabled ? 'enable' : 'disable'}`;
         setActionStatus(actionStatusRef.current);
@@ -210,14 +218,15 @@ export function useUserModerationActions({
         const label =
             type === 'hideAvatar'
                 ? nextType === 0
-                    ? 'Reset Hidden Avatar'
-                    : 'Hide Avatar'
+                    ? t('dialog.user.actions.reset_hidden_avatar')
+                    : t('dialog.user.actions.moderation_hide_avatar')
                 : nextType === 0
-                  ? 'Reset Shown Avatar'
-                  : 'Show Avatar';
+                  ? t('dialog.user.actions.reset_shown_avatar')
+                  : t('dialog.user.actions.moderation_show_avatar');
 
         actionStatusRef.current = `avatar-override:${nextType}`;
         setActionStatus(actionStatusRef.current);
+        let knownAvatarModerationFailure = false;
         try {
             const result = await backend.app.SetVRChatUserModeration(
                 normalizedCurrentUserId,
@@ -225,7 +234,8 @@ export function useUserModerationActions({
                 nextType
             );
             if (result === false) {
-                throw new Error('Avatar moderation update failed.');
+                knownAvatarModerationFailure = true;
+                throw new Error();
             }
             setAvatarOverrideState({
                 hideAvatar: nextType === 4,
@@ -238,7 +248,7 @@ export function useUserModerationActions({
             );
         } catch (error) {
             toast.error(
-                error instanceof Error
+                error instanceof Error && !knownAvatarModerationFailure
                     ? error.message
                     : t(
                           'dialog.user.generated_toast.failed_to_update_avatar_moderation'

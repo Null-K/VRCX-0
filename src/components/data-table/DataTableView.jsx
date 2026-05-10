@@ -285,13 +285,18 @@ export function DataTablePagination({
     pageCount,
     pageSize,
     pageSizes = [],
-    pageSizeLabel = 'Rows per page',
+    pageSizeLabel,
     onPageSizeChange,
-    previousLabel = 'Previous',
-    nextLabel = 'Next',
+    previousLabel,
+    nextLabel,
     className = ''
 }) {
     const { t } = useTranslation();
+    const resolvedPageSizeLabel =
+        pageSizeLabel || t('table.pagination.rows_per_page');
+    const resolvedPreviousLabel =
+        previousLabel || t('table.pagination.previous');
+    const resolvedNextLabel = nextLabel || t('table.pagination.next');
 
     const resolvedPageIndex = Number.isFinite(pageIndex)
         ? pageIndex
@@ -319,14 +324,14 @@ export function DataTablePagination({
             {pageSizeSelectVisible ? (
                 <div className="flex items-center gap-2">
                     <span className="text-muted-foreground text-sm">
-                        {pageSizeLabel}
+                        {resolvedPageSizeLabel}
                     </span>
                     <Select
                         value={String(resolvedPageSize)}
                         onValueChange={onPageSizeChange}
                     >
                         <SelectTrigger size="sm" className="w-20">
-                            <SelectValue placeholder={pageSizeLabel} />
+                            <SelectValue placeholder={resolvedPageSizeLabel} />
                         </SelectTrigger>
                         <SelectContent align="end">
                             <SelectGroup>
@@ -347,12 +352,12 @@ export function DataTablePagination({
                             type="button"
                             variant="outline"
                             size="sm"
-                            aria-label={previousLabel}
+                            aria-label={resolvedPreviousLabel}
                             disabled={!table?.getCanPreviousPage?.()}
                             onClick={() => table?.previousPage?.()}
                         >
                             <ChevronLeftIcon data-icon="inline-start" />
-                            {previousLabel}
+                            {resolvedPreviousLabel}
                         </Button>
                     </PaginationItem>
                     <PaginationItem>
@@ -366,11 +371,11 @@ export function DataTablePagination({
                             type="button"
                             variant="outline"
                             size="sm"
-                            aria-label={nextLabel}
+                            aria-label={resolvedNextLabel}
                             disabled={!table?.getCanNextPage?.()}
                             onClick={() => table?.nextPage?.()}
                         >
-                            {nextLabel}
+                            {resolvedNextLabel}
                             <ChevronRightIcon data-icon="inline-end" />
                         </Button>
                     </PaginationItem>
@@ -384,9 +389,11 @@ export function DataTablePagination({
 export function DataTableView({
     columns = [],
     data = [],
-    emptyLabel = 'No rows yet.',
+    emptyLabel,
     persistKey
 }) {
+    const { t } = useTranslation();
+    const resolvedEmptyLabel = emptyLabel || t('table.generated.no_rows_yet');
     const columnIds = useMemo(
         () => columns.map((column) => getColumnId(column)).filter(Boolean),
         [columns]
@@ -480,7 +487,7 @@ export function DataTableView({
                                         1
                                     }
                                 >
-                                    {emptyLabel}
+                                    {resolvedEmptyLabel}
                                 </DataTableEmptyRow>
                             )}
                         </TableBody>

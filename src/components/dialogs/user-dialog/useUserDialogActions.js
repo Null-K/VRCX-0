@@ -246,12 +246,12 @@ export function useUserDialogActions({
         const isSendAction = action === 'send' || action === 'accept';
         const label =
             action === 'accept'
-                ? 'Accept friend request'
+                ? t('dialog.user.actions.accept_friend_request')
                 : action === 'decline'
-                  ? 'Decline friend request'
+                  ? t('dialog.user.actions.decline_friend_request')
                   : action === 'cancel'
-                    ? 'Cancel friend request'
-                    : 'Send friend request';
+                    ? t('dialog.user.actions.cancel_friend_request')
+                    : t('dialog.user.actions.send_friend_request');
 
         actionStatusRef.current = `friend-request:${action}`;
         setActionStatus(actionStatusRef.current);
@@ -260,12 +260,12 @@ export function useUserDialogActions({
             description: profile?.displayName || rosterUserId,
             confirmText:
                 action === 'accept'
-                    ? 'Accept'
+                    ? t('common.actions.accept')
                     : action === 'decline'
-                      ? 'Decline'
+                      ? t('common.actions.decline')
                       : action === 'cancel'
-                        ? 'Cancel Request'
-                        : 'Send Request',
+                        ? t('dialog.user.actions.cancel_friend_request')
+                        : t('dialog.user.actions.send_friend_request'),
             cancelText: t('common.actions.cancel'),
             destructive: action === 'decline' || action === 'cancel'
         });

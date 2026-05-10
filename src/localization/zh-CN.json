@@ -20,6 +20,8 @@
             "configure": "配置",
             "refresh": "刷新",
             "cancel": "取消",
+            "accept": "接受",
+            "decline": "拒绝",
             "copy": "复制",
             "open_link": "打开链接",
             "save": "保存",
@@ -487,7 +489,13 @@
                 "dense": "紧密"
             },
             "separate_same_instance_friends": "分开显示处于同一房间的好友",
-            "loading_more": "加载中..."
+            "loading_more": "加载中...",
+            "busy": "忙碌",
+            "local_group": "本地：{name}",
+            "all_matching_friends": "所有匹配好友",
+            "no_favorite_group": "无收藏分组",
+            "favorite_group_segment": "收藏分组",
+            "friend_is_not_in_hydrated_favorite_group": "好友不在已加载的收藏分组中。"
         },
         "game_log": {
             "filter_placeholder": "筛选游戏日志",
@@ -944,6 +952,15 @@
             "filter_placeholder": "筛选好友",
             "load_mutual_friends": "查看关系网",
             "mutual_loading_hint": "跳转到好友关系网页面",
+            "search_filters": {
+                "display_name": "显示名称",
+                "username": "用户名",
+                "rank": "等级",
+                "status": "状态",
+                "bio": "简介",
+                "note": "备注",
+                "memo": "本地备注"
+            },
             "generated": {
                 "friend_details_are_already_loaded": "好友详情已加载",
                 "friend_detail_loading_cancelled": "好友详情加载已取消",
@@ -2524,6 +2541,11 @@
                 "group_invite_sent": "群组邀请已发送",
                 "left_group": "已退出群组",
                 "no_groups_to_export": "没有可导出的群组",
+                "no_users": "没有用户",
+                "no_worlds": "没有世界",
+                "no_avatars": "没有模型",
+                "no_groups": "没有群组",
+                "no_results": "没有结果",
                 "group_order_updated": "群组排序已更新",
                 "moderator": "管理员",
                 "friend": "好友 #",
@@ -2552,7 +2574,9 @@
                 "updated_value_groups": "已更新 {value} 个群组",
                 "leave_value_selected_groups": "退出选中的 {value} 个群组？",
                 "failed_to_leave_value_groups": "退出 {value} 个群组失败",
-                "left_value_groups": "已退出 {value} 个群组"
+                "left_value_groups": "已退出 {value} 个群组",
+                "enable_value": "启用 {value}",
+                "disable_value": "禁用 {value}"
             },
             "generated_toast": {
                 "memo_saved": "备注已保存",
@@ -2957,6 +2981,7 @@
                 "failed_to_delete_avatar_cache": "删除模型缓存失败",
                 "selected_file_is_too_large": "所选文件过大",
                 "selected_file_is_not_an_image": "所选文件不是图片",
+                "failed_to_upload_avatar_image": "上传模型图片失败",
                 "failed_to_upload_avatar_gallery_image": "上传模型图库图片失败",
                 "impostor_queued_for_creation": "已排队创建 Impostor",
                 "failed_to_create_impostor": "创建 Impostor失败",
@@ -3352,6 +3377,9 @@
                 "this_message_template_is_on_cooldown_and_cannot_be_edited_ye": "此消息模板正在冷却中，暂时无法编辑",
                 "target": "目标：",
                 "message_required": "消息不能为空。"
+            },
+            "generated_dynamic": {
+                "edit_slot_value": "编辑槽位 {value}"
             }
         },
         "invite_request_message": {
@@ -3377,7 +3405,14 @@
             "invite_message_tab": "邀请",
             "invite_request_tab": "申请加入",
             "invite_request_response_tab": "回绝加入申请",
-            "invite_response_tab": "回绝邀请"
+            "invite_response_tab": "回绝邀请",
+            "generated": {
+                "failed_to_load_templates": "加载邀请消息模板失败。",
+                "failed_to_update_template": "更新消息模板失败。",
+                "failed_to_use_template": "使用消息模板失败。",
+                "slot_must_be_number": "邀请消息槽位必须是数字。",
+                "update_failed": "邀请消息更新失败。"
+            }
         },
         "edit_invite_message": {
             "header": "编辑消息",
@@ -3842,7 +3877,8 @@
                 "description": "描述",
                 "export_to_calendar": "导出到日历",
                 "download_ics": "下载 .ics 文件",
-                "copied_event_link": "相关活动日历的链接已复制到剪贴板"
+                "copied_event_link": "相关活动日历的链接已复制到剪贴板",
+                "untitled_event": "未命名活动"
             },
             "featured_events": "精选活动"
         },
@@ -3943,7 +3979,10 @@
                 "notifications_are_surfaced_from_the_top_level_status_bar": "通知会显示在顶层状态栏中",
                 "mark_all_read": "全部标为已读",
                 "no_notifications_yet": "还没有通知",
-                "failed_to_download_ics_file_invalid_icalendar_content": "下载 .ics 文件失败，iCalendar 内容无效"
+                "failed_to_download_ics_file_invalid_icalendar_content": "下载 .ics 文件失败，iCalendar 内容无效",
+                "copy_event_link": "复制活动链接",
+                "follow_event": "关注活动",
+                "unfollow_event": "取消关注活动"
             }
         },
         "system": {
@@ -4251,7 +4290,12 @@
         "vrcx_updater": {
             "failed": "无法检查更新，{message}",
             "failed_install": "无法安装更新",
-            "checking_hash": "正在校验文件..."
+            "checking_hash": "正在校验文件...",
+            "checking_update_state": "正在检查更新状态。",
+            "no_downloadable_releases_found": "未找到可下载的版本。",
+            "no_releases_found": "未找到版本。",
+            "failed_to_load_update_releases": "加载更新版本失败。",
+            "installing_update": "正在安装更新。"
         },
         "api_handler": {
             "avatar_private_or_deleted": "这个模型是私人的，或其已被删除"
@@ -4392,7 +4436,13 @@
                 "zoom": "界面缩放",
                 "horizontal": "水平",
                 "vertical": "垂直",
-                "upload": "上传"
+                "upload": "上传",
+                "crop_image": "裁剪图片",
+                "crop_description": "上传前调整裁剪区域。",
+                "selected_upload_preview": "已选择图片预览",
+                "selected_image_is_too_large": "所选图片过大。",
+                "selected_file_is_not_image": "所选文件不是图片。",
+                "failed_to_read_image": "读取图片失败。"
             }
         },
         "registry": {
@@ -4572,7 +4622,11 @@
         "generated": {
             "page": "页",
             "table_layout": "表格布局",
-            "reset_columns": "重置列"
+            "reset_columns": "重置列",
+            "columns": "列",
+            "lock_column_order": "锁定列顺序",
+            "unlock_column_order": "解锁列顺序",
+            "no_rows_yet": "暂无行。"
         }
     },
     "vr": {
@@ -4788,6 +4842,9 @@
             }
         },
         "friend_location_card": {
+            "generated": {
+                "friend_avatar": "好友头像"
+            },
             "generated_dynamic": {
                 "value_copied": "已复制{value}"
             }

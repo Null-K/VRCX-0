@@ -1,10 +1,10 @@
 export const statusPresetsConfigKey = 'VRCX_statusPresets';
 export const maxStatusPresets = 10;
 export const selfStatusBaseOptions = [
-    { value: 'join me', label: 'Join Me' },
-    { value: 'active', label: 'Online' },
-    { value: 'ask me', label: 'Ask Me' },
-    { value: 'busy', label: 'Busy' }
+    { value: 'join me', labelKey: 'dialog.user.status.join_me' },
+    { value: 'active', labelKey: 'dialog.user.status.online' },
+    { value: 'ask me', labelKey: 'dialog.user.status.ask_me' },
+    { value: 'busy', labelKey: 'view.friends_locations.busy' }
 ];
 
 const allowedSelfStatuses = new Set([

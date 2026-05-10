@@ -20,6 +20,8 @@
             "configure": "設定",
             "refresh": "更新",
             "cancel": "キャンセル",
+            "accept": "受け入れる",
+            "decline": "断る",
             "copy": "コピー",
             "open_link": "リンクを開く",
             "save": "保存",
@@ -487,7 +489,13 @@
                 "dense": "高密度"
             },
             "separate_same_instance_friends": "同じインスタンスのフレンドを分けて表示",
-            "loading_more": "読み込み中..."
+            "loading_more": "読み込み中...",
+            "busy": "取り込み中",
+            "local_group": "ローカル: {name}",
+            "all_matching_friends": "一致するすべてのフレンド",
+            "no_favorite_group": "お気に入りグループなし",
+            "favorite_group_segment": "お気に入りグループ",
+            "friend_is_not_in_hydrated_favorite_group": "読み込み済みのお気に入りグループに含まれていないフレンドです。"
         },
         "game_log": {
             "filter_placeholder": "フィルター",
@@ -944,6 +952,15 @@
             "filter_placeholder": "フィルター",
             "load_mutual_friends": "共通のフレンドを読み込む",
             "mutual_loading_hint": "共同フレンドグラフページで進行状況を確認できます",
+            "search_filters": {
+                "display_name": "表示名",
+                "username": "ユーザー名",
+                "rank": "ランク",
+                "status": "ステータス",
+                "bio": "自己紹介",
+                "note": "ノート",
+                "memo": "メモ"
+            },
             "generated": {
                 "friend_details_are_already_loaded": "フレンド詳細はすでに読み込まれています",
                 "friend_detail_loading_cancelled": "フレンド詳細の読み込みをキャンセルしました",
@@ -2524,6 +2541,11 @@
                 "group_invite_sent": "グループ招待を送信しました",
                 "left_group": "グループを退出しました",
                 "no_groups_to_export": "エクスポートするグループがありません",
+                "no_users": "ユーザーはいません",
+                "no_worlds": "ワールドはありません",
+                "no_avatars": "アバターはありません",
+                "no_groups": "グループはありません",
+                "no_results": "結果はありません",
                 "group_order_updated": "グループの並び順を更新しました",
                 "moderator": "モデレーター",
                 "friend": "フレンド #",
@@ -2552,7 +2574,9 @@
                 "updated_value_groups": "{value} 件のグループを更新しました",
                 "leave_value_selected_groups": "選択した {value} 件のグループを退出しますか？",
                 "failed_to_leave_value_groups": "{value} 件のグループを退出できませんでした",
-                "left_value_groups": "{value} 件のグループを退出しました"
+                "left_value_groups": "{value} 件のグループを退出しました",
+                "enable_value": "{value} を有効にする",
+                "disable_value": "{value} を無効にする"
             },
             "generated_toast": {
                 "memo_saved": "メモを保存しました",
@@ -2957,6 +2981,7 @@
                 "failed_to_delete_avatar_cache": "アバターキャッシュの削除に失敗しました",
                 "selected_file_is_too_large": "選択したファイルが大きすぎます",
                 "selected_file_is_not_an_image": "選択したファイルは画像ではありません",
+                "failed_to_upload_avatar_image": "アバター画像のアップロードに失敗しました",
                 "failed_to_upload_avatar_gallery_image": "アバターギャラリー画像のアップロードに失敗しました",
                 "impostor_queued_for_creation": "Impostor の作成をキューに追加しました",
                 "failed_to_create_impostor": "Impostor の作成に失敗しました",
@@ -3352,6 +3377,9 @@
                 "this_message_template_is_on_cooldown_and_cannot_be_edited_ye": "このメッセージテンプレートはクールダウン中のため、まだ編集できません",
                 "target": "対象:",
                 "message_required": "メッセージを空にすることはできません。"
+            },
+            "generated_dynamic": {
+                "edit_slot_value": "スロット {value} を編集"
             }
         },
         "invite_request_message": {
@@ -3377,7 +3405,14 @@
             "invite_message_tab": "招待",
             "invite_request_tab": "参加リクエスト",
             "invite_request_response_tab": "参加リクエストへの返信",
-            "invite_response_tab": "招待への返信"
+            "invite_response_tab": "招待への返信",
+            "generated": {
+                "failed_to_load_templates": "招待メッセージテンプレートの読み込みに失敗しました。",
+                "failed_to_update_template": "メッセージテンプレートの更新に失敗しました。",
+                "failed_to_use_template": "メッセージテンプレートの使用に失敗しました。",
+                "slot_must_be_number": "招待メッセージスロットは数値で指定してください。",
+                "update_failed": "招待メッセージの更新に失敗しました。"
+            }
         },
         "edit_invite_message": {
             "header": "メッセージテンプレートを編集",
@@ -3842,7 +3877,8 @@
                 "description": "このイベントについて",
                 "export_to_calendar": "カレンダーにエクスポート",
                 "download_ics": ".ics ファイルをダウンロード",
-                "copied_event_link": "イベント URL をクリップボードにコピー"
+                "copied_event_link": "イベント URL をクリップボードにコピー",
+                "untitled_event": "無題のイベント"
             },
             "featured_events": "注目のイベント"
         },
@@ -3943,7 +3979,10 @@
                 "notifications_are_surfaced_from_the_top_level_status_bar": "通知は最上位のステータスバーに表示されます",
                 "mark_all_read": "すべて既読にする",
                 "no_notifications_yet": "通知はまだありません",
-                "failed_to_download_ics_file_invalid_icalendar_content": ".ics ファイルをダウンロードできませんでした。iCalendar の内容が無効です"
+                "failed_to_download_ics_file_invalid_icalendar_content": ".ics ファイルをダウンロードできませんでした。iCalendar の内容が無効です",
+                "copy_event_link": "イベントリンクをコピー",
+                "follow_event": "イベントをフォロー",
+                "unfollow_event": "イベントのフォローを解除"
             }
         },
         "system": {
@@ -4251,7 +4290,12 @@
         "vrcx_updater": {
             "failed": "アップデートの確認に失敗しました、{message}",
             "failed_install": "更新のインストールに失敗しました",
-            "checking_hash": "ハッシュ値の検証中..."
+            "checking_hash": "ハッシュ値の検証中...",
+            "checking_update_state": "更新状態を確認中です。",
+            "no_downloadable_releases_found": "ダウンロード可能なリリースが見つかりません。",
+            "no_releases_found": "リリースが見つかりません。",
+            "failed_to_load_update_releases": "更新リリースの読み込みに失敗しました。",
+            "installing_update": "更新をインストール中です。"
         },
         "api_handler": {
             "avatar_private_or_deleted": "アバターは非公開または削除されています"
@@ -4392,7 +4436,13 @@
                 "zoom": "ズーム",
                 "horizontal": "横",
                 "vertical": "縦",
-                "upload": "アップロード"
+                "upload": "アップロード",
+                "crop_image": "画像をトリミング",
+                "crop_description": "アップロード前にトリミング範囲を調整します。",
+                "selected_upload_preview": "選択したアップロード画像のプレビュー",
+                "selected_image_is_too_large": "選択した画像が大きすぎます。",
+                "selected_file_is_not_image": "選択したファイルは画像ではありません。",
+                "failed_to_read_image": "画像を読み込めませんでした。"
             }
         },
         "registry": {
@@ -4572,7 +4622,11 @@
         "generated": {
             "page": "ページ",
             "table_layout": "テーブルレイアウト",
-            "reset_columns": "列をリセット"
+            "reset_columns": "列をリセット",
+            "columns": "列",
+            "lock_column_order": "列順をロック",
+            "unlock_column_order": "列順のロックを解除",
+            "no_rows_yet": "行はまだありません。"
         }
     },
     "vr": {
@@ -4788,6 +4842,9 @@
             }
         },
         "friend_location_card": {
+            "generated": {
+                "friend_avatar": "フレンドのアバター"
+            },
             "generated_dynamic": {
                 "value_copied": "{value}をコピーしました"
             }

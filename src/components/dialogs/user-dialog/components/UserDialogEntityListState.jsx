@@ -9,20 +9,20 @@ import {
 } from '@/ui/shadcn/empty';
 import { Spinner } from '@/ui/shadcn/spinner';
 
-export function EntityListEmptyTitle(kind) {
+export function EntityListEmptyTitle(kind, t) {
     if (kind === 'user') {
-        return 'No users';
+        return t('dialog.user.generated.no_users');
     }
     if (kind === 'world') {
-        return 'No worlds';
+        return t('dialog.user.generated.no_worlds');
     }
     if (kind === 'avatar') {
-        return 'No avatars';
+        return t('dialog.user.generated.no_avatars');
     }
     if (kind === 'group') {
-        return 'No groups';
+        return t('dialog.user.generated.no_groups');
     }
-    return 'No results';
+    return t('dialog.user.generated.no_results');
 }
 
 export function EntityListState({ kind, loading = false, error = '' }) {
@@ -48,7 +48,7 @@ export function EntityListState({ kind, loading = false, error = '' }) {
     return (
         <Empty className="min-h-32 border">
             <EmptyHeader>
-                <EmptyTitle>{EntityListEmptyTitle(kind)}</EmptyTitle>
+                <EmptyTitle>{EntityListEmptyTitle(kind, t)}</EmptyTitle>
                 <EmptyDescription>
                     {t('common.no_matching_entries')}
                 </EmptyDescription>

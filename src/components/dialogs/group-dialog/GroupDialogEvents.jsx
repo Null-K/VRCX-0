@@ -183,7 +183,10 @@ export function GroupEventSummary({
                         </span>
                         <span className="min-w-0 flex-1 overflow-hidden">
                             <span className="block truncate text-sm font-medium">
-                                {event?.title || 'Untitled event'}
+                                {event?.title ||
+                                    t(
+                                        'dialog.group_calendar.event_card.untitled_event'
+                                    )}
                             </span>
                             <span className="text-muted-foreground block truncate text-xs">
                                 {eventTimeLabel(event) || '\u2014'}

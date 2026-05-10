@@ -20,6 +20,8 @@
             "configure": "Configure",
             "refresh": "Refresh",
             "cancel": "Cancel",
+            "accept": "Accept",
+            "decline": "Decline",
             "copy": "Copy",
             "open_link": "Open Link",
             "save": "Save",
@@ -487,7 +489,13 @@
                 "dense": "Dense"
             },
             "separate_same_instance_friends": "Separate Same Instance Friends",
-            "loading_more": "Loading more..."
+            "loading_more": "Loading more...",
+            "busy": "Busy",
+            "local_group": "Local: {name}",
+            "all_matching_friends": "All matching friends",
+            "no_favorite_group": "No favorite group",
+            "favorite_group_segment": "Favorite group segment",
+            "friend_is_not_in_hydrated_favorite_group": "Friend is not in a hydrated favorite group."
         },
         "game_log": {
             "filter_placeholder": "Filter",
@@ -944,6 +952,15 @@
             "filter_placeholder": "Filter",
             "load_mutual_friends": "Load Mutual Friends",
             "mutual_loading_hint": "View progress on the Mutual Friend Graph page",
+            "search_filters": {
+                "display_name": "Display Name",
+                "username": "User Name",
+                "rank": "Rank",
+                "status": "Status",
+                "bio": "Bio",
+                "note": "Note",
+                "memo": "Memo"
+            },
             "generated": {
                 "friend_details_are_already_loaded": "Friend details are already loaded",
                 "friend_detail_loading_cancelled": "Friend detail loading cancelled",
@@ -2524,6 +2541,11 @@
                 "group_invite_sent": "Group invite sent",
                 "left_group": "Left group",
                 "no_groups_to_export": "No groups to export",
+                "no_users": "No users",
+                "no_worlds": "No worlds",
+                "no_avatars": "No avatars",
+                "no_groups": "No groups",
+                "no_results": "No results",
                 "group_order_updated": "Group order updated",
                 "moderator": "Moderator",
                 "friend": "Friend #",
@@ -2552,7 +2574,9 @@
                 "updated_value_groups": "Updated {value} groups",
                 "leave_value_selected_groups": "Leave {value} selected groups?",
                 "failed_to_leave_value_groups": "Failed to leave {value} groups",
-                "left_value_groups": "Left {value} groups"
+                "left_value_groups": "Left {value} groups",
+                "enable_value": "Enable {value}",
+                "disable_value": "Disable {value}"
             },
             "generated_toast": {
                 "memo_saved": "Memo saved",
@@ -2957,6 +2981,7 @@
                 "failed_to_delete_avatar_cache": "Failed to delete avatar cache",
                 "selected_file_is_too_large": "Selected file is too large",
                 "selected_file_is_not_an_image": "Selected file is not an image",
+                "failed_to_upload_avatar_image": "Failed to upload avatar image",
                 "failed_to_upload_avatar_gallery_image": "Failed to upload avatar gallery image",
                 "impostor_queued_for_creation": "Impostor queued for creation",
                 "failed_to_create_impostor": "Failed to create impostor",
@@ -3352,6 +3377,9 @@
                 "this_message_template_is_on_cooldown_and_cannot_be_edited_ye": "This message template is on cooldown and cannot be edited yet",
                 "target": "Target:",
                 "message_required": "Message cannot be empty."
+            },
+            "generated_dynamic": {
+                "edit_slot_value": "Edit slot {value}"
             }
         },
         "invite_request_message": {
@@ -3377,7 +3405,14 @@
             "invite_message_tab": "Invite",
             "invite_request_tab": "Request Invite",
             "invite_request_response_tab": "Request Invite Response",
-            "invite_response_tab": "Invite Response"
+            "invite_response_tab": "Invite Response",
+            "generated": {
+                "failed_to_load_templates": "Failed to load invite message templates.",
+                "failed_to_update_template": "Failed to update message template.",
+                "failed_to_use_template": "Failed to use message template.",
+                "slot_must_be_number": "Invite message slot must be a number.",
+                "update_failed": "Invite message update failed."
+            }
         },
         "edit_invite_message": {
             "header": "Edit Message Template",
@@ -3842,7 +3877,8 @@
                 "description": "Description",
                 "export_to_calendar": "Export to Calendar",
                 "download_ics": "Download .ics",
-                "copied_event_link": "Calendar event URL copied to clipboard"
+                "copied_event_link": "Calendar event URL copied to clipboard",
+                "untitled_event": "Untitled event"
             },
             "featured_events": "Featured Events"
         },
@@ -3943,7 +3979,10 @@
                 "notifications_are_surfaced_from_the_top_level_status_bar": "Notifications are surfaced from the top-level status bar",
                 "mark_all_read": "Mark all read",
                 "no_notifications_yet": "No notifications yet",
-                "failed_to_download_ics_file_invalid_icalendar_content": "Failed to download .ics file, invalid iCalendar content"
+                "failed_to_download_ics_file_invalid_icalendar_content": "Failed to download .ics file, invalid iCalendar content",
+                "copy_event_link": "Copy event link",
+                "follow_event": "Follow event",
+                "unfollow_event": "Unfollow event"
             }
         },
         "system": {
@@ -4251,7 +4290,12 @@
         "vrcx_updater": {
             "failed": "Failed to check for update, {message}",
             "failed_install": "Failed to install update",
-            "checking_hash": "Checking hash..."
+            "checking_hash": "Checking hash...",
+            "checking_update_state": "Checking update state.",
+            "no_downloadable_releases_found": "No downloadable releases found.",
+            "no_releases_found": "No releases found.",
+            "failed_to_load_update_releases": "Failed to load update releases.",
+            "installing_update": "Installing update."
         },
         "api_handler": {
             "avatar_private_or_deleted": "Avatar is private or deleted"
@@ -4392,7 +4436,13 @@
                 "zoom": "Zoom",
                 "horizontal": "Horizontal",
                 "vertical": "Vertical",
-                "upload": "Upload"
+                "upload": "Upload",
+                "crop_image": "Crop image",
+                "crop_description": "Adjust the crop before upload.",
+                "selected_upload_preview": "Selected upload preview",
+                "selected_image_is_too_large": "Selected image is too large.",
+                "selected_file_is_not_image": "Selected file is not an image.",
+                "failed_to_read_image": "Failed to read image."
             }
         },
         "registry": {
@@ -4572,7 +4622,11 @@
         "generated": {
             "page": "Page",
             "table_layout": "Table layout",
-            "reset_columns": "Reset columns"
+            "reset_columns": "Reset columns",
+            "columns": "Columns",
+            "lock_column_order": "Lock column order",
+            "unlock_column_order": "Unlock column order",
+            "no_rows_yet": "No rows yet."
         }
     },
     "vr": {
@@ -4788,6 +4842,9 @@
             }
         },
         "friend_location_card": {
+            "generated": {
+                "friend_avatar": "Friend avatar"
+            },
             "generated_dynamic": {
                 "value_copied": "{value} copied"
             }

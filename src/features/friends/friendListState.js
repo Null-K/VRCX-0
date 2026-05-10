@@ -8,13 +8,16 @@ import {
 export const FRIEND_LIST_DEFAULT_PAGE_SIZES = [10, 15, 20, 25, 50, 100];
 export const FRIEND_LIST_DEFAULT_SORTING = [{ id: 'friendNumber', desc: true }];
 export const FRIEND_LIST_SEARCH_FILTERS = [
-    { id: 'displayName', label: 'Display Name' },
-    { id: 'username', label: 'User Name' },
-    { id: 'rank', label: 'Rank' },
-    { id: 'status', label: 'Status' },
-    { id: 'bio', label: 'Bio' },
-    { id: 'note', label: 'Note' },
-    { id: 'memo', label: 'Memo' }
+    {
+        id: 'displayName',
+        labelKey: 'view.friend_list.search_filters.display_name'
+    },
+    { id: 'username', labelKey: 'view.friend_list.search_filters.username' },
+    { id: 'rank', labelKey: 'view.friend_list.search_filters.rank' },
+    { id: 'status', labelKey: 'view.friend_list.search_filters.status' },
+    { id: 'bio', labelKey: 'view.friend_list.search_filters.bio' },
+    { id: 'note', labelKey: 'view.friend_list.search_filters.note' },
+    { id: 'memo', labelKey: 'view.friend_list.search_filters.memo' }
 ];
 
 const VISIBLE_COLUMN_IDS = [

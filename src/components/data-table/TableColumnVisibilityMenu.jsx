@@ -31,13 +31,15 @@ import {
     setColumnOrderLocked
 } from './tableColumnLayout.js';
 
-function renderColumnLockLabel(locked) {
-    return locked ? 'Unlock column order' : 'Lock column order';
+function renderColumnLockLabel(locked, t) {
+    return locked
+        ? t('table.generated.unlock_column_order')
+        : t('table.generated.lock_column_order');
 }
 
 export function TableColumnVisibilityMenu({
     table,
-    label = 'Columns',
+    label,
     onResetLayout
 }) {
     const { t } = useTranslation();
@@ -51,6 +53,7 @@ export function TableColumnVisibilityMenu({
     }
 
     const columnOrderLocked = getColumnOrderLocked(table);
+    const resolvedLabel = label || t('table.generated.columns');
 
     return (
         <DropdownMenu>
@@ -59,7 +62,7 @@ export function TableColumnVisibilityMenu({
                     type="button"
                     variant="outline"
                     size="icon-sm"
-                    aria-label={label}
+                    aria-label={resolvedLabel}
                 >
                     <Settings2Icon data-icon="icon" />
                 </Button>
@@ -87,7 +90,7 @@ export function TableColumnVisibilityMenu({
                                 setColumnOrderLocked(table, !columnOrderLocked);
                             }}
                         >
-                            {renderColumnLockLabel(columnOrderLocked)}
+                            {renderColumnLockLabel(columnOrderLocked, t)}
                         </DropdownMenuItem>
                     ) : null}
                 </DropdownMenuGroup>

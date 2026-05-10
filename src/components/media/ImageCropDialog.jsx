@@ -21,8 +21,8 @@ import { Spinner } from '@/ui/shadcn/spinner';
 
 export function ImageCropDialog({
     open,
-    title = 'Crop image',
-    description = 'Adjust the crop before upload.',
+    title,
+    description,
     file,
     aspectRatio = 1,
     onOpenChange,
@@ -36,6 +36,9 @@ export function ImageCropDialog({
     const [offsetX, setOffsetX] = useState(0);
     const [offsetY, setOffsetY] = useState(0);
     const [isConfirming, setIsConfirming] = useState(false);
+    const resolvedTitle = title || t('message.image.generated.crop_image');
+    const resolvedDescription =
+        description || t('message.image.generated.crop_description');
 
     useEffect(() => {
         if (
@@ -132,8 +135,10 @@ export function ImageCropDialog({
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-3xl">
                 <DialogHeader>
-                    <DialogTitle>{title}</DialogTitle>
-                    <DialogDescription>{description}</DialogDescription>
+                    <DialogTitle>{resolvedTitle}</DialogTitle>
+                    <DialogDescription>
+                        {resolvedDescription}
+                    </DialogDescription>
                 </DialogHeader>
                 <div className="flex flex-col gap-4">
                     <div
@@ -144,7 +149,9 @@ export function ImageCropDialog({
                             <canvas
                                 ref={canvasRef}
                                 role="img"
-                                aria-label={'Selected upload preview'}
+                                aria-label={t(
+                                    'message.image.generated.selected_upload_preview'
+                                )}
                                 className="h-full w-full object-cover"
                             />
                         ) : null}

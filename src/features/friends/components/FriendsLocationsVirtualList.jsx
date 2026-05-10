@@ -86,7 +86,6 @@ export function FriendsLocationsVirtualList({ controller }) {
                             {row.type === 'header' ? (
                                 <FriendsLocationsSectionHeader
                                     section={row.section}
-                                    t={t}
                                     onOpenWorld={openSectionWorld}
                                     onOpenGroup={openSectionGroup}
                                 />

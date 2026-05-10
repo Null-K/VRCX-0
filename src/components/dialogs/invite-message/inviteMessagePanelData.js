@@ -3,22 +3,18 @@ import { toolsRepository } from '@/repositories/index.js';
 export const INVITE_MESSAGE_TYPES = [
     {
         type: 'message',
-        label: 'Invite',
         labelKey: 'dialog.edit_invite_messages.invite_message_tab'
     },
     {
         type: 'request',
-        label: 'Request Invite',
         labelKey: 'dialog.edit_invite_messages.invite_request_tab'
     },
     {
         type: 'requestResponse',
-        label: 'Request Invite Response',
         labelKey: 'dialog.edit_invite_messages.invite_request_response_tab'
     },
     {
         type: 'response',
-        label: 'Invite Response',
         labelKey: 'dialog.edit_invite_messages.invite_response_tab'
     }
 ];
@@ -115,11 +111,14 @@ export async function saveInviteMessage({
     endpoint,
     messageType,
     row,
-    message
+    message,
+    t
 }) {
     const slot = Number.parseInt(row?.slot, 10);
     if (!currentUserId || !Number.isFinite(slot)) {
-        throw new Error('Invite message slot must be a number.');
+        throw new Error(
+            t('dialog.edit_invite_messages.generated.slot_must_be_number')
+        );
     }
 
     const previousMessage = String(row?.message || '');
@@ -137,7 +136,9 @@ export async function saveInviteMessage({
         { endpoint }
     );
     if (json?.[slot]?.message === previousMessage) {
-        throw new Error('Invite message update failed.');
+        throw new Error(
+            t('dialog.edit_invite_messages.generated.update_failed')
+        );
     }
     return json;
 }

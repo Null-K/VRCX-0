@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 import {
     getVisibleKnownSizeRows,
@@ -50,6 +51,7 @@ export function useFriendsLocationsPageDerivedState({
     sidebarFavoritePrefs,
     sidebarSortMethods
 }) {
+    const { t } = useTranslation();
     const densityConfig = useMemo(
         () => getFriendsLocationsDensityConfig(density),
         [density]
@@ -92,12 +94,14 @@ export function useFriendsLocationsPageDerivedState({
             buildFavoriteGroupLabelsByFriendId({
                 favoriteFriendGroups,
                 groupedFavoriteFriendIdsByGroupKey,
-                localFriendFavorites
+                localFriendFavorites,
+                t
             }),
         [
             favoriteFriendGroups,
             groupedFavoriteFriendIdsByGroupKey,
-            localFriendFavorites
+            localFriendFavorites,
+            t
         ]
     );
     const allFavoriteGroupKeys = useMemo(
@@ -380,7 +384,7 @@ export function useFriendsLocationsPageDerivedState({
                 key: 'favorite:ungrouped',
                 type: 'favoriteGroup',
                 groupKey: 'ungrouped',
-                title: 'Favorites',
+                title: t('view.friends_locations.favorite'),
                 description: '',
                 friends: sortFriendsBySidebarPrefs(
                     ungrouped,
@@ -404,7 +408,8 @@ export function useFriendsLocationsPageDerivedState({
         selectedFavoriteGroupKeys,
         sidebarFavoritePrefs.groupOrder,
         sidebarFavoritePrefs.isDivideByGroup,
-        sidebarSortMethods
+        sidebarSortMethods,
+        t
     ]);
     const visibleSections = useMemo(() => {
         if (favoriteGroupSections.length) {
@@ -427,7 +432,8 @@ export function useFriendsLocationsPageDerivedState({
                 sameInstanceGroups: filteredSameGroups,
                 displayInstanceInfo: false,
                 favoriteIds,
-                favoriteGroupLabelsByFriendId
+                favoriteGroupLabelsByFriendId,
+                t
             });
         }
         if (
@@ -440,7 +446,8 @@ export function useFriendsLocationsPageDerivedState({
                 sameInstanceGroups,
                 displayInstanceInfo: false,
                 favoriteIds,
-                favoriteGroupLabelsByFriendId
+                favoriteGroupLabelsByFriendId,
+                t
             });
             const otherFriends = onlineWithoutSameInstanceFriends.filter(
                 (friend) =>
@@ -452,7 +459,7 @@ export function useFriendsLocationsPageDerivedState({
                     ? [
                           {
                               key: 'online:remaining',
-                              title: 'Online',
+                              title: t('view.friends_locations.online'),
                               description: '',
                               friends: otherFriends,
                               worldId: '',
@@ -466,7 +473,8 @@ export function useFriendsLocationsPageDerivedState({
             friends: visibleFriends,
             groupingMode: 'flat',
             favoriteIds,
-            favoriteGroupLabelsByFriendId
+            favoriteGroupLabelsByFriendId,
+            t
         });
     }, [
         activeSegment,
@@ -478,7 +486,8 @@ export function useFriendsLocationsPageDerivedState({
         sameInstanceGroups,
         sameInstanceFriends,
         showSameInstance,
-        visibleFriends
+        visibleFriends,
+        t
     ]);
     const hasVisibleSections = useMemo(
         () =>
