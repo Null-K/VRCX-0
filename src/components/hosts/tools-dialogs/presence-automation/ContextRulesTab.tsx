@@ -37,6 +37,7 @@ import {
     RuleListItem,
     RuleSummaryBadge
 } from './AutomationRuleLayout.js';
+import { PresenceRuleActionFields } from './PresenceRuleActionFields.js';
 import {
     contextPresetLabelKeyFromValue,
     contextPresetOptions,
@@ -493,113 +494,41 @@ export function ContextRulesTab({
                             </Field>
                         </FieldGroup>
                     </FieldSet>
-                    <FieldSet className="rounded-md border p-3">
-                        <FieldLegend variant="label">
-                            {t(`${I18N_ROOT}.status`)}
-                        </FieldLegend>
-                        <div className="grid gap-3 sm:grid-cols-2">
-                            <Field>
-                                <FieldLabel>
-                                    {t(`${I18N_ROOT}.status`)}
-                                </FieldLabel>
-                                <Select
-                                    value={
-                                        selectedRule.actions?.status ||
-                                        'no-change'
-                                    }
-                                    disabled={loading}
-                                    onValueChange={(value) =>
-                                        update(selectedRule.id, (current) =>
-                                            value === 'no-change'
-                                                ? removeAction(current, 'status')
-                                                : updateAction(current, {
-                                                      status: value
-                                                  })
-                                        )
-                                    }
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectGroup>
-                                            <SelectItem value="no-change">
-                                                {t(
-                                                    `${I18N_ROOT}.do_not_change`
-                                                )}
-                                            </SelectItem>
-                                            {statusOptions.map((status) => (
-                                                <SelectItem
-                                                    key={status}
-                                                    value={status}
-                                                >
-                                                    {userStatusLabel(status, t)}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectGroup>
-                                    </SelectContent>
-                                </Select>
-                            </Field>
-                            <Field>
-                                <FieldLabel>
-                                    {t(`${I18N_ROOT}.signature`)}
-                                </FieldLabel>
-                                <div className="flex items-center gap-2">
-                                    <Switch
-                                        checked={hasAction(
-                                            selectedRule,
-                                            'statusDescription'
-                                        )}
-                                        disabled={loading}
-                                        onCheckedChange={(checked) =>
-                                            update(
-                                                selectedRule.id,
-                                                (current) =>
-                                                    checked
-                                                        ? updateAction(
-                                                              current,
-                                                              {
-                                                                  statusDescription:
-                                                                      ''
-                                                              }
-                                                          )
-                                                        : removeAction(
-                                                              current,
-                                                              'statusDescription'
-                                                          )
-                                            )
-                                        }
-                                    />
-                                    <span className="text-muted-foreground text-sm">
-                                        {t(`${I18N_ROOT}.change_signature`)}
-                                    </span>
-                                </div>
-                                {hasAction(
-                                    selectedRule,
-                                    'statusDescription'
-                                ) ? (
-                                    <Input
-                                        value={
-                                            selectedRule.actions
-                                                ?.statusDescription || ''
-                                        }
-                                        maxLength={32}
-                                        disabled={loading}
-                                        onChange={(event) =>
-                                            update(
-                                                selectedRule.id,
-                                                (current) =>
-                                                    updateAction(current, {
-                                                        statusDescription:
-                                                            event.target.value
-                                                    })
-                                            )
-                                        }
-                                    />
-                                ) : null}
-                            </Field>
-                        </div>
-                    </FieldSet>
+                    <PresenceRuleActionFields
+                        idPrefix={selectedRule.id}
+                        disabled={loading}
+                        status={selectedRule.actions?.status || 'no-change'}
+                        statusDescriptionEnabled={hasAction(
+                            selectedRule,
+                            'statusDescription'
+                        )}
+                        statusDescription={
+                            selectedRule.actions?.statusDescription || ''
+                        }
+                        onStatusChange={(value) =>
+                            update(selectedRule.id, (current) =>
+                                value === 'no-change'
+                                    ? removeAction(current, 'status')
+                                    : updateAction(current, { status: value })
+                            )
+                        }
+                        onStatusDescriptionEnabledChange={(checked) =>
+                            update(selectedRule.id, (current) =>
+                                checked
+                                    ? updateAction(current, {
+                                          statusDescription: ''
+                                      })
+                                    : removeAction(current, 'statusDescription')
+                            )
+                        }
+                        onStatusDescriptionChange={(value) =>
+                            update(selectedRule.id, (current) =>
+                                updateAction(current, {
+                                    statusDescription: value
+                                })
+                            )
+                        }
+                    />
                 </FieldGroup>
             ) : (
                 <Empty className="min-h-[18rem] border">

@@ -113,9 +113,27 @@ async function loadStoredRules(key) {
     );
 }
 
+function forceGameRunningCondition(rule) {
+    const conditions = Array.isArray(rule.conditions)
+        ? rule.conditions.filter(
+              (condition) => condition?.type !== 'isGameRunning'
+          )
+        : [];
+    return {
+        ...rule,
+        conditions: [{ type: 'isGameRunning' }, ...conditions]
+    };
+}
+
 export async function loadPresenceAutomationConfig() {
-    const [timeRules, contextRules, legacyRules, minStatus, minDescription, stable] =
-        await Promise.all([
+    const [
+        timeRules,
+        storedContextRules,
+        legacyRules,
+        minStatus,
+        minDescription,
+        stable
+    ] = await Promise.all([
             loadStoredRules('presenceAutomationTimeRules'),
             loadStoredRules('presenceAutomationContextRules'),
             loadLegacyRules(),
@@ -129,6 +147,7 @@ export async function loadPresenceAutomationConfig() {
             ),
             configRepository.getInt('presenceAutomationStableLocationMs', 30000)
         ]);
+    const contextRules = storedContextRules.map(forceGameRunningCondition);
     const rules = [...timeRules, ...contextRules, ...legacyRules];
     const enabledRules = rules.filter((rule) => rule?.enabled !== false);
 

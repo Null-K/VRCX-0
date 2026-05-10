@@ -176,6 +176,28 @@ export function getTimeWindow(rule) {
     );
 }
 
+export function hasGameRunningCondition(rule) {
+    return Boolean(
+        rule.conditions?.some(
+            (condition) =>
+                condition?.type === 'isGameRunning' &&
+                condition.value !== false
+        )
+    );
+}
+
+export function setGameRunningCondition(rule, enabled) {
+    const otherConditions = (rule.conditions || []).filter(
+        (condition) => condition?.type !== 'isGameRunning'
+    );
+    return {
+        ...rule,
+        conditions: enabled
+            ? [{ type: 'isGameRunning' }, ...otherConditions]
+            : otherConditions
+    };
+}
+
 export function buildContextConditions(rule) {
     const conditions = [{ type: 'isGameRunning' }];
     if (rule.preset === 'alone') {

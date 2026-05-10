@@ -8,7 +8,14 @@ import {
     EmptyHeader,
     EmptyTitle
 } from '@/ui/shadcn/empty';
-import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
+import {
+    Field,
+    FieldDescription,
+    FieldGroup,
+    FieldLabel,
+    FieldLegend,
+    FieldSet
+} from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
 import {
     Select,
@@ -21,7 +28,6 @@ import {
 import { Switch } from '@/ui/shadcn/switch';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 
-import { statusOptions } from '../toolsDialogUtils.js';
 import {
     AutomationSplitLayout,
     RuleEditorPanel,
@@ -29,14 +35,17 @@ import {
     RuleListItem,
     RuleSummaryBadge
 } from './AutomationRuleLayout.js';
+import { PresenceRuleActionFields } from './PresenceRuleActionFields.js';
 import {
     createTimeRule,
     dayOptions,
     getTimeWindow,
+    hasGameRunningCondition,
     priorityLabelKeyFromNumber,
     priorityNumberFromValue,
     priorityOptions,
     priorityValueFromNumber,
+    setGameRunningCondition,
     updateRule
 } from './presenceAutomationDialogUtils.js';
 
@@ -185,6 +194,13 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }) {
                                 <RuleSummaryBadge>
                                     {actionSummary(rule, t)}
                                 </RuleSummaryBadge>
+                                {hasGameRunningCondition(rule) ? (
+                                    <RuleSummaryBadge>
+                                        {t(
+                                            `${I18N_ROOT}.only_when_game_running`
+                                        )}
+                                    </RuleSummaryBadge>
+                                ) : null}
                             </>
                         }
                         onSelect={() => setSelectedRuleId(rule.id)}
@@ -332,90 +348,71 @@ export function TimeRulesTab({ rules, disabled, onRulesChange }) {
                             ))}
                         </ToggleGroup>
                     </Field>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                        <Field>
-                            <FieldLabel>{t(`${I18N_ROOT}.status`)}</FieldLabel>
-                            <Select
-                                value={
-                                    selectedRule.actions?.status || 'no-change'
-                                }
+                    <FieldSet
+                        className="rounded-md border p-3"
+                        disabled={disabled}
+                        data-disabled={disabled}
+                    >
+                        <div className="flex min-w-0 items-start justify-between gap-3">
+                            <div className="min-w-0">
+                                <FieldLegend variant="label">
+                                    {t(`${I18N_ROOT}.only_when_game_running`)}
+                                </FieldLegend>
+                                <FieldDescription className="text-xs leading-snug">
+                                    {t(
+                                        `${I18N_ROOT}.only_when_game_running_description`
+                                    )}
+                                </FieldDescription>
+                            </div>
+                            <Switch
+                                checked={hasGameRunningCondition(selectedRule)}
                                 disabled={disabled}
-                                onValueChange={(value) =>
+                                aria-label={t(
+                                    `${I18N_ROOT}.only_when_game_running`
+                                )}
+                                onCheckedChange={(checked) =>
                                     update(selectedRule.id, (current) =>
-                                        value === 'no-change'
-                                            ? removeAction(current, 'status')
-                                            : updateAction(current, {
-                                                  status: value
-                                              })
+                                        setGameRunningCondition(current, checked)
                                     )
                                 }
-                            >
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectGroup>
-                                        <SelectItem value="no-change">
-                                            {t(`${I18N_ROOT}.do_not_change`)}
-                                        </SelectItem>
-                                        {statusOptions.map((status) => (
-                                            <SelectItem
-                                                key={status}
-                                                value={status}
-                                            >
-                                                {userStatusLabel(status, t)}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                </SelectContent>
-                            </Select>
-                        </Field>
-                        <Field>
-                            <FieldLabel>{t(`${I18N_ROOT}.signature`)}</FieldLabel>
-                            <div className="flex items-center gap-2">
-                                <Switch
-                                    checked={hasAction(
-                                        selectedRule,
-                                        'statusDescription'
-                                    )}
-                                    disabled={disabled}
-                                    onCheckedChange={(checked) =>
-                                        update(selectedRule.id, (current) =>
-                                            checked
-                                                ? updateAction(current, {
-                                                      statusDescription: ''
-                                                  })
-                                                : removeAction(
-                                                      current,
-                                                      'statusDescription'
-                                                  )
-                                        )
-                                    }
-                                />
-                                <span className="text-muted-foreground text-sm">
-                                    {t(`${I18N_ROOT}.change_signature`)}
-                                </span>
-                            </div>
-                            {hasAction(selectedRule, 'statusDescription') ? (
-                                <Input
-                                    value={
-                                        selectedRule.actions
-                                            ?.statusDescription || ''
-                                    }
-                                    maxLength={32}
-                                    disabled={disabled}
-                                    onChange={(event) =>
-                                        update(selectedRule.id, (current) =>
-                                            updateAction(current, {
-                                                statusDescription:
-                                                    event.target.value
-                                            })
-                                        )
-                                    }
-                                />
-                            ) : null}
-                        </Field>
-                    </div>
+                            />
+                        </div>
+                    </FieldSet>
+                    <PresenceRuleActionFields
+                        idPrefix={selectedRule.id}
+                        disabled={disabled}
+                        status={selectedRule.actions?.status || 'no-change'}
+                        statusDescriptionEnabled={hasAction(
+                            selectedRule,
+                            'statusDescription'
+                        )}
+                        statusDescription={
+                            selectedRule.actions?.statusDescription || ''
+                        }
+                        onStatusChange={(value) =>
+                            update(selectedRule.id, (current) =>
+                                value === 'no-change'
+                                    ? removeAction(current, 'status')
+                                    : updateAction(current, { status: value })
+                            )
+                        }
+                        onStatusDescriptionEnabledChange={(checked) =>
+                            update(selectedRule.id, (current) =>
+                                checked
+                                    ? updateAction(current, {
+                                          statusDescription: ''
+                                      })
+                                    : removeAction(current, 'statusDescription')
+                            )
+                        }
+                        onStatusDescriptionChange={(value) =>
+                            update(selectedRule.id, (current) =>
+                                updateAction(current, {
+                                    statusDescription: value
+                                })
+                            )
+                        }
+                    />
                 </FieldGroup>
             ) : (
                 <Empty className="min-h-[18rem] border">
