@@ -213,7 +213,7 @@ export function resolveSidebarStatusDotClassName(
     friend,
     currentUser,
     isCurrentUser = false,
-    { hideNonFriend = true } = {}
+    { hideNonFriend = true, isGameRunning = true } = {}
 ) {
     const source = readFriendStatusSource(friend);
     if (!source) {
@@ -248,20 +248,13 @@ export function resolveSidebarStatusDotClassName(
     );
 
     if (isCurrentUser || userId === currentUser?.id) {
-        if (
-            source?.pendingOffline ||
-            state === 'offline' ||
-            (location === 'offline' && state !== 'online')
-        ) {
-            return '';
+        if (isGameRunning === true) {
+            return (
+                legacyStatusDotClassName(status) ||
+                'bg-[var(--status-online)]'
+            );
         }
-        if (state === 'active') {
-            return activeStatusDotClassName(status);
-        }
-        return (
-            legacyStatusDotClassName(status) ||
-            (state === 'online' ? 'bg-[var(--status-online)]' : '')
-        );
+        return activeStatusDotClassName(status);
     }
 
     if (source?.pendingOffline) {

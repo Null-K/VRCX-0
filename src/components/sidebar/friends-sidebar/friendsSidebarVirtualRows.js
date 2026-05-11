@@ -5,6 +5,21 @@ import {
     resolveCurrentUserStateBucket
 } from './friendsSidebarModel.js';
 
+const STOPPED_GAME_CURRENT_USER_PRESENCE_FIELDS = [
+    'location',
+    '$location',
+    '$locationTag',
+    '$location_at',
+    'locationUpdatedAt',
+    'worldId',
+    'instanceId',
+    'travelingToLocation',
+    'travelingToWorld',
+    'travelingToInstance',
+    '$travelingToLocation',
+    '$travelingToTime'
+];
+
 function pushSection(nextRows, { id, title, count, open }) {
     nextRows.push({
         type: 'section',
@@ -78,6 +93,17 @@ function buildFavoriteRows({
     return nextRows;
 }
 
+function stripStoppedGameCurrentUserPresence(currentUser, gameState) {
+    if (!currentUser || gameState?.isGameRunning !== false) {
+        return currentUser;
+    }
+    const strippedUser = { ...currentUser };
+    for (const field of STOPPED_GAME_CURRENT_USER_PRESENCE_FIELDS) {
+        delete strippedUser[field];
+    }
+    return strippedUser;
+}
+
 function buildCurrentUserRows({
     currentUser,
     currentUserId,
@@ -95,13 +121,19 @@ function buildCurrentUserRows({
         gameState,
         gameLogDisabled: Boolean(prefs.gameLogDisabled)
     });
+    const currentUserDisplayRow = stripStoppedGameCurrentUserPresence(
+        currentUserRow,
+        gameState
+    );
 
     return buildFriendRows(
         'me',
         [
             {
-                ...currentUserRow,
-                stateBucket: resolveCurrentUserStateBucket(currentUserRow)
+                ...currentUserDisplayRow,
+                stateBucket: resolveCurrentUserStateBucket(
+                    currentUserDisplayRow
+                )
             }
         ],
         { currentUserId, isCurrentUser: true }

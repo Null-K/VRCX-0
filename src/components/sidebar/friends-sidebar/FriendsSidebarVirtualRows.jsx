@@ -95,6 +95,7 @@ function FriendVirtualRow({
             isDarkMode={context.isDarkMode}
             trustColor={context.trustColor}
             currentUserSnapshot={context.currentUser}
+            isGameRunning={context.gameState.isGameRunning}
             recentActionVersion={context.recentActionVersion}
             locationMetadata={context.locationMetadataByKey.get(metadataKey)}
             showInstanceIdInLocation={context.showInstanceIdInLocation}

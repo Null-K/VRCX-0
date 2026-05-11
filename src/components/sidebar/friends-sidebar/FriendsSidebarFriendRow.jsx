@@ -44,6 +44,7 @@ export function FriendRow({
     isDarkMode = false,
     trustColor = TRUST_COLOR_DEFAULTS,
     currentUserSnapshot = null,
+    isGameRunning = undefined,
     recentActionVersion = 0,
     locationMetadata = null,
     showInstanceIdInLocation = false,
@@ -70,7 +71,8 @@ export function FriendRow({
     const statusDotClassName = resolveSidebarStatusDotClassName(
         friend,
         currentUserSnapshot,
-        isCurrentUser
+        isCurrentUser,
+        { isGameRunning }
     );
     const isActiveStatusDot = statusDotClassName.includes('bg-background');
     const {
