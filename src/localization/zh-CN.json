@@ -552,6 +552,7 @@
                 "showing": "显示",
                 "of": "/",
                 "game_log_row": "游戏日志行",
+                "game_log_rows": "游戏日志行",
                 "no_game_log_rows_match_the_current_filters": "没有符合当前筛选的游戏日志行",
                 "favorites_are_still_hydrating": "收藏仍在加载中。",
                 "broaden_the_filters_or_search_query_to_see_more_recent_sessions": "放宽筛选条件或搜索词以查看更多最近会话。",

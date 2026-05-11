@@ -552,6 +552,7 @@
                 "showing": "Showing",
                 "of": "of",
                 "game_log_row": "game log row",
+                "game_log_rows": "game log rows",
                 "no_game_log_rows_match_the_current_filters": "No game log rows match the current filters",
                 "favorites_are_still_hydrating": "Favorites are still hydrating.",
                 "broaden_the_filters_or_search_query_to_see_more_recent_sessions": "Broaden the filters or search query to see more recent sessions.",

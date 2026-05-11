@@ -248,8 +248,11 @@ export function GameLogPageView({
                                     <span className="text-foreground font-medium">
                                         {annotatedRows.length}
                                     </span>{' '}
-                                    {t('view.game_log.generated.game_log_row')}
-                                    {annotatedRows.length === 1 ? '' : 's'}
+                                    {t(
+                                        annotatedRows.length === 1
+                                            ? 'view.game_log.generated.game_log_row'
+                                            : 'view.game_log.generated.game_log_rows'
+                                    )}
                                 </div>
                                 <DataTablePagination
                                     table={table}
