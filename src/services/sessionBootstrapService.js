@@ -52,7 +52,7 @@ async function runAvatarAutoCleanup(userId) {
     return true;
 }
 
-async function restoreGameRunningState() {
+async function requestGameRunningStateRefresh() {
     if (!isHostCapabilityAvailable('gameProcessMonitor')) {
         return false;
     }
@@ -110,7 +110,7 @@ export async function bootstrapAuthenticatedSession(user) {
             `Per-user tables are ready for ${displayName}. Restoring host game state.`
         );
 
-        const gameStateRestored = await restoreGameRunningState();
+        const gameStateRestored = await requestGameRunningStateRefresh();
 
         sessionStore.setSessionState({
             isLoggedIn: true,
@@ -118,6 +118,9 @@ export async function bootstrapAuthenticatedSession(user) {
             isFavoritesLoaded: false,
             sessionPhase: 'ready'
         });
+        if (gameStateRestored) {
+            await requestGameRunningStateRefresh();
+        }
         syncStartupServicesTask([
             `Authenticated session is ready for ${displayName}.`,
             avatarCleanupRan

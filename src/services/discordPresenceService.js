@@ -371,12 +371,93 @@ function getNowPlayingTimes(nowPlaying) {
     };
 }
 
+async function publishDiscordActivity({
+    appId = DEFAULT_APP_ID,
+    activity,
+    detail
+}) {
+    try {
+        isDiscordActive = Boolean(
+            await backend.discord.SetAssets({ appId, activity })
+        );
+        useRuntimeStore.getState().setUpdateLoopState({
+            lastDiscordPresenceAt: new Date().toISOString(),
+            lastDiscordPresenceDetail: detail
+        });
+    } catch (error) {
+        isDiscordActive = false;
+        useRuntimeStore.getState().setUpdateLoopState({
+            lastDiscordPresenceAt: new Date().toISOString(),
+            lastDiscordPresenceDetail:
+                error instanceof Error ? error.message : String(error)
+        });
+    }
+}
+
+async function publishRunningFallbackPresence({
+    config,
+    currentUser,
+    runtimeState
+}) {
+    const t = await createTranslator();
+    const statusInfo = getStatusInfo(
+        currentUser?.status,
+        config.discordHideInvite,
+        t
+    );
+    const platform = config.discordShowPlatform
+        ? getPlatformLabel(
+              currentUser?.presence?.platform ||
+                  currentUser?.platform ||
+                  currentUser?.last_platform ||
+                  '',
+              true,
+              Boolean(runtimeState.gameState.isGameNoVR),
+              t
+          )
+        : '';
+    const details = 'VRChat';
+    const stateText = platform.trim();
+    const activity = compactObject({
+        type: ActivityType.Playing,
+        name: 'VRChat',
+        details,
+        state: stateText,
+        status_display_type: StatusDisplayType.Name,
+        timestamps: createActivityTimestamps(
+            runtimeState.gameState.lastGameStartedAt
+        ),
+        assets: createActivityAssets(
+            'vrchat',
+            statusInfo.statusImage,
+            statusInfo.statusName
+        )
+    });
+
+    await publishDiscordActivity({
+        activity,
+        detail: `${details}${stateText ? ` - ${stateText}` : ''}`
+    });
+}
+
 export function invalidateDiscordPresenceCache() {
     lastLocationDetails = createEmptyLocationDetails();
 }
 
 export function queueDiscordPresenceGameStopCloseAttempts() {
     gameStopDiscordCloseAttemptsRemaining = GAME_STOP_DISCORD_CLOSE_ATTEMPTS;
+}
+
+export async function runDiscordPresenceMaintenanceTick() {
+    const runtimeState = useRuntimeStore.getState();
+    if (
+        runtimeState.gameState.isGameRunning !== true &&
+        gameStopDiscordCloseAttemptsRemaining <= 0
+    ) {
+        return;
+    }
+
+    await refreshDiscordPresence();
 }
 
 export async function refreshDiscordPresence({ force = false } = {}) {
@@ -403,8 +484,16 @@ export async function refreshDiscordPresence({ force = false } = {}) {
     const { currentLocation, startTime: rawStartTime } =
         getCurrentLocationContext(runtimeState, currentUser);
 
-    if (!config.discordActive || !isRealInstance(currentLocation)) {
+    if (!config.discordActive) {
         await setDiscordActiveState(false, { force });
+        return;
+    }
+    if (!isRealInstance(currentLocation)) {
+        await publishRunningFallbackPresence({
+            config,
+            currentUser,
+            runtimeState
+        });
         return;
     }
 
@@ -436,8 +525,6 @@ export async function refreshDiscordPresence({ force = false } = {}) {
         platform,
         t
     });
-
-    await setDiscordActiveState(true);
 
     let hidePrivate = false;
     if (
@@ -560,22 +647,11 @@ export async function refreshDiscordPresence({ force = false } = {}) {
         buttons: createActivityButtons(buttonText, buttonUrl)
     });
 
-    try {
-        isDiscordActive = Boolean(
-            await backend.discord.SetAssets({ appId, activity })
-        );
-        useRuntimeStore.getState().setUpdateLoopState({
-            lastDiscordPresenceAt: new Date().toISOString(),
-            lastDiscordPresenceDetail: `${details}${stateText ? ` - ${stateText}` : ''}`
-        });
-    } catch (error) {
-        isDiscordActive = false;
-        useRuntimeStore.getState().setUpdateLoopState({
-            lastDiscordPresenceAt: new Date().toISOString(),
-            lastDiscordPresenceDetail:
-                error instanceof Error ? error.message : String(error)
-        });
-    }
+    await publishDiscordActivity({
+        appId,
+        activity,
+        detail: `${details}${stateText ? ` - ${stateText}` : ''}`
+    });
 }
 
 export async function disableDiscordPresence() {

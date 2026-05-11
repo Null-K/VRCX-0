@@ -23,6 +23,7 @@ import { isRealInstance } from '@/shared/utils/instance.js';
 import { useModalStore } from '@/state/modalStore.js';
 import { useNotificationStore } from '@/state/notificationStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
+import { useSessionStore } from '@/state/sessionStore.js';
 
 let debugLoggingTimer = null;
 let crashRelaunchTimer = null;
@@ -387,6 +388,10 @@ export async function handleGameRunningUpdate(payload = {}) {
     const gameRunningChanged = previousGameRunning !== nextGameRunning;
     const steamVrRunningChanged = previousSteamVrRunning !== nextSteamVrRunning;
     const changed = gameRunningChanged || steamVrRunningChanged;
+    const shouldRefreshDiscordPresence =
+        gameRunningChanged ||
+        (nextGameRunning === true &&
+            useSessionStore.getState().sessionPhase === 'ready');
     const now = new Date().toISOString();
     const gameStartedAt =
         gameRunningChanged && nextGameRunning
@@ -439,7 +444,7 @@ export async function handleGameRunningUpdate(payload = {}) {
         return;
     }
 
-    if (gameRunningChanged) {
+    if (shouldRefreshDiscordPresence) {
         await refreshDiscordPresence({ force: true }).catch((error) => {
             console.warn(
                 'Discord presence refresh after game state update failed:',

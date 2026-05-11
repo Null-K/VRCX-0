@@ -32,7 +32,7 @@ import {
     recordCurrentUserSnapshot,
     recordLocationHintsFromInstances
 } from './domainIngestionService.js';
-import { refreshDiscordPresence as updateDiscordPresence } from './discordPresenceService.js';
+import { runDiscordPresenceMaintenanceTick } from './discordPresenceService.js';
 import { bootstrapFavorites } from './favoriteBootstrapService.js';
 import {
     bootstrapFriendRoster,
@@ -728,7 +728,7 @@ async function runClearVrcxCacheIfDue() {
 }
 
 async function refreshDiscordPresence() {
-    await updateDiscordPresence();
+    await runDiscordPresenceMaintenanceTick();
 }
 
 async function updateAutoStateChange() {

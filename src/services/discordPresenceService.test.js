@@ -44,6 +44,8 @@ import { useRuntimeStore } from '@/state/runtimeStore.js';
 
 import {
     invalidateDiscordPresenceCache,
+    queueDiscordPresenceGameStopCloseAttempts,
+    runDiscordPresenceMaintenanceTick,
     refreshDiscordPresence
 } from './discordPresenceService.js';
 
@@ -91,7 +93,9 @@ describe('discordPresenceService', () => {
                     : fallback
             )
         );
-        mocks.setActive.mockResolvedValue(true);
+        mocks.setActive.mockImplementation((active) =>
+            Promise.resolve(Boolean(active))
+        );
         mocks.setAssets.mockResolvedValue(true);
         mocks.getWorldProfile.mockResolvedValue({
             name: 'Great Pug',
@@ -128,12 +132,25 @@ describe('discordPresenceService', () => {
         });
     }
 
+    function setAuthenticatedUser() {
+        useRuntimeStore.getState().setAuthBootstrap({
+            currentUserId: 'usr_self',
+            currentUserEndpoint: 'https://api.vrchat.cloud/api/1',
+            currentUserSnapshot: {
+                status: 'active',
+                presence: {
+                    platform: 'standalonewindows'
+                }
+            }
+        });
+    }
+
     it('publishes active Windows desktop presence with player count and world image', async () => {
         setRunningWindowsPresence({ isGameNoVR: true });
 
         await refreshDiscordPresence({ force: true });
 
-        expect(mocks.setActive).toHaveBeenCalledWith(true);
+        expect(mocks.setActive).not.toHaveBeenCalledWith(true);
         expect(mocks.setAssets).toHaveBeenCalledTimes(1);
 
         const { appId, activity } = mocks.setAssets.mock.calls[0][0];
@@ -174,5 +191,79 @@ describe('discordPresenceService', () => {
             small_image: 'active',
             small_text: 'Active'
         });
+    });
+
+    it('does not touch Discord during maintenance when the game is not running and no close retry is queued', async () => {
+        setAuthenticatedUser();
+        useRuntimeStore.getState().setGameState({
+            isGameRunning: false
+        });
+
+        await runDiscordPresenceMaintenanceTick();
+
+        expect(mocks.setActive).not.toHaveBeenCalled();
+        expect(mocks.setAssets).not.toHaveBeenCalled();
+    });
+
+    it('sends at most five forced close requests after a game stop', async () => {
+        setAuthenticatedUser();
+        useRuntimeStore.getState().setGameState({
+            isGameRunning: false
+        });
+        queueDiscordPresenceGameStopCloseAttempts();
+
+        for (let index = 0; index < 6; index += 1) {
+            await runDiscordPresenceMaintenanceTick();
+        }
+
+        expect(mocks.setActive).toHaveBeenCalledTimes(5);
+        expect(mocks.setActive).toHaveBeenNthCalledWith(1, false);
+        expect(mocks.setActive).toHaveBeenNthCalledWith(5, false);
+        expect(mocks.setAssets).not.toHaveBeenCalled();
+    });
+
+    it('publishes fallback activity when the game is running before a real location is known', async () => {
+        setAuthenticatedUser();
+        useRuntimeStore.getState().setGameState({
+            isGameRunning: true,
+            isGameNoVR: true,
+            currentLocation: '',
+            lastGameStartedAt: '2026-05-08T00:00:00.000Z'
+        });
+
+        await refreshDiscordPresence({ force: true });
+
+        expect(mocks.setActive).not.toHaveBeenCalledWith(true);
+        expect(mocks.setAssets).toHaveBeenCalledTimes(1);
+        const { activity } = mocks.setAssets.mock.calls[0][0];
+        expect(activity).toMatchObject({
+            type: 0,
+            name: 'VRChat',
+            details: 'VRChat',
+            state: '(Desktop)',
+            status_display_type: 0,
+            assets: {
+                large_image: 'vrchat',
+                small_image: 'active',
+                small_text: 'Active'
+            }
+        });
+    });
+
+    it('clears Discord without publishing assets when Discord Presence is disabled', async () => {
+        setAuthenticatedUser();
+        useRuntimeStore.getState().setGameState({
+            isGameRunning: true,
+            currentLocation: 'wrld_public:12345~region(us)'
+        });
+        mocks.getBool.mockImplementation((key, fallback) =>
+            Promise.resolve(key === 'discordActive' ? false : fallback)
+        );
+
+        await refreshDiscordPresence({ force: true });
+
+        expect(mocks.setActive).toHaveBeenCalledTimes(1);
+        expect(mocks.setActive).toHaveBeenCalledWith(false);
+        expect(mocks.setAssets).not.toHaveBeenCalled();
     });
 });
