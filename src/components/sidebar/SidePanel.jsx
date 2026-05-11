@@ -580,7 +580,7 @@ export const SidePanel = forwardRef(function SidePanel(
             <Tabs
                 value={activeTab}
                 onValueChange={setActiveTab}
-                className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pt-2 pb-2"
+                className="flex min-h-0 flex-1 flex-col overflow-hidden px-2 pt-4.5 pb-2"
             >
                 <div className="flex min-w-0 shrink-0 items-center gap-2">
                     <div className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden">
