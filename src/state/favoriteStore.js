@@ -241,11 +241,43 @@ function buildRemoteFavoriteCollections(
 export const useFavoriteStore = create((set, get) => ({
     ...initialState,
     setFavoritesLoading(currentUserId, detail = '') {
-        set({
-            ...initialState,
-            currentUserId: normalizeUserId(currentUserId) || null,
-            loadStatus: 'running',
-            detail
+        set((state) => {
+            const normalizedCurrentUserId =
+                normalizeUserId(currentUserId) || null;
+            const isSameUser =
+                normalizeUserId(state.currentUserId) ===
+                normalizedCurrentUserId;
+            const hasFavoriteData =
+                Object.keys(state.remoteFavoritesById || {}).length > 0 ||
+                Object.keys(state.cachedFavoriteGroupsById || {}).length > 0 ||
+                state.favoriteFriendIds.length > 0 ||
+                state.favoriteWorldIds.length > 0 ||
+                state.favoriteAvatarIds.length > 0 ||
+                state.favoriteFriendGroups.length > 0 ||
+                state.favoriteWorldGroups.length > 0 ||
+                state.favoriteAvatarGroups.length > 0 ||
+                Object.keys(state.localFriendFavorites || {}).length > 0 ||
+                Object.keys(state.localWorldFavorites || {}).length > 0 ||
+                Object.keys(state.localAvatarFavorites || {}).length > 0 ||
+                state.localFriendFavoriteGroups.length > 0 ||
+                state.localWorldFavoriteGroups.length > 0 ||
+                state.localAvatarFavoriteGroups.length > 0;
+
+            if (isSameUser && hasFavoriteData) {
+                return {
+                    ...state,
+                    currentUserId: normalizedCurrentUserId,
+                    loadStatus: 'running',
+                    detail
+                };
+            }
+
+            return {
+                ...initialState,
+                currentUserId: normalizedCurrentUserId,
+                loadStatus: 'running',
+                detail
+            };
         });
     },
     setFavoritesSnapshot(snapshot = {}) {

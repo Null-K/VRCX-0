@@ -169,16 +169,36 @@ const initialState = {
 export const useFriendRosterStore = create((set) => ({
     ...initialState,
     setRosterLoading(currentUserId, detail = '') {
-        set({
-            currentUserId,
-            loadStatus: 'running',
-            detail,
-            lastLoadedAt: null,
-            friendsById: {},
-            orderedFriendIds: [],
-            onlineIds: [],
-            activeIds: [],
-            offlineIds: []
+        set((state) => {
+            const normalizedCurrentUserId =
+                normalizeUserId(currentUserId) || null;
+            const isSameUser =
+                normalizeUserId(state.currentUserId) ===
+                normalizedCurrentUserId;
+            const hasRoster =
+                Object.keys(state.friendsById || {}).length > 0 ||
+                state.orderedFriendIds.length > 0;
+
+            if (isSameUser && hasRoster) {
+                return {
+                    ...state,
+                    currentUserId: normalizedCurrentUserId,
+                    loadStatus: 'running',
+                    detail
+                };
+            }
+
+            return {
+                currentUserId: normalizedCurrentUserId,
+                loadStatus: 'running',
+                detail,
+                lastLoadedAt: null,
+                friendsById: {},
+                orderedFriendIds: [],
+                onlineIds: [],
+                activeIds: [],
+                offlineIds: []
+            };
         });
     },
     setRosterSnapshot({
