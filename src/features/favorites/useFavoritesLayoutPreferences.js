@@ -19,6 +19,17 @@ const CARD_SPACING_CONFIG_KEYS = {
     world: 'VRCX_FavoritesWorldCardSpacing',
     avatar: 'VRCX_FavoritesAvatarCardSpacing'
 };
+const SORT_CONFIG_KEYS = {
+    friend: 'VRCX_FavoritesFriendSort',
+    world: 'VRCX_FavoritesWorldSort',
+    avatar: 'VRCX_FavoritesAvatarSort'
+};
+const SORT_VALUES_BY_KIND = {
+    friend: new Set(['name', 'date']),
+    world: new Set(['name', 'date', 'players']),
+    avatar: new Set(['name', 'date'])
+};
+const DEFAULT_SORT_VALUE = 'date';
 const CARD_SCALE_SLIDER = { min: 0.6, max: 1, step: 0.01 };
 const CARD_SPACING_SLIDER = { min: 0.5, max: 1.5, step: 0.05 };
 
@@ -38,6 +49,15 @@ function normalizeSplitterSizePx(value) {
     return Math.max(SPLITTER_MIN_SIZE_PX, Math.round(parsed));
 }
 
+function normalizeFavoriteSortValue(kind, value) {
+    const normalizedValue = String(value ?? '').trim();
+    const allowedValues =
+        SORT_VALUES_BY_KIND[kind] || SORT_VALUES_BY_KIND.friend;
+    return allowedValues.has(normalizedValue)
+        ? normalizedValue
+        : DEFAULT_SORT_VALUE;
+}
+
 export function useFavoritesLayoutPreferences(kind) {
     const [splitterSizePx, setSplitterSizePx] = useState(
         SPLITTER_DEFAULT_SIZE_PX
@@ -45,7 +65,9 @@ export function useFavoritesLayoutPreferences(kind) {
     const [splitterLayoutVersion, setSplitterLayoutVersion] = useState(0);
     const [cardScale, setCardScale] = useState(1);
     const [cardSpacing, setCardSpacing] = useState(1);
+    const [sortValue, setSortValue] = useState(DEFAULT_SORT_VALUE);
     const pendingSplitterSizePxRef = useRef(null);
+    const sortLoadVersionRef = useRef(0);
 
     useEffect(() => {
         let active = true;
@@ -120,6 +142,31 @@ export function useFavoritesLayoutPreferences(kind) {
         };
     }, [kind]);
 
+    useEffect(() => {
+        let active = true;
+        const loadVersion = sortLoadVersionRef.current;
+        const sortKey = SORT_CONFIG_KEYS[kind];
+
+        setSortValue((current) => normalizeFavoriteSortValue(kind, current));
+
+        configRepository
+            .getString(sortKey, DEFAULT_SORT_VALUE)
+            .then((value) => {
+                if (active && sortLoadVersionRef.current === loadVersion) {
+                    setSortValue(normalizeFavoriteSortValue(kind, value));
+                }
+            })
+            .catch(() => {
+                if (active && sortLoadVersionRef.current === loadVersion) {
+                    setSortValue(DEFAULT_SORT_VALUE);
+                }
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [kind]);
+
     const handleCardScaleChange = (value) => {
         const nextValue = clampNumber(
             value,
@@ -146,6 +193,13 @@ export function useFavoritesLayoutPreferences(kind) {
             CARD_SPACING_CONFIG_KEYS[kind],
             String(nextValue)
         );
+    };
+
+    const handleSortValueChange = (value) => {
+        const nextValue = normalizeFavoriteSortValue(kind, value);
+        sortLoadVersionRef.current += 1;
+        setSortValue(nextValue);
+        void configRepository.setString(SORT_CONFIG_KEYS[kind], nextValue);
     };
 
     function persistSplitterSizePx(nextSizePx) {
@@ -178,8 +232,10 @@ export function useFavoritesLayoutPreferences(kind) {
         cardSpacing,
         handleCardScaleChange,
         handleCardSpacingChange,
+        handleSortValueChange,
         handleSplitterResize,
         persistSplitterLayout,
+        sortValue: normalizeFavoriteSortValue(kind, sortValue),
         splitterLayoutVersion,
         splitterSizePx
     };

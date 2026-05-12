@@ -22,7 +22,6 @@ export function SettingsInterfaceTab({
     onHideNicknamesChange,
     onDisplayVrcPlusIconsAsAvatarChange,
     onShowNewDashboardButtonChange,
-    onSortFavoritesChange,
     onOpenTablePageSizes,
     onOpenTableLimits,
     onHour12Change,
@@ -69,7 +68,6 @@ export function SettingsInterfaceTab({
                     onDisplayVrcPlusIconsAsAvatarChange
                 }
                 onShowNewDashboardButtonChange={onShowNewDashboardButtonChange}
-                onSortFavoritesChange={onSortFavoritesChange}
                 onOpenTablePageSizes={onOpenTablePageSizes}
                 onOpenTableLimits={onOpenTableLimits}
                 onHour12Change={onHour12Change}

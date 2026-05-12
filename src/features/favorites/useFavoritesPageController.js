@@ -17,13 +17,11 @@ import { tryOpenLaunchLocation } from '@/services/directAccessService.js';
 import { bootstrapFavorites } from '@/services/favoriteBootstrapService.js';
 import { openFavoriteImportDialog } from '@/services/favoriteImportService.js';
 import { selfInviteToInstance } from '@/services/launchService.js';
-import { setBoolConfigPreference } from '@/services/preferencesService.js';
 import { checkCanInvite, checkCanInviteSelf } from '@/shared/utils/invite.js';
 import { parseLocation } from '@/shared/utils/location.js';
 import { useFavoriteStore } from '@/state/favoriteStore.js';
 import { useFriendRosterStore } from '@/state/friendRosterStore.js';
 import { useModalStore } from '@/state/modalStore.js';
-import { usePreferencesStore } from '@/state/preferencesStore.js';
 import { useRuntimeStore } from '@/state/runtimeStore.js';
 
 import {
@@ -130,10 +128,8 @@ export function useFavoritesPageController({ kind, embedded = false }) {
     const friendsById = useFriendRosterStore((state) => state.friendsById);
     const confirm = useModalStore((state) => state.confirm);
     const prompt = useModalStore((state) => state.prompt);
-    const sortFavorites = usePreferencesStore((state) => state.sortFavorites);
     const [searchQuery, setSearchQuery] = useState('');
     const [searchMode, setSearchMode] = useState('name');
-    const [sortValue, setSortValue] = useState('date');
     const [selectedSource, setSelectedSource] = useState('remote');
     const [selectedGroupKey, setSelectedGroupKey] = useState('');
     const [removingFavoriteKey, setRemovingFavoriteKey] = useState('');
@@ -153,8 +149,10 @@ export function useFavoritesPageController({ kind, embedded = false }) {
         cardSpacing,
         handleCardScaleChange,
         handleCardSpacingChange,
+        handleSortValueChange,
         handleSplitterResize,
         persistSplitterLayout,
+        sortValue,
         splitterLayoutVersion,
         splitterSizePx
     } = useFavoritesLayoutPreferences(kind);
@@ -249,9 +247,6 @@ export function useFavoritesPageController({ kind, embedded = false }) {
                 : favoriteAvatarIds.length > 0)
     });
     useEffect(() => {
-        setSortValue(sortFavorites ? 'date' : 'name');
-    }, [sortFavorites]);
-    useEffect(() => {
         setEditMode(false);
         setSelectedKeys([]);
         setSearchQuery('');
@@ -295,11 +290,6 @@ export function useFavoritesPageController({ kind, embedded = false }) {
             active = false;
         };
     }, [currentUserId, kind]);
-    useEffect(() => {
-        if (kind !== 'world' && sortValue === 'players') {
-            setSortValue('date');
-        }
-    }, [kind, sortValue]);
     const {
         allItems,
         avatarEditSelectionDisabled,
@@ -346,7 +336,6 @@ export function useFavoritesPageController({ kind, embedded = false }) {
     });
     const {
         refreshFavorites,
-        handleSortValueChange,
         handleRemoveLocalFavorite,
         handleRemoveRemoteFavorite,
         exportCurrentFavorites,
@@ -410,7 +399,6 @@ export function useFavoritesPageController({ kind, embedded = false }) {
         selfInviteToInstance,
         setAvatarHistory,
         setAvatarHistoryLoading,
-        setBoolConfigPreference,
         setCreatingLocalGroup,
         setEditMode,
         setExportDialogOpen,
@@ -421,7 +409,6 @@ export function useFavoritesPageController({ kind, embedded = false }) {
         setSelectedGroupKey,
         setSelectedKeys,
         setSelectedSource,
-        setSortValue,
         t,
         toast,
         tryOpenLaunchLocation,

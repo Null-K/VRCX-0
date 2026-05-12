@@ -22,13 +22,11 @@ export function useFavoritesCollectionActions({
     selectedGroupKey,
     selectedSource,
     setAvatarHistory,
-    setBoolConfigPreference,
     setExportDialogOpen,
     setRefreshing,
     setRemoteDetailsRefreshToken,
     setRemovingFavoriteKey,
     setSelectedGroupKey,
-    setSortValue,
     t,
     toast,
     vrchatFavoriteRepository
@@ -64,23 +62,6 @@ export function useFavoritesCollectionActions({
             );
         } finally {
             setRefreshing(false);
-        }
-    };
-    const handleSortValueChange = (value) => {
-        setSortValue(value);
-        if (value === 'date' || value === 'name') {
-            const nextSortByDate = value === 'date';
-            void setBoolConfigPreference('sortFavorites', nextSortByDate).catch(
-                (error) => {
-                    toast.error(
-                        error instanceof Error
-                            ? error.message
-                            : t(
-                                  'view.favorites.toast.failed_to_save_favorite_sort_preference'
-                              )
-                    );
-                }
-            );
         }
     };
     const handleRemoveLocalFavorite = async (item, { silent = false } = {}) => {
@@ -442,7 +423,6 @@ export function useFavoritesCollectionActions({
     }
     return {
         refreshFavorites,
-        handleSortValueChange,
         handleRemoveLocalFavorite,
         handleRemoveRemoteFavorite,
         exportCurrentFavorites,

@@ -1676,10 +1676,6 @@
                     "age_gated_instances_description": "显示具有年龄限制的房间。禁用时，这些房间将在列表中被隐藏，以跳转方式打开则显示为受限。",
                     "nicknames": "显示本地好友备注",
                     "nicknames_description": "在用户名后显示你的本地备注名。",
-                    "sort_favorite_by": "收藏夹排序规则",
-                    "sort_favorite_by_name": "名称",
-                    "sort_favorite_by_date": "时间",
-                    "sort_favorite_by_players": "玩家人数",
                     "sort_instance_users_by": "房间玩家排序规则",
                     "sort_instance_users_by_time": "时间",
                     "sort_instance_users_by_alphabet": "字母顺序",
@@ -2239,7 +2235,6 @@
             "toast": {
                 "failed_to_copy_favorite_export_data": "复制收藏导出数据失败",
                 "failed_to_refresh_favorites": "刷新收藏失败",
-                "failed_to_save_favorite_sort_preference": "保存收藏排序偏好失败",
                 "failed_to_remove_local_favorite": "移除本地收藏失败",
                 "failed_to_remove_vrchat_favorite": "移除 VRChat 收藏失败",
                 "failed_to_rename_favorite_group": "重命名收藏分组失败",

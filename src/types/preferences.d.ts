@@ -53,7 +53,6 @@ export interface PreferencesSnapshot {
     isAgeGatedInstancesVisible: boolean;
     hideNicknames: boolean;
     displayVRCPlusIconsAsAvatar: boolean;
-    sortFavorites: boolean;
     weekStartsOn: 0 | 1 | 6;
     dtIsoFormat: boolean;
     dtHour12: boolean;

@@ -137,7 +137,6 @@ export const DEFAULT_PREFERENCES = Object.freeze({
     isAgeGatedInstancesVisible: true,
     hideNicknames: false,
     displayVRCPlusIconsAsAvatar: true,
-    sortFavorites: true,
     weekStartsOn: 1,
     dtIsoFormat: false,
     dtHour12: false,
@@ -243,7 +242,6 @@ export function normalizePreferenceSnapshot(snapshot = {}) {
         displayVRCPlusIconsAsAvatar: normalizeBool(
             next.displayVRCPlusIconsAsAvatar
         ),
-        sortFavorites: normalizeBool(next.sortFavorites),
         weekStartsOn: [0, 1, 6].includes(Number(next.weekStartsOn))
             ? Number(next.weekStartsOn)
             : 1,

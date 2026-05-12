@@ -162,7 +162,11 @@ export const ConfigKeys = {
     minimalFeed: { type: 'bool', default: false },
     recentActionCooldownEnabled: { type: 'bool', default: false },
     recentActionCooldownMinutes: { type: 'int', default: 60 },
-    sortFavorites: { type: 'bool', default: true },
+
+    // ── Favorites ───────────────────────────────────
+    FavoritesFriendSort: { type: 'string', default: 'date' },
+    FavoritesWorldSort: { type: 'string', default: 'date' },
+    FavoritesAvatarSort: { type: 'string', default: 'date' },
 
     // ── Table Filters ────────────────────────────────
     notificationTableFilters: { type: 'string', default: '[]' },

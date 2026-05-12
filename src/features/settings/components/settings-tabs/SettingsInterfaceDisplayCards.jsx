@@ -10,7 +10,7 @@ import {
 } from '@/ui/shadcn/select';
 import { Switch } from '@/ui/shadcn/switch';
 
-import { Field, SegmentedPreference } from '../SettingsField.jsx';
+import { Field } from '../SettingsField.jsx';
 
 const weekStartOptions = [
     ['1', 'common.days.monday'],
@@ -26,7 +26,6 @@ export function SettingsInterfaceDisplayCards({
     onHideNicknamesChange,
     onDisplayVrcPlusIconsAsAvatarChange,
     onShowNewDashboardButtonChange,
-    onSortFavoritesChange,
     onOpenTablePageSizes,
     onOpenTableLimits,
     onHour12Change,
@@ -129,31 +128,6 @@ export function SettingsInterfaceDisplayCards({
                     </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col">
-                    <Field
-                        label={t(
-                            'view.settings.appearance.appearance.sort_favorite_by'
-                        )}
-                    >
-                        <SegmentedPreference
-                            value={prefs.sortFavorites ? 'date' : 'name'}
-                            onChange={onSortFavoritesChange}
-                            options={[
-                                {
-                                    value: 'name',
-                                    label: t(
-                                        'view.settings.appearance.appearance.sort_favorite_by_name'
-                                    )
-                                },
-                                {
-                                    value: 'date',
-                                    label: t(
-                                        'view.settings.appearance.appearance.sort_favorite_by_date'
-                                    )
-                                }
-                            ]}
-                        />
-                    </Field>
-
                     <Field
                         label={t(
                             'view.settings.appearance.appearance.table_page_sizes'

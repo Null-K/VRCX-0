@@ -1676,10 +1676,6 @@
                     "age_gated_instances_description": "Show age-restricted instances. When disabled, these instances are hidden and shown as restricted.",
                     "nicknames": "Friend Memo Nicknames",
                     "nicknames_description": "Show your custom memo names after usernames.",
-                    "sort_favorite_by": "Sort Favorites by",
-                    "sort_favorite_by_name": "Name",
-                    "sort_favorite_by_date": "Date",
-                    "sort_favorite_by_players": "Players",
                     "sort_instance_users_by": "Sort Users in Instance by",
                     "sort_instance_users_by_time": "Time in Instance",
                     "sort_instance_users_by_alphabet": "Name",
@@ -2239,7 +2235,6 @@
             "toast": {
                 "failed_to_copy_favorite_export_data": "Failed to copy favorite export data",
                 "failed_to_refresh_favorites": "Failed to refresh favorites",
-                "failed_to_save_favorite_sort_preference": "Failed to save favorite sort preference",
                 "failed_to_remove_local_favorite": "Failed to remove local favorite",
                 "failed_to_remove_vrchat_favorite": "Failed to remove VRChat favorite",
                 "failed_to_rename_favorite_group": "Failed to rename favorite group",

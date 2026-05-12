@@ -206,13 +206,6 @@ export function SettingsPageView({ controller }) {
                             () => setShowNewDashboardButtonPreference(checked)
                         )
                     }
-                    onSortFavoritesChange={(value) =>
-                        void saveBoolPreference(
-                            'sortFavorites',
-                            'sortFavorites',
-                            value === 'date'
-                        )
-                    }
                     onOpenTablePageSizes={() => void openTablePageSizesDialog()}
                     onOpenTableLimits={() => void openTableLimitsDialog()}
                     onHour12Change={(value) =>

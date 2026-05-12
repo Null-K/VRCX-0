@@ -1676,10 +1676,6 @@
                     "age_gated_instances_description": "年齢制限付きインスタンスを表示します。無効にすると、これらのインスタンスは非表示になり、制限付きとして表示されます。",
                     "nicknames": "ニックネームにメモを表示",
                     "nicknames_description": "カスタムメモ名をユーザー名の後に表示します。",
-                    "sort_favorite_by": "お気に入りを並び替え:",
-                    "sort_favorite_by_name": "名前順",
-                    "sort_favorite_by_date": "日付順",
-                    "sort_favorite_by_players": "プレイヤー数順",
                     "sort_instance_users_by": "インスタンス人数を並び替え:",
                     "sort_instance_users_by_time": "時間順",
                     "sort_instance_users_by_alphabet": "アルファベット順",
@@ -2239,7 +2235,6 @@
             "toast": {
                 "failed_to_copy_favorite_export_data": "お気に入りエクスポートデータのコピーに失敗しました",
                 "failed_to_refresh_favorites": "お気に入りの更新に失敗しました",
-                "failed_to_save_favorite_sort_preference": "お気に入りの並び順設定の保存に失敗しました",
                 "failed_to_remove_local_favorite": "ローカルのお気に入りから削除できませんでした",
                 "failed_to_remove_vrchat_favorite": "VRChat のお気に入りの削除に失敗しました",
                 "failed_to_rename_favorite_group": "お気に入りグループの名前変更に失敗しました",
