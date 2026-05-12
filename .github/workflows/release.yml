@@ -93,9 +93,9 @@ jobs:
                   node-version: 24.x
                   cache: npm
 
-            - uses: Swatinem/rust-cache@v2
-              with:
-                  workspaces: src-tauri -> target
+            # - uses: Swatinem/rust-cache@v2
+            #   with:
+            #       workspaces: src-tauri -> target
 
             - name: Install Linux dependencies
               if: runner.os == 'Linux'
