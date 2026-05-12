@@ -30,6 +30,11 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
+import {
+    HoverCard,
+    HoverCardContent,
+    HoverCardTrigger
+} from '@/ui/shadcn/hover-card';
 import { Spinner } from '@/ui/shadcn/spinner';
 
 import {
@@ -125,6 +130,19 @@ export function AvatarActionMenuItems({
     );
 }
 
+function resolveMyAvatarGridTagBadgeStyle(entry) {
+    const style = resolveMyAvatarTagBadgeStyle(entry);
+    const backgroundColor =
+        typeof style.backgroundColor === 'string'
+            ? style.backgroundColor.replace(/\/\s*[\d.]+\)$/, '/ 0.45)')
+            : style.backgroundColor;
+
+    return {
+        ...style,
+        backgroundColor
+    };
+}
+
 export function MyAvatarGridCard({
     avatar,
     currentAvatarId,
@@ -139,18 +157,14 @@ export function MyAvatarGridCard({
     const disabled = resolveMyAvatarActionDisabled(avatar, isUpdating);
     const canWear = !disabled && !isActive;
     const tags = avatar?.$tags || [];
-    const visibleTags = tags.slice(0, densityConfig.maxVisibleTags);
+    const visibleTags = tags.slice(0, 2);
     const hiddenTagCount = Math.max(0, tags.length - visibleTags.length);
     const platformDotClassName =
         'size-2.5 -ml-1 rounded-full border border-background/80 opacity-80 shadow-sm first:ml-0';
     const avatarName =
         avatar?.name || t('view.my_avatars.generated.untitled_avatar');
-    const overlayPaddingTop = tags.length
-        ? densityConfig.overlayPaddingTop
-        : densityConfig.overlayNameOnlyPaddingTop;
     const overlayStyle = {
-        gap: `${densityConfig.overlayGap}px`,
-        padding: `${overlayPaddingTop}px ${densityConfig.overlayPaddingX}px ${densityConfig.overlayPaddingY}px`
+        padding: `${densityConfig.overlayNameOnlyPaddingTop}px ${densityConfig.overlayPaddingX}px ${densityConfig.overlayPaddingY}px`
     };
     const avatarNameStyle = {
         fontSize: `${densityConfig.nameFontSize}px`,
@@ -197,23 +211,91 @@ export function MyAvatarGridCard({
                                     <ImageIcon />
                                 </div>
                             )}
-                            {isActive ? (
-                                <Badge
-                                    variant="secondary"
-                                    className="absolute top-1 left-1 max-w-[calc(100%-2rem)] truncate rounded-sm px-1.5 py-0 text-xs"
-                                >
-                                    {t(
-                                        'view.my_avatars.generated.current_avatar'
-                                    )}
-                                </Badge>
-                            ) : null}
-                            {canWear ? (
-                                <div className="bg-background/85 text-foreground absolute top-1 left-1 max-w-[calc(100%-2rem)] -translate-y-1 rounded-sm px-1.5 py-0 text-xs font-medium opacity-0 shadow-sm backdrop-blur-[1px] transition-all group-focus-within/card:translate-y-0 group-focus-within/card:opacity-100 group-hover/card:translate-y-0 group-hover/card:opacity-100">
-                                    {t(
-                                        'view.my_avatars.generated.click_to_wear'
-                                    )}
-                                </div>
-                            ) : null}
+                            <div className="absolute top-1 left-1 flex max-w-[calc(100%-2rem)] flex-col items-start gap-1">
+                                {isActive ? (
+                                    <Badge
+                                        variant="secondary"
+                                        className="max-w-full truncate rounded-sm px-1.5 py-0 text-xs shadow-sm"
+                                    >
+                                        {t(
+                                            'view.my_avatars.generated.current_avatar'
+                                        )}
+                                    </Badge>
+                                ) : null}
+                                {tags.length ? (
+                                    <HoverCard openDelay={200} closeDelay={100}>
+                                        <HoverCardTrigger asChild>
+                                            <div
+                                                className="flex max-w-full min-w-0 flex-nowrap gap-1 overflow-hidden"
+                                                aria-label={t(
+                                                    'dialog.avatar.info.tags'
+                                                )}
+                                            >
+                                                {visibleTags.map((entry) => (
+                                                    <Badge
+                                                        key={`${avatar.id}:${entry.tag}`}
+                                                        variant="secondary"
+                                                        className={cn(
+                                                            MY_AVATAR_TAG_BADGE_CLASS_NAME,
+                                                            'max-w-16 min-w-0 shrink truncate shadow-sm'
+                                                        )}
+                                                        style={{
+                                                            ...resolveMyAvatarGridTagBadgeStyle(
+                                                                entry
+                                                            ),
+                                                            fontSize: `${densityConfig.tagFontSize}px`
+                                                        }}
+                                                    >
+                                                        {entry.tag}
+                                                    </Badge>
+                                                ))}
+                                                {hiddenTagCount ? (
+                                                    <Badge
+                                                        variant="outline"
+                                                        className={cn(
+                                                            MY_AVATAR_TAG_BADGE_CLASS_NAME,
+                                                            'bg-background/80 text-foreground/90 shrink-0 shadow-sm backdrop-blur-[1px]'
+                                                        )}
+                                                        style={{
+                                                            fontSize: `${densityConfig.tagFontSize}px`
+                                                        }}
+                                                    >
+                                                        +{hiddenTagCount}
+                                                    </Badge>
+                                                ) : null}
+                                            </div>
+                                        </HoverCardTrigger>
+                                        <HoverCardContent
+                                            side="bottom"
+                                            align="start"
+                                            className="flex w-64 flex-wrap gap-1.5"
+                                        >
+                                            {tags.map((entry) => (
+                                                <Badge
+                                                    key={`${avatar.id}:hover:${entry.tag}`}
+                                                    variant="secondary"
+                                                    className={cn(
+                                                        MY_AVATAR_TAG_BADGE_CLASS_NAME,
+                                                        'max-w-full truncate'
+                                                    )}
+                                                    style={resolveMyAvatarGridTagBadgeStyle(
+                                                        entry
+                                                    )}
+                                                >
+                                                    {entry.tag}
+                                                </Badge>
+                                            ))}
+                                        </HoverCardContent>
+                                    </HoverCard>
+                                ) : null}
+                                {canWear && !tags.length ? (
+                                    <div className="bg-background/85 text-foreground max-w-full -translate-y-1 rounded-sm px-1.5 py-0 text-xs font-medium opacity-0 shadow-sm backdrop-blur-[1px] transition-all group-focus-within/card:translate-y-0 group-focus-within/card:opacity-100 group-hover/card:translate-y-0 group-hover/card:opacity-100">
+                                        {t(
+                                            'view.my_avatars.generated.click_to_wear'
+                                        )}
+                                    </div>
+                                ) : null}
+                            </div>
                             {platforms?.isQuest || platforms?.isIos ? (
                                 <div className="absolute top-1 right-1 flex">
                                     {platforms?.isPC ? (
@@ -243,7 +325,7 @@ export function MyAvatarGridCard({
                                 </div>
                             ) : null}
                             <div
-                                className="absolute right-0 bottom-0 left-0 flex min-w-0 flex-col bg-gradient-to-t from-black/85 via-black/35 to-transparent"
+                                className="absolute right-0 bottom-0 left-0 flex min-w-0 bg-gradient-to-t from-black/85 via-black/35 to-transparent"
                                 style={overlayStyle}
                             >
                                 <span
@@ -252,42 +334,6 @@ export function MyAvatarGridCard({
                                 >
                                     {avatarName}
                                 </span>
-                                {tags.length ? (
-                                    <div className="flex min-w-0 flex-nowrap gap-1 overflow-hidden">
-                                        {visibleTags.map((entry) => (
-                                            <Badge
-                                                key={`${avatar.id}:${entry.tag}`}
-                                                variant="secondary"
-                                                className={cn(
-                                                    MY_AVATAR_TAG_BADGE_CLASS_NAME,
-                                                    'shrink-0 truncate shadow-sm'
-                                                )}
-                                                style={{
-                                                    ...resolveMyAvatarTagBadgeStyle(
-                                                        entry
-                                                    ),
-                                                    fontSize: `${densityConfig.tagFontSize}px`
-                                                }}
-                                            >
-                                                {entry.tag}
-                                            </Badge>
-                                        ))}
-                                        {hiddenTagCount ? (
-                                            <Badge
-                                                variant="outline"
-                                                className={cn(
-                                                    MY_AVATAR_TAG_BADGE_CLASS_NAME,
-                                                    'bg-background/75 text-foreground/90 shrink-0 shadow-sm backdrop-blur-[1px]'
-                                                )}
-                                                style={{
-                                                    fontSize: `${densityConfig.tagFontSize}px`
-                                                }}
-                                            >
-                                                +{hiddenTagCount}
-                                            </Badge>
-                                        ) : null}
-                                    </div>
-                                ) : null}
                             </div>
                         </div>
                     </Button>
