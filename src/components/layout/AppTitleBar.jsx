@@ -35,7 +35,6 @@ import {
     ContextMenuTrigger
 } from '@/ui/shadcn/context-menu';
 import { Kbd, KbdGroup } from '@/ui/shadcn/kbd';
-import { Separator } from '@/ui/shadcn/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { AppMenuBar } from './AppMenuBar.jsx';
@@ -88,10 +87,10 @@ function TitleBarWindowButton({ className, ...props }) {
 function TitleBarShortcut({ modifierKey, actionKey, className }) {
     return (
         <KbdGroup className={cn('gap-0.5', className)}>
-            <Kbd className="bg-background/80 h-4 min-w-4 px-1 text-[10px] leading-4 shadow-none">
+            <Kbd className="bg-background/45 h-3.5 min-w-3.5 rounded-[3px] px-1 text-[9px] leading-3.5 shadow-none">
                 {modifierKey}
             </Kbd>
-            <Kbd className="bg-background/80 h-4 min-w-4 px-1 text-[10px] leading-4 shadow-none">
+            <Kbd className="bg-background/45 h-3.5 min-w-3.5 rounded-[3px] px-1 text-[9px] leading-3.5 shadow-none">
                 {actionKey}
             </Kbd>
         </KbdGroup>
@@ -119,18 +118,18 @@ function TitleBarCommandGroup({
     onOpenDirectAccess
 }) {
     return (
-        <div className="border-border/70 bg-muted/60 flex h-6 min-w-0 shrink items-center overflow-hidden rounded-md border shadow-xs">
+        <div className="flex min-w-0 shrink items-center gap-1">
             <Tooltip>
                 <TooltipTrigger asChild>
                     <Button
                         type="button"
                         variant="ghost"
-                        size="sm"
+                        size="xs"
                         aria-label={formatTitleBarShortcutLabel(
                             quickSearchLabel,
                             quickSearchShortcut.label
                         )}
-                        className="text-muted-foreground hover:text-muted-foreground h-full min-w-7 justify-start rounded-r-none rounded-l-md border-0 bg-transparent pr-1.5 pl-2.5 hover:bg-transparent min-[640px]:w-44 min-[960px]:w-56"
+                        className="bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground h-6 min-w-7 justify-start rounded-md border-0 px-2 shadow-none min-[640px]:w-44 min-[960px]:w-56"
                         onClick={onOpenQuickSearch}
                     >
                         <SearchIcon data-icon="inline-start" />
@@ -150,13 +149,12 @@ function TitleBarCommandGroup({
                     )}
                 </TooltipContent>
             </Tooltip>
-            <Separator orientation="vertical" className="bg-border/50 h-3.5" />
             <TitleBarButton
                 label={formatTitleBarShortcutLabel(
                     directAccessLabel,
                     directAccessShortcut.label
                 )}
-                className="text-muted-foreground hover:bg-transparent hover:text-muted-foreground h-full rounded-l-none rounded-r-md border-0 bg-transparent"
+                className="size-7 min-w-7 rounded-md px-0"
                 onClick={onOpenDirectAccess}
             >
                 <CompassIcon data-icon="icon" />
