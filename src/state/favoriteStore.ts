@@ -2,6 +2,91 @@ import { create } from 'zustand';
 
 import { createDefaultFavoriteCachedRef } from '@/shared/utils/entityTransforms.js';
 
+type LoadStatus = 'idle' | 'running' | 'ready' | 'error';
+type FavoriteLimits = {
+    maxFavoriteGroups: Record<string, unknown>;
+    maxFavoritesPerGroup: Record<string, unknown>;
+};
+type FavoriteRecord = Record<string, unknown> & {
+    id?: string;
+    type?: string;
+    favoriteId?: string;
+    tags?: unknown[];
+    $groupKey?: string;
+};
+type FavoriteGroup = Record<string, unknown> & {
+    key?: unknown;
+    count?: number;
+};
+type FavoriteGroupMap = Record<string, string[]>;
+type FavoriteDetailsById = Record<string, Record<string, unknown>>;
+type FavoriteSnapshot = Partial<FavoriteStoreState> &
+    Record<string, unknown> & {
+        favoriteLimits?: unknown;
+    };
+type LocalFavoriteAction = {
+    kind?: unknown;
+    groupName?: unknown;
+    entityId?: unknown;
+    entity?: unknown;
+};
+type RemoteFavoriteCollections = {
+    remoteFavoritesByObjectId: Record<string, FavoriteRecord>;
+    favoritesSortOrder: string[];
+    favoriteFriendIds: string[];
+    favoriteWorldIds: string[];
+    favoriteAvatarIds: string[];
+    groupedFavoriteFriendIdsByGroupKey: Record<string, string[]>;
+};
+type FavoriteStoreState = {
+    currentUserId: string | null;
+    loadStatus: LoadStatus;
+    detail: string;
+    lastLoadedAt: string | null;
+    favoriteLimits: FavoriteLimits;
+    favoritesSortOrder: string[];
+    remoteFavoritesById: Record<string, FavoriteRecord>;
+    remoteFavoritesByObjectId: Record<string, FavoriteRecord>;
+    favoriteFriendIds: string[];
+    groupedFavoriteFriendIdsByGroupKey: Record<string, string[]>;
+    favoriteWorldIds: string[];
+    favoriteAvatarIds: string[];
+    cachedFavoriteGroupsById: Record<string, unknown>;
+    favoriteFriendGroups: FavoriteGroup[];
+    favoriteWorldGroups: FavoriteGroup[];
+    favoriteAvatarGroups: FavoriteGroup[];
+    localWorldFavorites: FavoriteGroupMap;
+    localAvatarFavorites: FavoriteGroupMap;
+    localFriendFavorites: FavoriteGroupMap;
+    localWorldFavoriteGroups: string[];
+    localAvatarFavoriteGroups: string[];
+    localFriendFavoriteGroups: string[];
+    localWorldFavoritesList: string[];
+    localAvatarFavoritesList: string[];
+    localFriendFavoritesList: string[];
+    localWorldDetailsById: FavoriteDetailsById;
+    localAvatarDetailsById: FavoriteDetailsById;
+};
+type FavoriteStore = FavoriteStoreState & {
+    setFavoritesLoading(currentUserId: unknown, detail?: string): void;
+    setFavoritesSnapshot(snapshot?: FavoriteSnapshot): void;
+    setFavoritesError(detail: string): void;
+    resetFavorites(): void;
+    addLocalFavorite(action: LocalFavoriteAction): void;
+    removeLocalFavorite(action: LocalFavoriteAction): void;
+    createLocalFavoriteGroup(action: Omit<LocalFavoriteAction, 'entityId' | 'entity'>): void;
+    renameLocalFavoriteGroup(
+        action: Omit<LocalFavoriteAction, 'entityId' | 'entity'> & {
+            newGroupName?: unknown;
+        }
+    ): void;
+    deleteLocalFavoriteGroup(action: Omit<LocalFavoriteAction, 'entityId' | 'entity'>): void;
+    removeRemoteFavorite(objectId: unknown): void;
+    addRemoteFavorite(json?: Record<string, unknown> | null): void;
+    getRemoteFavoriteByObjectId(objectId: unknown): FavoriteRecord | null;
+    isInAnyLocalFriendGroup(userId: unknown): boolean;
+};
+
 export const DEFAULT_FAVORITE_LIMITS = Object.freeze({
     maxFavoriteGroups: Object.freeze({
         avatar: 6,
@@ -15,23 +100,29 @@ export const DEFAULT_FAVORITE_LIMITS = Object.freeze({
         vrcPlusWorld: 100,
         world: 100
     })
-});
+}) satisfies FavoriteLimits;
 
-function cloneFavoriteLimits(limits = DEFAULT_FAVORITE_LIMITS) {
+function isObjectRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function cloneFavoriteLimits(limits: unknown = DEFAULT_FAVORITE_LIMITS): FavoriteLimits {
+    const source = isObjectRecord(limits) ? limits : {};
+    const maxFavoriteGroups = isObjectRecord(source.maxFavoriteGroups)
+        ? source.maxFavoriteGroups
+        : {};
+    const maxFavoritesPerGroup = isObjectRecord(source.maxFavoritesPerGroup)
+        ? source.maxFavoritesPerGroup
+        : {};
+
     return {
         maxFavoriteGroups: {
             ...DEFAULT_FAVORITE_LIMITS.maxFavoriteGroups,
-            ...(limits?.maxFavoriteGroups &&
-            typeof limits.maxFavoriteGroups === 'object'
-                ? limits.maxFavoriteGroups
-                : {})
+            ...maxFavoriteGroups
         },
         maxFavoritesPerGroup: {
             ...DEFAULT_FAVORITE_LIMITS.maxFavoritesPerGroup,
-            ...(limits?.maxFavoritesPerGroup &&
-            typeof limits.maxFavoritesPerGroup === 'object'
-                ? limits.maxFavoritesPerGroup
-                : {})
+            ...maxFavoritesPerGroup
         }
     };
 }
@@ -64,18 +155,22 @@ const initialState = {
     localFriendFavoritesList: [],
     localWorldDetailsById: {},
     localAvatarDetailsById: {}
-};
+} satisfies FavoriteStoreState;
 
-function normalizeUserId(value) {
+function normalizeUserId(value: unknown): string {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-function removeFromFavoriteGroups(source, groupName, entityId) {
+function removeFromFavoriteGroups(
+    source: FavoriteGroupMap | null | undefined,
+    groupName: unknown,
+    entityId: unknown
+): FavoriteGroupMap {
     const normalizedGroupName = normalizeUserId(groupName);
     const normalizedEntityId = normalizeUserId(entityId);
-    const next = {};
+    const next: FavoriteGroupMap = {};
 
     for (const [key, values] of Object.entries(source || {})) {
         const nextValues = Array.isArray(values)
@@ -90,7 +185,10 @@ function removeFromFavoriteGroups(source, groupName, entityId) {
     return next;
 }
 
-function createLocalFavoriteGroupState(source, groupName) {
+function createLocalFavoriteGroupState(
+    source: FavoriteGroupMap | null | undefined,
+    groupName: unknown
+): FavoriteGroupMap {
     const normalizedGroupName = normalizeUserId(groupName);
     if (!normalizedGroupName) {
         return source || {};
@@ -104,7 +202,11 @@ function createLocalFavoriteGroupState(source, groupName) {
     };
 }
 
-function renameLocalFavoriteGroupState(source, groupName, newGroupName) {
+function renameLocalFavoriteGroupState(
+    source: FavoriteGroupMap | null | undefined,
+    groupName: unknown,
+    newGroupName: unknown
+): FavoriteGroupMap {
     const normalizedGroupName = normalizeUserId(groupName);
     const normalizedNewGroupName = normalizeUserId(newGroupName);
     if (
@@ -126,7 +228,10 @@ function renameLocalFavoriteGroupState(source, groupName, newGroupName) {
     return next;
 }
 
-function deleteLocalFavoriteGroupState(source, groupName) {
+function deleteLocalFavoriteGroupState(
+    source: FavoriteGroupMap | null | undefined,
+    groupName: unknown
+): FavoriteGroupMap {
     const normalizedGroupName = normalizeUserId(groupName);
     if (!normalizedGroupName) {
         return source || {};
@@ -137,7 +242,7 @@ function deleteLocalFavoriteGroupState(source, groupName) {
     return next;
 }
 
-function flattenFavoriteGroups(source) {
+function flattenFavoriteGroups(source: FavoriteGroupMap | null | undefined): string[] {
     return Array.from(
         new Set(
             Object.values(source || {})
@@ -148,12 +253,15 @@ function flattenFavoriteGroups(source) {
     );
 }
 
-function getSortedLocalGroupNames(source) {
+function getSortedLocalGroupNames(source: FavoriteGroupMap | null | undefined): string[] {
     return Object.keys(source || {}).sort();
 }
 
-function recomputeGroupCounts(groups, remoteFavoritesById) {
-    const counts = {};
+function recomputeGroupCounts(
+    groups: unknown,
+    remoteFavoritesById: Record<string, FavoriteRecord>
+): FavoriteGroup[] {
+    const counts: Record<string, number> = {};
 
     for (const favorite of Object.values(remoteFavoritesById || {})) {
         const groupKey = normalizeUserId(favorite?.$groupKey);
@@ -164,23 +272,24 @@ function recomputeGroupCounts(groups, remoteFavoritesById) {
     }
 
     return (Array.isArray(groups) ? groups : []).map((group) => {
+        const groupRecord = group as FavoriteGroup;
         return {
-            ...group,
-            count: counts[normalizeUserId(group?.key)] || 0
+            ...groupRecord,
+            count: counts[normalizeUserId(groupRecord.key)] || 0
         };
     });
 }
 
 function buildRemoteFavoriteCollections(
-    remoteFavoritesById,
-    previousSortOrder
-) {
-    const remoteFavoritesByObjectId = {};
-    const favoriteFriendIds = [];
-    const favoriteWorldIds = [];
-    const favoriteAvatarIds = [];
-    const groupedFavoriteFriendIdsByGroupKey = {};
-    const remainingIds = new Set();
+    remoteFavoritesById: Record<string, FavoriteRecord>,
+    previousSortOrder: unknown
+): RemoteFavoriteCollections {
+    const remoteFavoritesByObjectId: Record<string, FavoriteRecord> = {};
+    const favoriteFriendIds: string[] = [];
+    const favoriteWorldIds: string[] = [];
+    const favoriteAvatarIds: string[] = [];
+    const groupedFavoriteFriendIdsByGroupKey: Record<string, string[]> = {};
+    const remainingIds = new Set<string>();
 
     for (const favorite of Object.values(remoteFavoritesById || {})) {
         const favoriteId = normalizeUserId(favorite?.favoriteId);
@@ -210,9 +319,11 @@ function buildRemoteFavoriteCollections(
         }
     }
 
-    const favoritesSortOrder = [];
-    const seen = new Set();
-    for (const favoriteId of previousSortOrder || []) {
+    const favoritesSortOrder: string[] = [];
+    const seen = new Set<string>();
+    for (const favoriteId of Array.isArray(previousSortOrder)
+        ? previousSortOrder
+        : []) {
         const normalizedFavoriteId = normalizeUserId(favoriteId);
         if (
             remainingIds.has(normalizedFavoriteId) &&
@@ -238,7 +349,7 @@ function buildRemoteFavoriteCollections(
     };
 }
 
-export const useFavoriteStore = create((set, get) => ({
+export const useFavoriteStore = create<FavoriteStore>((set, get) => ({
     ...initialState,
     setFavoritesLoading(currentUserId, detail = '') {
         set((state) => {

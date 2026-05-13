@@ -1,6 +1,91 @@
 import { create } from 'zustand';
 
-const createAlertDialogState = () => ({
+type AlertMode = 'alert' | 'confirm';
+type OtpMode = 'totp' | 'emailOtp' | 'otp';
+type ModalResult = {
+    ok: boolean;
+    reason: string;
+    value?: unknown;
+};
+type ModalResolver = (result: ModalResult) => void;
+type AlertDialogState = {
+    open: boolean;
+    mode: AlertMode;
+    title: string;
+    description: string;
+    confirmText: string;
+    cancelText: string;
+    dismissible: boolean;
+    destructive: boolean;
+};
+type PromptDialogState = {
+    open: boolean;
+    title: string;
+    description: string;
+    value: unknown;
+    confirmText: string;
+    cancelText: string;
+    dismissible: boolean;
+    inputType: string;
+    inputPattern: RegExp | null;
+    multiline: boolean;
+};
+type OtpDialogState = {
+    open: boolean;
+    title: string;
+    description: string;
+    value: unknown;
+    mode: OtpMode;
+    confirmText: string;
+    cancelText: string;
+    dismissible: boolean;
+};
+type ImageDialogState = {
+    open: boolean;
+    url: string;
+    title: string;
+    fileName: string;
+    sourcePath: string;
+};
+type AlertDialogOptions = Partial<AlertDialogState>;
+type PromptDialogOptions = Partial<PromptDialogState> & {
+    inputValue?: string;
+    pattern?: RegExp | null;
+};
+type OtpDialogOptions = Partial<OtpDialogState>;
+type ImageDialogOptions = Partial<ImageDialogState>;
+type ModalStore = {
+    alertDialog: AlertDialogState;
+    promptDialog: PromptDialogState;
+    otpDialog: OtpDialogState;
+    imageDialog: ImageDialogState;
+    alert(options?: AlertDialogOptions): Promise<ModalResult>;
+    confirm(options?: AlertDialogOptions): Promise<ModalResult>;
+    prompt(options?: PromptDialogOptions): Promise<ModalResult>;
+    otpPrompt(options?: OtpDialogOptions): Promise<ModalResult>;
+    openAlert(options?: AlertDialogOptions): Promise<ModalResult>;
+    openPrompt(options?: PromptDialogOptions): Promise<ModalResult>;
+    openOtp(options?: OtpDialogOptions): Promise<ModalResult>;
+    openImagePreview(options?: ImageDialogOptions): void;
+    updatePromptValue(value: unknown): void;
+    updateOtpValue(value: unknown): void;
+    handleOk(): void;
+    handleCancel(): void;
+    handleDismiss(): void;
+    handlePromptOk(value?: unknown): void;
+    handlePromptCancel(value?: unknown): void;
+    handlePromptDismiss(value?: unknown): void;
+    handleOtpOk(value?: unknown): void;
+    handleOtpCancel(value?: unknown): void;
+    handleOtpDismiss(value?: unknown): void;
+    closeAlert(): void;
+    closePrompt(): void;
+    closeOtp(): void;
+    closeImagePreview(): void;
+    resetModalState(): void;
+};
+
+const createAlertDialogState = (): AlertDialogState => ({
     open: false,
     mode: 'alert',
     title: '',
@@ -11,7 +96,7 @@ const createAlertDialogState = () => ({
     destructive: false
 });
 
-const createPromptDialogState = () => ({
+const createPromptDialogState = (): PromptDialogState => ({
     open: false,
     title: '',
     description: '',
@@ -24,7 +109,7 @@ const createPromptDialogState = () => ({
     multiline: false
 });
 
-const createOtpDialogState = () => ({
+const createOtpDialogState = (): OtpDialogState => ({
     open: false,
     title: '',
     description: '',
@@ -35,7 +120,7 @@ const createOtpDialogState = () => ({
     dismissible: true
 });
 
-const createImageDialogState = () => ({
+const createImageDialogState = (): ImageDialogState => ({
     open: false,
     url: '',
     title: '',
@@ -43,7 +128,7 @@ const createImageDialogState = () => ({
     sourcePath: ''
 });
 
-function createResult(ok, reason, value) {
+function createResult(ok: boolean, reason: string, value?: unknown): ModalResult {
     return {
         ok,
         reason,
@@ -51,21 +136,21 @@ function createResult(ok, reason, value) {
     };
 }
 
-function matchesPromptPattern(pattern, value) {
+function matchesPromptPattern(pattern: unknown, value: unknown): boolean {
     if (!(pattern instanceof RegExp)) {
         return true;
     }
 
     const flags = pattern.flags.replace(/g/g, '');
-    return new RegExp(pattern.source, flags).test(value ?? '');
+    return new RegExp(pattern.source, flags).test((value ?? '') as string);
 }
 
-export const useModalStore = create((set, get) => {
-    let pendingAlert = null;
-    let pendingPrompt = null;
-    let pendingOtp = null;
+export const useModalStore = create<ModalStore>((set, get) => {
+    let pendingAlert: ModalResolver | null = null;
+    let pendingPrompt: ModalResolver | null = null;
+    let pendingOtp: ModalResolver | null = null;
 
-    function resolveAlert(result) {
+    function resolveAlert(result: ModalResult) {
         const resolver = pendingAlert;
         pendingAlert = null;
         if (typeof resolver === 'function') {
@@ -73,7 +158,7 @@ export const useModalStore = create((set, get) => {
         }
     }
 
-    function resolvePrompt(result) {
+    function resolvePrompt(result: ModalResult) {
         const resolver = pendingPrompt;
         pendingPrompt = null;
         if (typeof resolver === 'function') {
@@ -81,7 +166,7 @@ export const useModalStore = create((set, get) => {
         }
     }
 
-    function resolveOtp(result) {
+    function resolveOtp(result: ModalResult) {
         const resolver = pendingOtp;
         pendingOtp = null;
         if (typeof resolver === 'function') {
@@ -89,7 +174,10 @@ export const useModalStore = create((set, get) => {
         }
     }
 
-    function openBaseAlert(mode, options = {}) {
+    function openBaseAlert(
+        mode: AlertMode,
+        options: AlertDialogOptions = {}
+    ) {
         if (pendingAlert) {
             resolveAlert(createResult(false, 'replaced'));
         }
@@ -103,12 +191,12 @@ export const useModalStore = create((set, get) => {
             }
         });
 
-        return new Promise((resolve) => {
+        return new Promise<ModalResult>((resolve) => {
             pendingAlert = resolve;
         });
     }
 
-    function openBasePrompt(options = {}) {
+    function openBasePrompt(options: PromptDialogOptions = {}) {
         if (pendingPrompt) {
             resolvePrompt(
                 createResult(false, 'replaced', get().promptDialog.value)
@@ -133,12 +221,12 @@ export const useModalStore = create((set, get) => {
             }
         });
 
-        return new Promise((resolve) => {
+        return new Promise<ModalResult>((resolve) => {
             pendingPrompt = resolve;
         });
     }
 
-    function openBaseOtp(options = {}) {
+    function openBaseOtp(options: OtpDialogOptions = {}) {
         if (pendingOtp) {
             resolveOtp(createResult(false, 'replaced', get().otpDialog.value));
         }
@@ -155,7 +243,7 @@ export const useModalStore = create((set, get) => {
             }
         });
 
-        return new Promise((resolve) => {
+        return new Promise<ModalResult>((resolve) => {
             pendingOtp = resolve;
         });
     }

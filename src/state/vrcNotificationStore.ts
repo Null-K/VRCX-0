@@ -9,9 +9,49 @@ import { useRuntimeStore } from '@/state/runtimeStore.js';
 import { useShellStore } from '@/state/shellStore.js';
 
 const RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
-const pendingSeenIds = new Set();
+const pendingSeenIds = new Set<unknown>();
 
-function isNotificationExpired(notification) {
+type LoadStatus = 'idle' | 'running' | 'ready' | 'error';
+type NotificationCategoryKey = 'friend' | 'group' | 'other';
+type NotificationRow = Record<string, unknown> & {
+    id?: string;
+    version?: number;
+    seen?: boolean;
+    expired?: boolean;
+    $isExpired?: boolean;
+    expiresAt?: string;
+    created_at?: string | number | null;
+    createdAt?: string | number | null;
+    type?: string;
+};
+type NotificationBucket = {
+    unseen: NotificationRow[];
+    recent: NotificationRow[];
+};
+type NotificationCategories = Record<NotificationCategoryKey, NotificationBucket>;
+type RuntimeAuthSnapshot = {
+    currentUserId?: string | null;
+    currentUserEndpoint?: string;
+};
+type VrcNotificationStore = {
+    rows: NotificationRow[];
+    categories: NotificationCategories;
+    unseenCount: number;
+    isCenterOpen: boolean;
+    loadStatus: LoadStatus;
+    detail: string;
+    loadForCurrentUser(): Promise<NotificationRow[]>;
+    setCenterOpen(isCenterOpen: unknown): void;
+    openCenter(): void;
+    upsertNotification(notification: NotificationRow): void;
+    expireNotifications(ids: unknown | unknown[]): void;
+    markNotificationsSeen(ids: unknown | unknown[]): void;
+    markNotificationSeen(notification?: NotificationRow | null): Promise<void>;
+    markAllSeen(): Promise<void>;
+    resetVrcNotificationState(): void;
+};
+
+function isNotificationExpired(notification?: NotificationRow | null): boolean {
     if (notification?.$isExpired !== undefined) {
         return Boolean(notification.$isExpired);
     }
@@ -25,7 +65,7 @@ function isNotificationExpired(notification) {
     return Number.isFinite(expiresAt) && expiresAt <= Date.now();
 }
 
-function isUnseenNotification(notification) {
+function isUnseenNotification(notification?: NotificationRow | null): boolean {
     return (
         notification?.version === 2 &&
         notification.seen === false &&
@@ -33,7 +73,7 @@ function isUnseenNotification(notification) {
     );
 }
 
-function createEmptyCategories() {
+function createEmptyCategories(): NotificationCategories {
     return {
         friend: { unseen: [], recent: [] },
         group: { unseen: [], recent: [] },
@@ -41,12 +81,12 @@ function createEmptyCategories() {
     };
 }
 
-function buildCategories(rows) {
+function buildCategories(rows: NotificationRow[]): NotificationCategories {
     const categories = createEmptyCategories();
     const recentCutoff = Date.now() - RECENT_WINDOW_MS;
 
     for (const notification of Array.isArray(rows) ? rows : []) {
-        const category = getNotificationCategory(notification?.type);
+        const category = getNotificationCategory(notification?.type as string);
         const bucket = categories[category] || categories.other;
         if (isUnseenNotification(notification)) {
             bucket.unseen.push(notification);
@@ -72,7 +112,7 @@ function buildCategories(rows) {
     return categories;
 }
 
-function sortRows(rows) {
+function sortRows(rows: unknown): NotificationRow[] {
     return [...(Array.isArray(rows) ? rows : [])].sort((left, right) => {
         const leftTime = getNotificationTs(left);
         const rightTime = getNotificationTs(right);
@@ -83,7 +123,7 @@ function sortRows(rows) {
     });
 }
 
-function createNotificationState(rows, detail = '') {
+function createNotificationState(rows: unknown, detail = '') {
     const sortedRows = sortRows(rows);
     return {
         rows: sortedRows,
@@ -93,15 +133,15 @@ function createNotificationState(rows, detail = '') {
     };
 }
 
-function getCurrentAuth() {
-    return useRuntimeStore.getState().auth || {};
+function getCurrentAuth(): RuntimeAuthSnapshot {
+    return (useRuntimeStore.getState().auth || {}) as RuntimeAuthSnapshot;
 }
 
-function getUnseenRows(rows) {
+function getUnseenRows(rows: unknown): NotificationRow[] {
     return (Array.isArray(rows) ? rows : []).filter(isUnseenNotification);
 }
 
-function applyPendingSeenRows(rows) {
+function applyPendingSeenRows(rows: NotificationRow[]): NotificationRow[] {
     if (!pendingSeenIds.size) {
         return rows;
     }
@@ -115,17 +155,17 @@ function applyPendingSeenRows(rows) {
     );
 }
 
-function delay(ms) {
+function delay(ms: number): Promise<void> {
     return new Promise((resolve) => {
         window.setTimeout(resolve, ms);
     });
 }
 
-function syncShellUnseenCount(unseenCount) {
+function syncShellUnseenCount(unseenCount: unknown) {
     useShellStore.getState().setVrcUnseenNotificationCount(unseenCount);
 }
 
-export const useVrcNotificationStore = create((set, get) => ({
+export const useVrcNotificationStore = create<VrcNotificationStore>((set, get) => ({
     rows: [],
     categories: createEmptyCategories(),
     unseenCount: 0,
@@ -151,7 +191,7 @@ export const useVrcNotificationStore = create((set, get) => ({
             const rows = applyPendingSeenRows(
                 await notificationRepository.queryNotifications({
                     userId: auth.currentUserId
-                })
+                }) as NotificationRow[]
             );
             set({
                 ...createNotificationState(

@@ -1,6 +1,95 @@
 import { create } from 'zustand';
 
-function createTaskState() {
+type TaskState = {
+    status: string;
+    detail: string;
+    updatedAt: string | null;
+};
+
+type BackendEventState = {
+    count: number;
+    lastPayload: unknown;
+    lastReceivedAt: string | null;
+};
+
+type TransportState = Record<string, unknown> & {
+    websocketConnected: boolean;
+    websocketDomain: string;
+    reconnectCount: number;
+    lastConnectedAt: string | null;
+    lastDisconnectedAt: string | null;
+    ipcAnnounced: boolean;
+    lastIpcAnnouncedAt: string | null;
+};
+
+type ActivityState = Record<string, unknown> & {
+    currentUserId: string | null;
+    status: string;
+    detail: string;
+    cachedRangeDays: number;
+    sessionCount: number;
+    fullCacheReady: boolean;
+    lastUpdatedAt: string | null;
+    lastReadyAt: string | null;
+};
+
+type RuntimeStore = {
+    startup: Record<string, TaskState>;
+    hostCapabilities: Record<string, unknown>;
+    auth: Record<string, unknown> & {
+        currentUserId: string | null;
+        currentUserDisplayName: string;
+        currentUserEndpoint: string;
+        currentUserWebsocket: string;
+    };
+    updateLoop: Record<string, unknown>;
+    activity: ActivityState;
+    transport: TransportState;
+    gameState: Record<string, unknown> & {
+        isGameRunning: boolean | null;
+        isSteamVRRunning: boolean | null;
+        currentLocation: string;
+        currentWorldId: string;
+        currentWorldName: string;
+        currentDestination: string;
+        currentLocationPlayerIds: unknown[];
+        currentLocationPlayers: unknown[];
+    };
+    nowPlaying: Record<string, unknown>;
+    vrcStatus: Record<string, unknown>;
+    groupInstances: Record<string, unknown> & {
+        instances: unknown[];
+        groupOrder: unknown[];
+    };
+    systemHosts: Record<string, boolean>;
+    databaseUpgrade: Record<string, unknown> & {
+        open: boolean;
+        phase: string;
+        fromVersion: number;
+        toVersion: number;
+        detail: string;
+        legacyMigrationAvailable: boolean;
+    };
+    backendEvents: Record<string, BackendEventState>;
+    setStartupTask(task: string, status: string, detail?: string): void;
+    setAuthBootstrap(payload: Partial<RuntimeStore['auth']>): void;
+    setHostCapabilities(payload?: Record<string, unknown> | null): void;
+    setUpdateLoopState(patch: Record<string, unknown>): void;
+    setActivityState(patch: Partial<ActivityState>): void;
+    resetActivityState(): void;
+    setTransportState(patch: Partial<TransportState>): void;
+    incrementTransportReconnect(): void;
+    recordBackendEvent(name: string, payload: unknown): void;
+    setGameState(patch: Partial<RuntimeStore['gameState']>): void;
+    setNowPlayingState(patch: Record<string, unknown>): void;
+    setVrcStatusState(patch: Record<string, unknown>): void;
+    setGroupInstancesState(patch: Partial<RuntimeStore['groupInstances']>): void;
+    setSystemHostOpen(name: string, value: unknown): void;
+    setDatabaseUpgradeState(patch: Partial<RuntimeStore['databaseUpgrade']>): void;
+    resetRuntimeState(): void;
+};
+
+function createTaskState(): TaskState {
     return {
         status: 'idle',
         detail: '',
@@ -8,7 +97,7 @@ function createTaskState() {
     };
 }
 
-function createBackendEventState() {
+function createBackendEventState(): BackendEventState {
     return {
         count: 0,
         lastPayload: null,
@@ -16,7 +105,7 @@ function createBackendEventState() {
     };
 }
 
-function createTransportState() {
+function createTransportState(): TransportState {
     return {
         websocketConnected: false,
         websocketDomain: '',
@@ -28,7 +117,7 @@ function createTransportState() {
     };
 }
 
-function createActivityState() {
+function createActivityState(): ActivityState {
     return {
         currentUserId: null,
         status: 'idle',
@@ -65,14 +154,18 @@ function createCapabilityStatus(reason = 'Host capabilities have not loaded.') {
     };
 }
 
-function createHostCapabilities() {
-    return HOST_CAPABILITY_KEYS.reduce(
-        (acc, key) => {
-            acc[key] = createCapabilityStatus();
-            return acc;
-        },
-        { platform: 'unknown', arch: 'unknown', linuxPackageKind: 'unknown' }
-    );
+function createHostCapabilities(): Record<string, unknown> {
+    const capabilities: Record<string, unknown> = {
+        platform: 'unknown',
+        arch: 'unknown',
+        linuxPackageKind: 'unknown'
+    };
+
+    for (const key of HOST_CAPABILITY_KEYS) {
+        capabilities[key] = createCapabilityStatus();
+    }
+
+    return capabilities;
 }
 
 const initialState = {
@@ -188,9 +281,27 @@ const initialState = {
         ipcEvent: createBackendEventState(),
         browserFocus: createBackendEventState()
     }
-};
+} satisfies Omit<
+    RuntimeStore,
+    | 'setStartupTask'
+    | 'setAuthBootstrap'
+    | 'setHostCapabilities'
+    | 'setUpdateLoopState'
+    | 'setActivityState'
+    | 'resetActivityState'
+    | 'setTransportState'
+    | 'incrementTransportReconnect'
+    | 'recordBackendEvent'
+    | 'setGameState'
+    | 'setNowPlayingState'
+    | 'setVrcStatusState'
+    | 'setGroupInstancesState'
+    | 'setSystemHostOpen'
+    | 'setDatabaseUpgradeState'
+    | 'resetRuntimeState'
+>;
 
-export const useRuntimeStore = create((set) => ({
+export const useRuntimeStore = create<RuntimeStore>((set) => ({
     ...initialState,
     setStartupTask(task, status, detail = '') {
         set((state) => ({
