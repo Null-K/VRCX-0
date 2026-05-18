@@ -130,6 +130,7 @@ export function useUserInviteActions({
 
     async function performSendUserInvite({
         messageSlot = null,
+        imageData = '',
         context: contextSnapshot = null
     }: any = {}) {
         const context = contextSnapshot || buildInviteContext();
@@ -149,6 +150,7 @@ export function useUserInviteActions({
                 instanceId: context.inviteLocation,
                 worldId: context.parsedLocation.worldId,
                 messageSlot,
+                imageData,
                 rsvp: true
             });
             recordRecentAction(
@@ -207,6 +209,7 @@ export function useUserInviteActions({
 
     async function performSendUserInviteRequest({
         requestSlot = null,
+        imageData = '',
         context: contextSnapshot = null
     }: any = {}) {
         const context = contextSnapshot || buildInviteRequestContext();
@@ -223,7 +226,8 @@ export function useUserInviteActions({
             await sendRequestInviteToUser({
                 receiverUserId: context.rosterUserId,
                 endpoint: context.endpoint,
-                requestSlot
+                requestSlot,
+                imageData
             });
             recordRecentAction(
                 context.rosterUserId,
@@ -285,7 +289,7 @@ export function useUserInviteActions({
         await performSendUserInviteRequest({ context });
     }
 
-    async function selectInviteMessage({ row }: any) {
+    async function selectInviteMessage({ row, imageData = '' }: any) {
         const slot = inviteMessageSlot(row);
         if (!Number.isFinite(slot)) {
             toast.error(
@@ -299,10 +303,12 @@ export function useUserInviteActions({
             request?.kind === 'request'
                 ? await performSendUserInviteRequest({
                       requestSlot: slot,
+                      imageData,
                       context: request.context
                   })
                 : await performSendUserInvite({
                       messageSlot: slot,
+                      imageData,
                       context: request?.context
                   });
 

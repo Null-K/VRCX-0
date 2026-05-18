@@ -1337,9 +1337,21 @@ export interface AppTauriCommandNamespace extends TauriCommandNamespace {
         imageData: string;
         endpoint?: string;
     }): Promise<VrchatHttpApiResult>;
+    VrchatInvitePhotoSend(input: {
+        receiverUserId: string;
+        params?: Record<string, unknown>;
+        imageData: string;
+        endpoint?: string;
+    }): Promise<VrchatHttpApiResult>;
     VrchatInviteSend(input: {
         receiverUserId: string;
         params?: Record<string, unknown>;
+        endpoint?: string;
+    }): Promise<VrchatHttpApiResult>;
+    VrchatRequestInvitePhotoSend(input: {
+        receiverUserId: string;
+        params?: Record<string, unknown>;
+        imageData: string;
         endpoint?: string;
     }): Promise<VrchatHttpApiResult>;
     VrchatRequestInviteSend(input: {

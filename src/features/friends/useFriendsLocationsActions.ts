@@ -40,7 +40,7 @@ export function useFriendsLocationsActions({
 }) {
     const { t } = useTranslation();
     const confirm = useModalStore((state: any) => state.confirm);
-    const prompt = useModalStore((state: any) => state.prompt);
+    const boopPrompt = useModalStore((state: any) => state.boopPrompt);
 
     function toggleFavoriteGroup(groupKey: any) {
         setCollapsedFavoriteGroups((current: any) => {
@@ -223,14 +223,10 @@ export function useFriendsLocationsActions({
             return;
         }
         try {
-            const result = await prompt({
-                title: t('view.friends.modal.send_boop'),
-                description: t(
-                    'view.friends.modal.optional_emoji_id_leave_blank_to_send_the_default'
-                ),
-                inputValue: '',
-                confirmText: t('view.friends.modal.send'),
-                cancelText: t('common.actions.cancel')
+            const result = await boopPrompt({
+                endpoint: currentEndpoint,
+                targetLabel:
+                    friend?.displayName || friend?.username || friendId
             });
             if (!result.ok) {
                 return;

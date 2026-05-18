@@ -14,6 +14,7 @@ import { selfInviteToInstance } from '@/services/launchService';
 import { recordRecentAction } from '@/services/recentActionService';
 import { mergeCurrentUserPresenceFields } from '@/shared/utils/currentUserPresence';
 import { parseLocation } from '@/shared/utils/locationParser';
+import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 import { normalizeId } from './friendsSidebarModel';
@@ -28,6 +29,7 @@ export function useFriendsSidebarActions({
     prompt
 }: any) {
     const { t } = useTranslation();
+    const boopPrompt = useModalStore((state: any) => state.boopPrompt);
 
     function openFriend(friend: any) {
         openUserDialog({
@@ -202,16 +204,9 @@ export function useFriendsSidebarActions({
             return;
         }
         try {
-            const result = await prompt({
-                title: t('component.friends_sidebar.modal.send_boop'),
-                description: t(
-                    'component.friends_sidebar.modal.optional_emoji_id_leave_blank_to_send_the_default'
-                ),
-                inputValue: '',
-                confirmText: t(
-                    'component.friends_sidebar.modal.send'
-                ),
-                cancelText: t('common.actions.cancel')
+            const result = await boopPrompt({
+                endpoint: currentEndpoint,
+                targetLabel: friend?.displayName || friend?.username || friendId
             });
             if (!result.ok) {
                 return;

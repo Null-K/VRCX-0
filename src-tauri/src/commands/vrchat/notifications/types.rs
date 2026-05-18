@@ -88,6 +88,19 @@ pub struct VrchatNotificationSendInput {
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct VrchatNotificationPhotoSendInput {
+    #[serde(default)]
+    pub(crate) receiver_user_id: String,
+    #[serde(default)]
+    pub(crate) params: Value,
+    #[serde(default)]
+    pub(crate) image_data: String,
+    #[serde(default)]
+    pub(crate) endpoint: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct VrchatBoopInput {
     #[serde(default)]
     pub(crate) user_id: String,

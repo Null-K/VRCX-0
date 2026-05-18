@@ -9,6 +9,7 @@ interface SendInviteToLocationInput {
     worldId?: unknown;
     worldName?: unknown;
     messageSlot?: unknown;
+    imageData?: unknown;
     rsvp?: unknown;
 }
 
@@ -17,6 +18,7 @@ interface SendRequestInviteToUserInput {
     endpoint?: string;
     platform?: string;
     requestSlot?: unknown;
+    imageData?: unknown;
 }
 
 interface SendBoopToUserInput {
@@ -38,6 +40,7 @@ export async function sendInviteToLocation({
     worldId,
     worldName,
     messageSlot = null,
+    imageData = '',
     rsvp
 }: SendInviteToLocationInput = {}) {
     const normalizedReceiverUserId = normalizeText(receiverUserId);
@@ -76,6 +79,16 @@ export async function sendInviteToLocation({
         params.messageSlot = normalizedMessageSlot;
     }
 
+    const normalizedImageData = normalizeText(imageData);
+    if (normalizedImageData) {
+        return notificationPersistenceRepository.sendInvitePhoto({
+            receiverUserId: normalizedReceiverUserId,
+            endpoint,
+            params,
+            imageData: normalizedImageData
+        });
+    }
+
     return notificationPersistenceRepository.sendInvite({
         receiverUserId: normalizedReceiverUserId,
         endpoint,
@@ -87,7 +100,8 @@ export async function sendRequestInviteToUser({
     receiverUserId,
     endpoint = '',
     platform = 'standalonewindows',
-    requestSlot = null
+    requestSlot = null,
+    imageData = ''
 }: SendRequestInviteToUserInput = {}) {
     const normalizedReceiverUserId = normalizeText(receiverUserId);
     if (!normalizedReceiverUserId) {
@@ -101,6 +115,16 @@ export async function sendRequestInviteToUser({
     );
     if (Number.isFinite(normalizedRequestSlot)) {
         params.requestSlot = normalizedRequestSlot;
+    }
+
+    const normalizedImageData = normalizeText(imageData);
+    if (normalizedImageData) {
+        return notificationPersistenceRepository.sendRequestInvitePhoto({
+            receiverUserId: normalizedReceiverUserId,
+            endpoint,
+            params,
+            imageData: normalizedImageData
+        });
     }
 
     return notificationPersistenceRepository.sendRequestInvite({

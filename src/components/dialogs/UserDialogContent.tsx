@@ -82,6 +82,7 @@ export function UserDialogContent({
         groupInstancesState,
         hideUserMemos,
         hideUserNotes,
+        isLocalUserVrcPlusSupporter,
         knownTargetUser,
         localFriendFavorites,
         prompt,
@@ -292,8 +293,11 @@ export function UserDialogContent({
 
     const {
         inviteMessageRequest,
+        boopDialogRequest,
+        handleBoopDialogOpenChange,
         handleInviteMessageDialogOpenChange,
         selectInviteMessage,
+        sendUserBoopEmoji,
         actions: userActions
     } = useUserDialogActions({
         actionStatusRef,
@@ -457,11 +461,18 @@ export function UserDialogContent({
                 actionStatus={actionStatus}
                 socialStatusDialog={socialStatusDialog}
                 profileDetailsDialog={profileDetailsDialog}
+                boopDialog={{
+                    request: boopDialogRequest,
+                    isLocalUserVrcPlusSupporter,
+                    onOpenChange: handleBoopDialogOpenChange,
+                    onSend: sendUserBoopEmoji
+                }}
                 inviteMessageDialog={{
                     request: inviteMessageRequest,
                     onOpenChange: handleInviteMessageDialogOpenChange,
                     normalizedCurrentUserId,
                     currentEndpoint,
+                    allowImageUpload: isLocalUserVrcPlusSupporter,
                     targetLabel: profile?.displayName || profile?.id,
                     onUse: selectInviteMessage
                 }}

@@ -1,3 +1,4 @@
+import { BoopEmojiDialog } from '../../BoopEmojiDialog';
 import { InviteMessageDialog } from '../../InviteMessageDialog';
 import {
     UserProfileDetailsDialog,
@@ -6,6 +7,7 @@ import {
 
 export function UserDialogContentDialogs({
     actionStatus,
+    boopDialog,
     socialStatusDialog,
     profileDetailsDialog,
     inviteMessageDialog
@@ -69,8 +71,19 @@ export function UserDialogContentDialogs({
                     'this user'
                 }
                 allowEdit={false}
-                allowImageUpload={false}
+                allowImageUpload={Boolean(inviteMessageDialog.allowImageUpload)}
                 onUse={inviteMessageDialog.onUse}
+            />
+            <BoopEmojiDialog
+                open={Boolean(boopDialog.request)}
+                endpoint={boopDialog.request?.endpoint}
+                isLocalUserVrcPlusSupporter={
+                    boopDialog.isLocalUserVrcPlusSupporter
+                }
+                targetLabel={boopDialog.request?.targetLabel || 'this user'}
+                sendDisabled={actionStatus !== 'idle'}
+                onOpenChange={boopDialog.onOpenChange}
+                onSend={boopDialog.onSend}
             />
         </>
     );

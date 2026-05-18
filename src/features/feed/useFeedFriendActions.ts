@@ -51,7 +51,7 @@ export function useFeedFriendActions(): FeedFriendActions {
     );
     const friendsById = useFriendRosterStore((state: any) => state.friendsById);
     const confirm = useModalStore((state: any) => state.confirm);
-    const prompt = useModalStore((state: any) => state.prompt);
+    const boopPrompt = useModalStore((state: any) => state.boopPrompt);
     const friendsMap = useMemo(
         () => new Map(Object.entries(friendsById || {})),
         [friendsById]
@@ -295,14 +295,10 @@ export function useFeedFriendActions(): FeedFriendActions {
                 return;
             }
             try {
-                const result = await prompt({
-                    title: t('view.feed.modal.send_boop'),
-                    description: t(
-                        'view.feed.modal.optional_emoji_id_leave_blank_to_send_the_default'
-                    ),
-                    inputValue: '',
-                    confirmText: t('view.feed.modal.send'),
-                    cancelText: t('common.actions.cancel')
+                const result = await boopPrompt({
+                    endpoint: currentEndpoint,
+                    targetLabel:
+                        friend?.displayName || friend?.username || friendId
                 });
                 if (!result.ok) {
                     return;
@@ -321,7 +317,7 @@ export function useFeedFriendActions(): FeedFriendActions {
                 );
             }
         },
-        [currentEndpoint, currentUserId, prompt, t]
+        [boopPrompt, currentEndpoint, currentUserId, t]
     );
 
     const openFeedNewInstance = useCallback(

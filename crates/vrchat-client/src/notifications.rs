@@ -175,6 +175,35 @@ pub fn invite_send_input(
     ))
 }
 
+pub fn invite_photo_input(
+    endpoint: String,
+    receiver_user_id: String,
+    params: Value,
+    image_data: String,
+) -> Result<(String, HttpApiRequestInput), HttpApiError> {
+    let receiver_user_id = require_text(
+        receiver_user_id,
+        "VrchatInvitePhotoSend requires receiverUserId.",
+    )?;
+    let image_data = require_text(image_data, "VrchatInvitePhotoSend requires imageData.")?;
+    let params = if params.is_object() { params } else { json!({}) };
+    Ok((
+        receiver_user_id.clone(),
+        HttpApiRequestInput {
+            endpoint: Some(endpoint),
+            method: Some("POST".into()),
+            path: Some(format!(
+                "invite/{}/photo",
+                encode_path_segment(&receiver_user_id)
+            )),
+            upload_image_legacy: Some(true),
+            post_data: Some(params.to_string()),
+            image_data: Some(image_data),
+            ..Default::default()
+        },
+    ))
+}
+
 pub fn request_invite_send_input(
     endpoint: String,
     receiver_user_id: String,
@@ -192,6 +221,38 @@ pub fn request_invite_send_input(
             format!("requestInvite/{}", encode_path_segment(&receiver_user_id)),
             Some(params),
         ),
+    ))
+}
+
+pub fn request_invite_photo_input(
+    endpoint: String,
+    receiver_user_id: String,
+    params: Value,
+    image_data: String,
+) -> Result<(String, HttpApiRequestInput), HttpApiError> {
+    let receiver_user_id = require_text(
+        receiver_user_id,
+        "VrchatRequestInvitePhotoSend requires receiverUserId.",
+    )?;
+    let image_data = require_text(
+        image_data,
+        "VrchatRequestInvitePhotoSend requires imageData.",
+    )?;
+    let params = if params.is_object() { params } else { json!({}) };
+    Ok((
+        receiver_user_id.clone(),
+        HttpApiRequestInput {
+            endpoint: Some(endpoint),
+            method: Some("POST".into()),
+            path: Some(format!(
+                "requestInvite/{}/photo",
+                encode_path_segment(&receiver_user_id)
+            )),
+            upload_image_legacy: Some(true),
+            post_data: Some(params.to_string()),
+            image_data: Some(image_data),
+            ..Default::default()
+        },
     ))
 }
 

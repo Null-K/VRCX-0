@@ -13,6 +13,15 @@ export function useUserDialogRuntimeState(normalizedUserId: string) {
     const currentUserSnapshot = useRuntimeStore(
         (state: any) => state.auth.currentUserSnapshot
     );
+    const isLocalUserVrcPlusSupporter = useRuntimeStore((state: any) =>
+        Boolean(
+            state.auth.currentUserSnapshot?.$isVRCPlus ||
+                state.auth.currentUserSnapshot?.tags?.includes?.(
+                    'system_supporter'
+                ) ||
+                globalThis?.$debug?.debugVrcPlus
+        )
+    );
     const currentEndpoint = useRuntimeStore(
         (state: any) => state.auth.currentUserEndpoint
     );
@@ -109,6 +118,7 @@ export function useUserDialogRuntimeState(normalizedUserId: string) {
         friendsById,
         hideUserMemos,
         hideUserNotes,
+        isLocalUserVrcPlusSupporter,
         knownTargetUser,
         localFriendFavorites,
         prompt,

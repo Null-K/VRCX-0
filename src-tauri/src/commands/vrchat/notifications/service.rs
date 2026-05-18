@@ -3,9 +3,10 @@
 use serde_json::Value;
 use tauri::State;
 use vrcx_0_application::vrchat_api::notifications::{
-    boop_send_input, invite_response_photo_input, invite_response_send_input, invite_send_input,
-    notification_accept_friend_request_input, notification_hide_remote_input,
-    notification_mark_seen_input, notification_respond_input, request_invite_send_input,
+    boop_send_input, invite_photo_input, invite_response_photo_input, invite_response_send_input,
+    invite_send_input, notification_accept_friend_request_input, notification_hide_remote_input,
+    notification_mark_seen_input, notification_respond_input, request_invite_photo_input,
+    request_invite_send_input,
 };
 
 use crate::error::AppError;
@@ -16,7 +17,8 @@ use vrcx_0_application::vrchat_api::{VrchatApiRequest, VrchatApiResponse};
 use super::types::{
     VrchatBoopInput, VrchatInviteResponseInput, VrchatInviteResponsePhotoInput,
     VrchatNotificationHideInput, VrchatNotificationIdInput, VrchatNotificationMarkSeenInput,
-    VrchatNotificationRespondInput, VrchatNotificationSendInput,
+    VrchatNotificationPhotoSendInput, VrchatNotificationRespondInput,
+    VrchatNotificationSendInput,
 };
 
 fn response_has_error(response: &VrchatApiResponse) -> bool {
@@ -194,6 +196,26 @@ pub async fn app__vrchat_invite_send(
 }
 
 #[tauri::command]
+pub async fn app__vrchat_invite_photo_send(
+    state: State<'_, AppState>,
+    input: VrchatNotificationPhotoSendInput,
+) -> Result<VrchatApiResponse, AppError> {
+    let (receiver_user_id, request) = invite_photo_input(
+        input.endpoint,
+        input.receiver_user_id,
+        input.params,
+        input.image_data,
+    )?;
+    execute_media_api(
+        state,
+        "app__vrchat_invite_photo_send",
+        format!("Sending invite photo to {receiver_user_id}."),
+        media_upload::prepare_media_upload_request(request)?,
+    )
+    .await
+}
+
+#[tauri::command]
 pub async fn app__vrchat_request_invite_send(
     state: State<'_, AppState>,
     input: VrchatNotificationSendInput,
@@ -205,6 +227,26 @@ pub async fn app__vrchat_request_invite_send(
         "app__vrchat_request_invite_send",
         format!("Sending invite request to {receiver_user_id}."),
         request,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn app__vrchat_request_invite_photo_send(
+    state: State<'_, AppState>,
+    input: VrchatNotificationPhotoSendInput,
+) -> Result<VrchatApiResponse, AppError> {
+    let (receiver_user_id, request) = request_invite_photo_input(
+        input.endpoint,
+        input.receiver_user_id,
+        input.params,
+        input.image_data,
+    )?;
+    execute_media_api(
+        state,
+        "app__vrchat_request_invite_photo_send",
+        format!("Sending invite request photo to {receiver_user_id}."),
+        media_upload::prepare_media_upload_request(request)?,
     )
     .await
 }

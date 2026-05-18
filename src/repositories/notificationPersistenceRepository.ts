@@ -488,6 +488,36 @@ async function sendInvite({
     );
 }
 
+async function sendInvitePhoto({
+    receiverUserId,
+    params = {},
+    imageData,
+    endpoint = ''
+}: NotificationActionOptions = {}) {
+    const normalizedReceiverUserId =
+        typeof receiverUserId === 'string'
+            ? receiverUserId.trim()
+            : String(receiverUserId ?? '').trim();
+    const normalizedImageData =
+        typeof imageData === 'string'
+            ? imageData.trim()
+            : String(imageData ?? '').trim();
+    if (!normalizedReceiverUserId || !normalizedImageData) {
+        return null;
+    }
+
+    const response = await tauriClient.app.VrchatInvitePhotoSend({
+        receiverUserId: normalizedReceiverUserId,
+        params,
+        imageData: normalizedImageData,
+        endpoint
+    });
+    return unwrapVrchatNotificationResponse(
+        response,
+        `invite/${encodeURIComponent(normalizedReceiverUserId)}/photo`
+    );
+}
+
 async function sendRequestInvite({
     receiverUserId,
     params = {},
@@ -509,6 +539,36 @@ async function sendRequestInvite({
     return unwrapVrchatNotificationResponse(
         response,
         `requestInvite/${encodeURIComponent(normalizedReceiverUserId)}`
+    );
+}
+
+async function sendRequestInvitePhoto({
+    receiverUserId,
+    params = {},
+    imageData,
+    endpoint = ''
+}: NotificationActionOptions = {}) {
+    const normalizedReceiverUserId =
+        typeof receiverUserId === 'string'
+            ? receiverUserId.trim()
+            : String(receiverUserId ?? '').trim();
+    const normalizedImageData =
+        typeof imageData === 'string'
+            ? imageData.trim()
+            : String(imageData ?? '').trim();
+    if (!normalizedReceiverUserId || !normalizedImageData) {
+        return null;
+    }
+
+    const response = await tauriClient.app.VrchatRequestInvitePhotoSend({
+        receiverUserId: normalizedReceiverUserId,
+        params,
+        imageData: normalizedImageData,
+        endpoint
+    });
+    return unwrapVrchatNotificationResponse(
+        response,
+        `requestInvite/${encodeURIComponent(normalizedReceiverUserId)}/photo`
     );
 }
 
@@ -555,7 +615,9 @@ const notificationPersistenceRepository = Object.freeze({
     sendInviteResponse,
     sendInviteResponsePhoto,
     sendInvite,
+    sendInvitePhoto,
     sendRequestInvite,
+    sendRequestInvitePhoto,
     sendBoop,
     seenNotificationV2,
     updateNotificationExpired
@@ -576,7 +638,9 @@ export {
     sendInviteResponse,
     sendInviteResponsePhoto,
     sendInvite,
+    sendInvitePhoto,
     sendRequestInvite,
+    sendRequestInvitePhoto,
     sendBoop,
     seenNotificationV2,
     updateNotificationExpired

@@ -1,8 +1,10 @@
 import { REGEXP_ONLY_DIGITS, REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
 import { useTranslation } from 'react-i18next';
 
+import { BoopEmojiDialog } from '@/components/dialogs/BoopEmojiDialog';
 import { FullscreenImageViewer } from '@/components/media/FullscreenImageViewer';
 import { useModalStore } from '@/state/modalStore';
+import { useRuntimeStore } from '@/state/runtimeStore';
 import {
     AlertDialog,
     AlertDialogContent,
@@ -66,8 +68,21 @@ export function ModalHost() {
 
     const alertDialog = useModalStore((state: any) => state.alertDialog);
     const promptDialog = useModalStore((state: any) => state.promptDialog);
+    const boopDialog = useModalStore((state: any) => state.boopDialog);
     const otpDialog = useModalStore((state: any) => state.otpDialog);
     const imageDialog = useModalStore((state: any) => state.imageDialog);
+    const currentEndpoint = useRuntimeStore(
+        (state: any) => state.auth.currentUserEndpoint
+    );
+    const isLocalUserVrcPlusSupporter = useRuntimeStore((state: any) =>
+        Boolean(
+            state.auth.currentUserSnapshot?.$isVRCPlus ||
+                state.auth.currentUserSnapshot?.tags?.includes?.(
+                    'system_supporter'
+                ) ||
+                globalThis?.$debug?.debugVrcPlus
+        )
+    );
     const handleOk = useModalStore((state: any) => state.handleOk);
     const handleCancel = useModalStore((state: any) => state.handleCancel);
     const handleDismiss = useModalStore((state: any) => state.handleDismiss);
@@ -77,6 +92,10 @@ export function ModalHost() {
     );
     const handlePromptDismiss = useModalStore(
         (state: any) => state.handlePromptDismiss
+    );
+    const handleBoopOk = useModalStore((state: any) => state.handleBoopOk);
+    const handleBoopDismiss = useModalStore(
+        (state: any) => state.handleBoopDismiss
     );
     const handleOtpOk = useModalStore((state: any) => state.handleOtpOk);
     const handleOtpCancel = useModalStore((state: any) => state.handleOtpCancel);
@@ -190,6 +209,18 @@ export function ModalHost() {
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <BoopEmojiDialog
+                open={boopDialog.open}
+                endpoint={boopDialog.endpoint || currentEndpoint}
+                isLocalUserVrcPlusSupporter={isLocalUserVrcPlusSupporter}
+                targetLabel={boopDialog.targetLabel}
+                onOpenChange={(open: any) => {
+                    if (!open) {
+                        handleBoopDismiss('');
+                    }
+                }}
+                onSend={(emojiId: string) => handleBoopOk(emojiId)}
+            />
             <Dialog
                 open={otpDialog.open}
                 onOpenChange={(open: any) => {

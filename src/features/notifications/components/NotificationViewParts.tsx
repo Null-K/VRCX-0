@@ -10,30 +10,18 @@ import {
     ExternalLinkIcon,
     GlobeIcon,
     MessageCircleIcon,
-    RefreshCcwIcon,
     ReplyIcon,
-    SendIcon,
     TagIcon,
     UserIcon,
     UsersIcon,
     XIcon
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 
 import { Location } from '@/components/Location';
-import mediaRepository from '@/repositories/mediaRepository';
+import { BoopEmojiDialog } from '@/components/dialogs/BoopEmojiDialog';
 import { NOTIFICATION_TYPES } from '@/repositories/notificationPersistenceRepository';
 import { Button } from '@/ui/shadcn/button';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle
-} from '@/ui/shadcn/dialog';
 import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
@@ -41,10 +29,7 @@ import {
     DropdownMenuGroup,
     DropdownMenuTrigger
 } from '@/ui/shadcn/dropdown-menu';
-import { Input } from '@/ui/shadcn/input';
-import { Spinner } from '@/ui/shadcn/spinner';
 
-import { getFileImageUrl } from '../notificationRows';
 import { sanitizeNotificationFilters } from '../notificationTableState';
 
 export function getResponseIcon(response: any, notificationType: any) {
@@ -207,257 +192,18 @@ export function BoopReplyDialog({
     onOpenChange,
     onSend
 }: any) {
-    const { t } = useTranslation();
-
-    const navigate = useNavigate();
     const open = Boolean(request);
     const notification = request || null;
-    const [emojiId, setEmojiId] = useState('');
-    const [emojiSearch, setEmojiSearch] = useState('');
-    const [emojiRows, setEmojiRows] = useState<any[]>([]);
-    const [loading, setLoading] = useState(false);
-    const [sending, setSending] = useState(false);
-    const [error, setError] = useState('');
-    const requestIdRef = useRef(0);
-
-    async function loadEmojiRows() {
-        if (!open || !isLocalUserVrcPlusSupporter) {
-            return;
-        }
-        const requestId = requestIdRef.current + 1;
-        requestIdRef.current = requestId;
-        setLoading(true);
-        setError('');
-        try {
-            const { json } = await mediaRepository.getFileList(
-                { n: 100, tag: 'emoji' },
-                { endpoint }
-            );
-            if (requestIdRef.current !== requestId) {
-                return;
-            }
-            setEmojiRows(Array.isArray(json) ? [...json].reverse() : []);
-        } catch (nextError) {
-            if (requestIdRef.current !== requestId) {
-                return;
-            }
-            setEmojiRows([]);
-            setError(
-                nextError instanceof Error
-                    ? nextError.message
-                    : 'Failed to load emojis.'
-            );
-        } finally {
-            if (requestIdRef.current === requestId) {
-                setLoading(false);
-            }
-        }
-    }
-
-    useEffect(() => {
-        if (open) {
-            setEmojiId('');
-            loadEmojiRows();
-        } else {
-            requestIdRef.current += 1;
-            setEmojiId('');
-            setEmojiSearch('');
-            setEmojiRows([]);
-            setLoading(false);
-            setSending(false);
-            setError('');
-        }
-    }, [endpoint, isLocalUserVrcPlusSupporter, open]);
-
-    async function handleSend() {
-        if (!notification) {
-            return;
-        }
-        setSending(true);
-        setError('');
-        try {
-            await onSend(notification, emojiId);
-            onOpenChange(false);
-        } catch (nextError) {
-            setError(
-                nextError instanceof Error
-                    ? nextError.message
-                    : 'Failed to send boop.'
-            );
-        } finally {
-            setSending(false);
-        }
-    }
-
     const displayName = notification?.senderUsername || 'this user';
-    const filteredEmojiRows = useMemo(() => {
-        const query = emojiSearch.trim().toLowerCase();
-        if (!query) {
-            return emojiRows;
-        }
-        return emojiRows.filter((emoji: any) =>
-            [emoji?.name, emoji?.id].some((value: any) =>
-                String(value || '')
-                    .toLowerCase()
-                    .includes(query)
-            )
-        );
-    }, [emojiRows, emojiSearch]);
-
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="flex max-h-[90vh] flex-col sm:max-w-[min(92vw,46rem)]">
-                <DialogHeader>
-                    <DialogTitle>
-                        {t('view.notification.action.send_boop')}
-                    </DialogTitle>
-                    <DialogDescription>{displayName}</DialogDescription>
-                </DialogHeader>
-                <div className="flex flex-col gap-3">
-                    {!emojiId ? (
-                        <div className="text-muted-foreground rounded-md border p-3 text-sm">
-                            {t(
-                                'view.notification.empty.no_custom_emoji_selected_the_default_boop_will_be_sent'
-                            )}
-                        </div>
-                    ) : null}
-                    {isLocalUserVrcPlusSupporter ? (
-                        <div className="flex flex-col gap-2">
-                            <div className="flex flex-wrap items-center gap-2">
-                                <Input
-                                    value={emojiSearch}
-                                    placeholder={t(
-                                        'view.notification.action.search_emoji'
-                                    )}
-                                    disabled={sending}
-                                    className="h-9 min-w-48 flex-1"
-                                    onChange={(event: any) =>
-                                        setEmojiSearch(event.target.value)
-                                    }
-                                />
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    disabled={sending || !emojiId}
-                                    onClick={() => setEmojiId('')}
-                                >
-                                    {t(
-                                        'view.notification.action.clear_selection'
-                                    )}
-                                </Button>
-                            </div>
-                            <div className="max-h-[48vh] min-h-0 overflow-y-auto rounded-md border p-2">
-                                {loading ? (
-                                    <div className="text-muted-foreground flex h-28 items-center justify-center gap-2 text-sm">
-                                        <Spinner className="size-4" />
-                                        {t(
-                                            'view.notification.loading.loading_emojis'
-                                        )}
-                                    </div>
-                                ) : filteredEmojiRows.length ? (
-                                    <div className="grid grid-cols-[repeat(auto-fill,minmax(88px,1fr))] gap-2">
-                                        {filteredEmojiRows.map((emoji: any) => {
-                                            const imageUrl =
-                                                getFileImageUrl(emoji);
-                                            if (!imageUrl || !emoji?.id) {
-                                                return null;
-                                            }
-                                            const selected =
-                                                emojiId === emoji.id;
-                                            return (
-                                                <Button
-                                                    key={emoji.id}
-                                                    type="button"
-                                                    variant={
-                                                        selected
-                                                            ? 'secondary'
-                                                            : 'outline'
-                                                    }
-                                                    className="h-auto w-full flex-col p-2"
-                                                    aria-pressed={selected}
-                                                    disabled={sending}
-                                                    onClick={() =>
-                                                        setEmojiId(
-                                                            selected
-                                                                ? ''
-                                                                : emoji.id
-                                                        )
-                                                    }
-                                                >
-                                                    <img
-                                                        src={imageUrl}
-                                                        alt={
-                                                            emoji.name ||
-                                                            emoji.id
-                                                        }
-                                                        className="mx-auto size-20 object-contain"
-                                                    />
-                                                </Button>
-                                            );
-                                        })}
-                                    </div>
-                                ) : (
-                                    <div className="text-muted-foreground flex h-28 items-center justify-center text-sm">
-                                        {emojiRows.length
-                                            ? 'No custom emojis match the search.'
-                                            : 'No custom emojis.'}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    ) : null}
-                    {error ? (
-                        <div className="text-destructive text-sm">{error}</div>
-                    ) : null}
-                </div>
-                <DialogFooter>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        disabled={sending}
-                        onClick={() => {
-                            onOpenChange(false);
-                            navigate('/tools/inventory');
-                        }}
-                    >
-                        {t('view.notification.label.emoji_manager')}
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="outline"
-                        disabled={loading || sending}
-                        onClick={() => {
-                            loadEmojiRows();
-                        }}
-                    >
-                        <RefreshCcwIcon data-icon="inline-start" />
-                        {t('common.actions.refresh')}
-                    </Button>
-                    <Button
-                        type="button"
-                        variant="secondary"
-                        disabled={sending}
-                        onClick={() => onOpenChange(false)}
-                    >
-                        {t('common.actions.cancel')}
-                    </Button>
-                    <Button
-                        type="button"
-                        disabled={sending || !notification?.senderUserId}
-                        onClick={() => {
-                            handleSend();
-                        }}
-                    >
-                        {sending ? (
-                            <Spinner data-icon="inline-start" />
-                        ) : (
-                            <SendIcon data-icon="inline-start" />
-                        )}
-                        {t('view.notification.action.send')}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog>
+        <BoopEmojiDialog
+            open={open}
+            endpoint={endpoint}
+            isLocalUserVrcPlusSupporter={isLocalUserVrcPlusSupporter}
+            targetLabel={displayName}
+            sendDisabled={!notification?.senderUserId}
+            onOpenChange={onOpenChange}
+            onSend={(emojiId: string) => onSend(notification, emojiId)}
+        />
     );
 }

@@ -1,3 +1,4 @@
+import { useLayoutEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -46,6 +47,7 @@ export function useUserDialogActions({
     setModerationState
 }: any) {
     const { t } = useTranslation();
+    const [boopDialogRequest, setBoopDialogRequest] = useState<any>(null);
 
     const {
         handleInviteMessageDialogOpenChange,
@@ -88,6 +90,10 @@ export function useUserDialogActions({
         setExtendedModerationState,
         setModerationState
     });
+
+    useLayoutEffect(() => {
+        setBoopDialogRequest(null);
+    }, [currentEndpoint, normalizedUserId, openNonce, profile?.id]);
 
     async function unfriendUser() {
         const rosterUserId = normalizeUserId(profile?.id);
@@ -461,7 +467,7 @@ export function useUserDialogActions({
         }
     }
 
-    async function sendUserBoop() {
+    function buildBoopContext() {
         const rosterUserId = normalizeUserId(profile?.id);
         if (
             !rosterUserId ||
@@ -469,35 +475,42 @@ export function useUserDialogActions({
             !isFriend ||
             actionStatusRef.current !== 'idle'
         ) {
-            return;
+            return null;
         }
 
+        return {
+            endpoint: currentEndpoint,
+            targetLabel: profile?.displayName || rosterUserId,
+            userId: rosterUserId
+        };
+    }
+
+    function sendUserBoop() {
+        const context = buildBoopContext();
+        if (context) {
+            setBoopDialogRequest(context);
+        }
+    }
+
+    async function sendUserBoopEmoji(emojiId = '') {
+        const context = boopDialogRequest || buildBoopContext();
+        if (!context || actionStatusRef.current !== 'idle') {
+            return;
+        }
         actionStatusRef.current = 'boop';
         setActionStatus('boop');
         try {
-            const result = await prompt({
-                title: t('dialog.user.modal.send_boop'),
-                description: t(
-                    'dialog.user.modal.optional_emoji_id_leave_blank_to_send_the_default'
-                ),
-                inputValue: '',
-                confirmText: t('dialog.user.modal.send'),
-                cancelText: t('common.actions.cancel')
-            });
-            if (!result.ok) {
-                return;
-            }
-
             await dismissBoopNotifications({
                 currentUserId,
-                endpoint: currentEndpoint,
-                senderUserId: rosterUserId
+                endpoint: context.endpoint,
+                senderUserId: context.userId
             });
             await sendBoopToUser({
-                userId: rosterUserId,
-                emojiId: result.value,
-                endpoint: currentEndpoint
+                userId: context.userId,
+                emojiId,
+                endpoint: context.endpoint
             });
+            setBoopDialogRequest(null);
             toast.success(t('dialog.user.success.boop_sent'));
         } catch (error) {
             toast.error(
@@ -505,9 +518,16 @@ export function useUserDialogActions({
                     ? error.message
                     : t('dialog.user.toast.failed_to_send_boop')
             );
+            throw error;
         } finally {
             actionStatusRef.current = 'idle';
             setActionStatus('idle');
+        }
+    }
+
+    function handleBoopDialogOpenChange(nextOpen: any) {
+        if (!nextOpen && actionStatusRef.current === 'idle') {
+            setBoopDialogRequest(null);
         }
     }
 
@@ -544,8 +564,11 @@ export function useUserDialogActions({
 
     return {
         inviteMessageRequest,
+        boopDialogRequest,
+        handleBoopDialogOpenChange,
         handleInviteMessageDialogOpenChange,
         selectInviteMessage,
+        sendUserBoopEmoji,
         actions: {
             openGroupModerationForUser,
             reportHacking,
