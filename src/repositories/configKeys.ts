@@ -184,6 +184,7 @@ export const ConfigKeys = {
     MyAvatarsViewMode: { type: 'string', default: 'grid' },
     MyAvatarsCardScale: { type: 'string', default: null },
     MyAvatarsCardSpacing: { type: 'string', default: null },
+    UserDialogAvatarSort: { type: 'string', default: 'name' },
     FriendLocationCardScale: { type: 'string', default: '1' },
     FriendLocationCardSpacing: { type: 'string', default: '1' },
     FriendLocationDensity: { type: 'string', default: 'compact' },

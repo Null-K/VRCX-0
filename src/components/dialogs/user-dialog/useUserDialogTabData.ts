@@ -3,6 +3,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { onPreferenceChanged } from '@/shared/events/preferenceEvents';
 import { AVATAR_SEARCH_PROVIDER_PREFERENCE_KEYS } from '@/repositories/avatarSearchProviderRepository';
 import avatarSearchProviderRepository from '@/repositories/avatarSearchProviderRepository';
+import configRepository from '@/repositories/configRepository';
 import groupProfileRepository from '@/repositories/groupProfileRepository';
 import myAvatarRepository from '@/repositories/myAvatarRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
@@ -48,6 +49,16 @@ const emptyUserDialogSearch = Object.freeze({
     favoriteWorlds: '',
     avatars: ''
 });
+
+const USER_DIALOG_AVATAR_SORT_CONFIG_KEY = 'UserDialogAvatarSort';
+const userDialogAvatarSortValues = new Set(['name', 'update', 'createdAt']);
+
+function normalizeUserDialogAvatarSort(value: any) {
+    const normalizedValue = String(value ?? '').trim();
+    return userDialogAvatarSortValues.has(normalizedValue)
+        ? normalizedValue
+        : 'name';
+}
 
 function emptyDataPatchForTab(tab: any) {
     const dataKey = userDialogDataKeyForTab(tab);
@@ -117,6 +128,7 @@ export function useUserDialogTabData({
         avatarReleaseStatus: effectiveAvatarReleaseStatus,
         reloadToken
     });
+    const avatarSortLoadVersionRef = useRef(0);
     const handledReloadTokenRef = useRef(reloadToken);
     const handledCountReloadTokenRef = useRef(reloadToken);
     countContextRef.current = {
@@ -195,8 +207,49 @@ export function useUserDialogTabData({
     ]);
 
     useLayoutEffect(() => {
-        setAvatarSort('name');
+        const loadVersion = avatarSortLoadVersionRef.current + 1;
+        avatarSortLoadVersionRef.current = loadVersion;
         setAvatarReleaseStatus('all');
+        loadContextRef.current = {
+            ...loadContextRef.current,
+            avatarReleaseStatus: 'all'
+        };
+
+        if (profile.id !== currentUserId) {
+            loadContextRef.current = {
+                ...loadContextRef.current,
+                avatarSort: 'name'
+            };
+            setAvatarSort('name');
+            return;
+        }
+
+        setAvatarSort((current: any) =>
+            normalizeUserDialogAvatarSort(current)
+        );
+        configRepository
+            .getString(USER_DIALOG_AVATAR_SORT_CONFIG_KEY, 'name')
+            .then((value: any) => {
+                if (avatarSortLoadVersionRef.current !== loadVersion) {
+                    return;
+                }
+                const nextSort = normalizeUserDialogAvatarSort(value);
+                loadContextRef.current = {
+                    ...loadContextRef.current,
+                    avatarSort: nextSort
+                };
+                setAvatarSort(nextSort);
+            })
+            .catch(() => {
+                if (avatarSortLoadVersionRef.current !== loadVersion) {
+                    return;
+                }
+                loadContextRef.current = {
+                    ...loadContextRef.current,
+                    avatarSort: 'name'
+                };
+                setAvatarSort('name');
+            });
     }, [currentUserId, profile.id]);
 
     function isCurrentLoadContext(context: any) {
@@ -361,12 +414,18 @@ export function useUserDialogTabData({
     }
 
     function changeAvatarSort(value: any) {
+        const nextSort = normalizeUserDialogAvatarSort(value);
+        avatarSortLoadVersionRef.current += 1;
         loadContextRef.current = {
             ...loadContextRef.current,
-            avatarSort: value
+            avatarSort: nextSort
         };
-        setAvatarSort(value);
+        setAvatarSort(nextSort);
         if (profile.id === currentUserId) {
+            configRepository.setString(
+                USER_DIALOG_AVATAR_SORT_CONFIG_KEY,
+                nextSort
+            );
             setRemoteStatus((current: any) => ({ ...current, avatars: '' }));
         }
     }
