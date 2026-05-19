@@ -35,8 +35,22 @@ impl RuntimeEventSink for TauriRuntimeEventSink {
             "runtimeGameLogEvent" => "addGameLogEvent",
             event => event,
         };
-        let _ = self.app_handle.emit(frontend_event, payload);
+        if is_gui_background_runtime_hidden(&self.app_handle) {
+            return;
+        }
+        if let Some(window) = self.app_handle.get_webview_window("main") {
+            let _ = window.emit(frontend_event, payload);
+        }
     }
+}
+
+fn is_gui_background_runtime_hidden(app_handle: &tauri::AppHandle) -> bool {
+    let Some(state) = app_handle.try_state::<AppState>() else {
+        return false;
+    };
+    let snapshot = state.snapshot_backend_runtime();
+    snapshot.mode == BackendRuntimeMode::Background
+        && snapshot.phase == BackendRuntimePhase::Running
 }
 
 fn log_gui_background_runtime_info(
