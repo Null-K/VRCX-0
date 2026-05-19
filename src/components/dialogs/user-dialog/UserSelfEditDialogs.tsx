@@ -78,6 +78,10 @@ function normalizeLanguageComboboxValues(values: any) {
     return nextKeys;
 }
 
+function preventDialogOutsideClose(event: any) {
+    event.preventDefault();
+}
+
 export function UserSocialStatusDialog({
     open,
     onOpenChange,
@@ -407,7 +411,11 @@ export function UserProfileDetailsDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="grid max-h-[calc(100vh-4rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-xl">
+            <DialogContent
+                className="grid max-h-[calc(100vh-4rem)] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-xl"
+                onPointerDownOutside={preventDialogOutsideClose}
+                onInteractOutside={preventDialogOutsideClose}
+            >
                 <DialogHeader>
                     <DialogTitle>
                         {t('dialog.user.description.edit_profile_details')}
