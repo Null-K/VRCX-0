@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
+import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import avatarSearchProviderRepository from '@/repositories/avatarSearchProviderRepository';
 import userProfileRepository from '@/repositories/userProfileRepository';
 import vrchatSearchRepository from '@/repositories/vrchatSearchRepository';
@@ -176,9 +177,10 @@ export function useSearchResults({
             } catch (error) {
                 if (searchSequenceRef.current.avatar === sequence) {
                     toast.error(
-                        error instanceof Error
-                            ? error.message
-                            : t('view.search.toast.failed_to_search_avatars')
+                        userFacingErrorMessage(
+                            error,
+                            t('view.search.toast.failed_to_search_avatars')
+                        )
                     );
                 }
             } finally {

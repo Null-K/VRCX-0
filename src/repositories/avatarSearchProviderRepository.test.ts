@@ -10,6 +10,7 @@ vi.mock('./configRepository', () => ({
         getString: vi.fn(),
         setString: vi.fn(),
         setBool: vi.fn(),
+        has: vi.fn(),
         remove: vi.fn()
     }
 }));
@@ -47,6 +48,7 @@ describe('AvatarSearchProviderRepository', () => {
         );
         vi.mocked(configRepository.setString).mockResolvedValue(undefined);
         vi.mocked(configRepository.setBool).mockResolvedValue(undefined);
+        vi.mocked(configRepository.has).mockResolvedValue(true);
         vi.mocked(configRepository.remove).mockResolvedValue(undefined);
         vi.mocked(externalApiRepository.searchAvatarProvider).mockResolvedValue(
             {
@@ -188,6 +190,23 @@ describe('AvatarSearchProviderRepository', () => {
         expect(
             (result.avatars as NormalizedAvatar[]).map((avatar) => avatar.id)
         ).toEqual(['avtr_alpha', 'avtr_beta']);
+    });
+
+    it('persists the default provider list when no provider list is configured', async () => {
+        vi.mocked(configRepository.has).mockResolvedValue(false);
+
+        await expect(
+            avatarSearchProviderRepository.getConfig()
+        ).resolves.toMatchObject({
+            enabled: true,
+            providerList: [DEFAULT_PROVIDER],
+            selectedProvider: DEFAULT_PROVIDER
+        });
+
+        expect(configRepository.setString).toHaveBeenCalledWith(
+            'VRCX_avatarRemoteDatabaseProviderList',
+            JSON.stringify([DEFAULT_PROVIDER])
+        );
     });
 
     it('validates provider and query before calling the network', async () => {

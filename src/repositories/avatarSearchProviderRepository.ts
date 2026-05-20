@@ -136,14 +136,20 @@ function normalizeAvatarProviderItem(
 }
 
 async function getConfig(): Promise<ProviderConfig> {
-    const [enabled, providerListValue, rawSelectedProviderValue] =
+    const [
+        enabled,
+        providerListValue,
+        rawSelectedProviderValue,
+        hasProviderList
+    ] =
         await Promise.all([
             configRepository.getBool('avatarRemoteDatabase', true),
             configRepository.getString(
                 'VRCX_avatarRemoteDatabaseProviderList',
                 `["${DEFAULT_PROVIDER}"]`
             ),
-            configRepository.getString('VRCX_avatarRemoteDatabaseProvider', '')
+            configRepository.getString('VRCX_avatarRemoteDatabaseProvider', ''),
+            configRepository.has('VRCX_avatarRemoteDatabaseProviderList')
         ]);
     const selectedProviderValue = normalizeString(rawSelectedProviderValue);
 
@@ -163,7 +169,10 @@ async function getConfig(): Promise<ProviderConfig> {
     }
 
     const providerList = normalizeProviderList(parsedProviders);
-    if (JSON.stringify(providerList) !== JSON.stringify(parsedProviders)) {
+    if (
+        !hasProviderList ||
+        JSON.stringify(providerList) !== JSON.stringify(parsedProviders)
+    ) {
         await configRepository.setString(
             'VRCX_avatarRemoteDatabaseProviderList',
             JSON.stringify(providerList)
