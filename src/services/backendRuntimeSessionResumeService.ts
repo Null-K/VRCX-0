@@ -118,11 +118,26 @@ export async function resumeFrontendSessionFromBackendRuntime(
         return false;
     }
 
+    const sessionState = useSessionStore.getState();
+    if (
+        sessionState.sessionPhase === 'authenticating' ||
+        sessionState.sessionPhase === 'bootstrapping'
+    ) {
+        return false;
+    }
+
     const userId = normalizeString(snapshot.authUserId);
     const [scope, frontendSessionSnapshot] = await Promise.all([
         tauriClient.app.RuntimeAuthScopeGet().catch(() => null),
         getBackendFrontendSessionSnapshot()
     ]);
+    const latestSessionState = useSessionStore.getState();
+    if (
+        latestSessionState.sessionPhase === 'authenticating' ||
+        latestSessionState.sessionPhase === 'bootstrapping'
+    ) {
+        return false;
+    }
     if (
         !isCurrentAuthenticatedBackendRuntimeUser(userId) ||
         !frontendSessionMatchesUser(frontendSessionSnapshot, userId)
@@ -131,7 +146,6 @@ export async function resumeFrontendSessionFromBackendRuntime(
     }
 
     const currentRuntimeState = useRuntimeStore.getState();
-    const sessionState = useSessionStore.getState();
     const endpoint =
         normalizeString(frontendSessionSnapshot?.endpoint) ||
         normalizeString(scope?.endpoint) ||
@@ -144,15 +158,30 @@ export async function resumeFrontendSessionFromBackendRuntime(
         frontendSessionSnapshot,
         previousSnapshot: currentRuntimeState.auth.currentUserSnapshot
     });
-    if (
-        sessionState.sessionPhase === 'ready' &&
-        normalizeString(currentRuntimeState.auth.currentUserId) === userId &&
-        normalizeString(currentRuntimeState.auth.currentUserEndpoint) ===
-            endpoint &&
-        normalizeString(currentRuntimeState.auth.currentUserWebsocket) ===
-            websocket
-    ) {
-        return false;
+    if (latestSessionState.sessionPhase === 'ready') {
+        if (normalizeString(currentRuntimeState.auth.currentUserId) !== userId) {
+            return false;
+        }
+        if (
+            normalizeString(currentRuntimeState.auth.currentUserEndpoint) ===
+                endpoint &&
+            normalizeString(currentRuntimeState.auth.currentUserWebsocket) ===
+                websocket
+        ) {
+            return false;
+        }
+        useRuntimeStore.getState().setAuthBootstrap({
+            currentUserId: userId,
+            currentUserDisplayName:
+                normalizeString(currentUserSnapshot.displayName) ||
+                normalizeString(snapshot.authDisplayName) ||
+                userId,
+            currentUserEndpoint: endpoint,
+            currentUserWebsocket: websocket,
+            currentUserSnapshot
+        });
+        recordCurrentUserSnapshot(currentUserSnapshot, { endpoint });
+        return true;
     }
 
     useRuntimeStore.getState().setAuthBootstrap({

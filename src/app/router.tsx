@@ -19,16 +19,17 @@ const AppShellLayout = lazy(() =>
 );
 
 function RequireAuth() {
-    const isSessionReady = useSessionStore(
-        (state: any) => state.sessionPhase === 'ready'
-    );
+    const sessionPhase = useSessionStore((state: any) => state.sessionPhase);
+    const isSessionReady = sessionPhase === 'ready';
+    const isSessionPending =
+        sessionPhase === 'authenticating' || sessionPhase === 'bootstrapping';
     const backendRuntimeReady = useRuntimeStore(
         (state: any) =>
             state.shell.backendRuntimeSnapshotHydrated &&
             !state.shell.backendRuntimeSessionHydrating
     );
 
-    if (!backendRuntimeReady) {
+    if (!backendRuntimeReady || isSessionPending) {
         return <RouteLoadingFallback />;
     }
     if (!isSessionReady) {
@@ -39,10 +40,19 @@ function RequireAuth() {
 }
 
 function RedirectIfAuthenticated() {
-    const isSessionReady = useSessionStore(
-        (state: any) => state.sessionPhase === 'ready'
+    const sessionPhase = useSessionStore((state: any) => state.sessionPhase);
+    const isSessionReady = sessionPhase === 'ready';
+    const isSessionPending =
+        sessionPhase === 'authenticating' || sessionPhase === 'bootstrapping';
+    const backendRuntimeReady = useRuntimeStore(
+        (state: any) =>
+            state.shell.backendRuntimeSnapshotHydrated &&
+            !state.shell.backendRuntimeSessionHydrating
     );
 
+    if (!backendRuntimeReady || isSessionPending) {
+        return <RouteLoadingFallback />;
+    }
     if (isSessionReady) {
         return <Navigate to="/feed" replace />;
     }

@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import { openExternalLink } from '@/services/entityMediaService';
@@ -31,7 +30,6 @@ import {
 import { useLoginAutoLogin } from './useLoginAutoLogin';
 
 export function useLoginPageState() {
-    const navigate = useNavigate();
     const { t } = useTranslation();
     const locale = useShellStore((state: any) => state.locale);
     const proxyServer = usePreferencesStore((state: any) => state.proxyServer);
@@ -124,12 +122,6 @@ export function useLoginPageState() {
             active = false;
         };
     }, []);
-
-    useEffect(() => {
-        if (sessionPhase === 'ready') {
-            navigate('/feed', { replace: true });
-        }
-    }, [navigate, sessionPhase]);
 
     async function handleLanguageChange(nextLanguage: any) {
         try {

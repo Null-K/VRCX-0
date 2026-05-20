@@ -16,6 +16,7 @@ import {
     useRuntimeStore
 } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
+import { useFeedLiveStore } from '@/state/feedLiveStore';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
 
 import { resetActivityCacheState } from './activityCacheService';
@@ -150,6 +151,7 @@ export function resetCurrentUserRuntimeAuth() {
     avatarProfileRepository.clearAvatarNameCache();
     useFriendRosterStore.getState().resetRoster();
     useFavoriteStore.getState().resetFavorites();
+    useFeedLiveStore.getState().resetFeedLive();
     resetDomainFacts();
     resetActivityCacheState();
     useRuntimeStore.getState().setGroupInstancesState(createGroupInstancesState());
@@ -172,6 +174,7 @@ function setCurrentUserRuntimeAuth(
     avatarProfileRepository.clearAvatarNameCache();
     useFriendRosterStore.getState().resetRoster();
     useFavoriteStore.getState().resetFavorites();
+    useFeedLiveStore.getState().resetFeedLive();
     resetDomainFacts();
     const runtimeStore = useRuntimeStore.getState();
     runtimeStore.setGroupInstancesState(createGroupInstancesState());
