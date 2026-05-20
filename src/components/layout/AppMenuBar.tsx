@@ -473,8 +473,8 @@ export function AppMenuBar({
                             <MenuItem onSelect={() => openLink(links.discord)}>
                                 {t('nav_menu.discord')}
                             </MenuItem>
-                            <MenuItem onSelect={() => openLink(links.wiki)}>
-                                {t('nav_menu.wiki')}
+                            <MenuItem onSelect={() => openLink(links.qqGroup)}>
+                                {t('nav_menu.qq_group')}
                             </MenuItem>
                             <MenuItem onSelect={() => openLink(links.releases)}>
                                 {t('nav_menu.changelog')}
