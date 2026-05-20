@@ -303,6 +303,13 @@ export function useUserDialogGroupActions({
         if (!isCurrentUser || !currentUserId || !groupId || groupActionId) {
             return;
         }
+        const isCurrentGroupOrderScope = () => {
+            const state = useRuntimeStore.getState();
+            return (
+                state.auth.currentUserId === currentUserId &&
+                state.auth.currentUserEndpoint === currentEndpoint
+            );
+        };
         const previousOrder = editableGroupOrder();
         const index = previousOrder.indexOf(groupId);
         if (index === -1) {
@@ -325,9 +332,13 @@ export function useUserDialogGroupActions({
             return;
         }
         setGroupActionId(groupId);
-        useRuntimeStore
-            .getState()
-            .setGroupInstancesState({ groupOrder: nextOrder });
+        if (isCurrentGroupOrderScope()) {
+            useRuntimeStore.getState().setGroupInstancesState({
+                userId: currentUserId,
+                endpoint: currentEndpoint,
+                groupOrder: nextOrder
+            });
+        }
         setGroupSort('inGame');
         try {
             await setVrchatRegistryKey(
@@ -337,9 +348,13 @@ export function useUserDialogGroupActions({
             );
             toast.success(t('dialog.user.success.group_order_updated'));
         } catch (error) {
-            useRuntimeStore
-                .getState()
-                .setGroupInstancesState({ groupOrder: previousOrder });
+            if (isCurrentGroupOrderScope()) {
+                useRuntimeStore.getState().setGroupInstancesState({
+                    userId: currentUserId,
+                    endpoint: currentEndpoint,
+                    groupOrder: previousOrder
+                });
+            }
             toast.error(
                 error instanceof Error
                     ? error.message

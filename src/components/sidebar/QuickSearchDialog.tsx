@@ -270,6 +270,7 @@ function useQuickSearchResults({
         (state: any) => state.groupInstances
     );
     const groupInstances =
+        groupInstancesState.userId === currentUserId &&
         groupInstancesState.endpoint === currentEndpoint
             ? groupInstancesState.instances
             : [];

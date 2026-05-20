@@ -175,6 +175,10 @@ impl RuntimeEventBus {
         self.emit("realtimeCurrentUserProjection", payload);
     }
 
+    pub fn emit_runtime_group_instances_projection(&self, payload: Value) {
+        self.emit("runtimeGroupInstancesProjection", payload);
+    }
+
     pub fn emit_realtime_instance_closed_projection(
         &self,
         payload: RealtimeInstanceClosedProjection,

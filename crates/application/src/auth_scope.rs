@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use serde::Serialize;
+use vrcx_0_vrchat_client::http_api::normalize_vrchat_api_endpoint;
 
 #[derive(Clone, Debug, Default, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -55,12 +56,7 @@ fn normalize_text(value: impl AsRef<str>) -> String {
 }
 
 fn normalize_endpoint(value: impl AsRef<str>) -> String {
-    let endpoint = value.as_ref().trim().trim_end_matches('/');
-    if endpoint.is_empty() {
-        String::new()
-    } else {
-        endpoint.to_string()
-    }
+    normalize_vrchat_api_endpoint(Some(value.as_ref()))
 }
 
 #[cfg(test)]
@@ -79,6 +75,13 @@ mod tests {
         assert!(scope.matches("usr_current", "https://api.example.test/api/1"));
         assert!(scope.matches("usr_current", "https://api.example.test/api/1/"));
         assert!(!scope.matches("usr_other", "https://api.example.test/api/1"));
+
+        let default_endpoint = scope.set("usr_current", "");
+        assert_eq!(
+            default_endpoint.endpoint,
+            "https://api.vrchat.cloud/api/1"
+        );
+        assert!(scope.matches("usr_current", ""));
 
         let cleared = scope.set("", "");
         assert!(!cleared.active);

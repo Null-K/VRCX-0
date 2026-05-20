@@ -20,14 +20,16 @@ pub fn app__start_realtime_transport(
     current_user_snapshot: Value,
     friends_by_id: HashMap<String, FriendRecord>,
 ) -> Result<RealtimeTransportStartResult, AppError> {
-    Ok(state.realtime_runtime.start(
-        user_id,
-        endpoint,
-        websocket,
+    let result = state.realtime_runtime.start(
+        user_id.clone(),
+        endpoint.clone(),
+        websocket.clone(),
         client_run_id,
-        current_user_snapshot,
+        current_user_snapshot.clone(),
         friends_by_id,
-    )?)
+    )?;
+    state.sync_frontend_authenticated_session(user_id, endpoint, websocket, current_user_snapshot);
+    Ok(result)
 }
 
 #[tauri::command]

@@ -122,24 +122,6 @@ impl RuntimeBackgroundJobs {
     pub fn register_frontend_job_catalog(&self) {
         for (name, cadence_seconds, initial_delay_seconds, detail) in [
             (
-                "friendsRefresh",
-                Some(3_600),
-                3_600,
-                "Friend and favorite refresh is scheduled by Rust and executed by the authenticated frontend runtime.",
-            ),
-            (
-                "groupInstanceRefresh",
-                Some(300),
-                0,
-                "Group instance refresh is scheduled by Rust and executed by the authenticated frontend runtime.",
-            ),
-            (
-                "moderationRefresh",
-                Some(3_600),
-                3_600,
-                "Moderation snapshot refresh is scheduled by Rust and executed by the authenticated frontend runtime.",
-            ),
-            (
                 "appUpdateCheck",
                 Some(10_800),
                 10_800,
@@ -150,18 +132,6 @@ impl RuntimeBackgroundJobs {
                 Some(86_400),
                 86_400,
                 "Frontend memory/cache cleanup is scheduled by Rust and executed by the frontend runtime.",
-            ),
-            (
-                "discordUpdate",
-                Some(3),
-                0,
-                "Discord presence is scheduled by Rust and executed by the authenticated frontend runtime.",
-            ),
-            (
-                "autoStateChange",
-                Some(3),
-                0,
-                "Presence automation is scheduled by Rust and executed by the authenticated frontend runtime.",
             ),
             (
                 "startupMaintenance",

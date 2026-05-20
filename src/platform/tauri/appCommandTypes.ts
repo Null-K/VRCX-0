@@ -1367,6 +1367,7 @@ export interface AppTauriCommandNamespace extends TauriCommandNamespace {
         delaySeconds: number;
     }): Promise<boolean>;
     RuntimeFrontendScheduleSchedulesReset(): Promise<void>;
+    RuntimeGroupInstancesRefresh(): Promise<void>;
     RuntimeBackgroundJobsSnapshotGet(): Promise<RuntimeBackgroundJobSnapshot[]>;
     RuntimeDiagnosticsGet(): Promise<RuntimeDiagnosticsSnapshot>;
     ExternalApiAvatarSearchGet(input: {

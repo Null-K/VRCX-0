@@ -30,6 +30,7 @@ const GROUP_HEADER_ROW_SIZE = 38;
 const GROUP_INSTANCE_ROW_SIZE = 49;
 const GROUP_MESSAGE_ROW_SIZE = 64;
 const GROUP_FOOTER_ROW_SIZE = 16;
+const EMPTY_GROUP_ORDER: any[] = [];
 
 function estimateGroupSidebarRowSize(row: any) {
     switch (row?.type) {
@@ -381,8 +382,11 @@ export function GroupsSidebar() {
     const groupInstancesState = useRuntimeStore(
         (state: any) => state.groupInstances
     );
-    const groupOrder = useRuntimeStore(
-        (state: any) => state.groupInstances.groupOrder
+    const groupOrder = useRuntimeStore((state: any) =>
+        state.groupInstances.userId === state.auth.currentUserId &&
+        state.groupInstances.endpoint === state.auth.currentUserEndpoint
+            ? state.groupInstances.groupOrder
+            : EMPTY_GROUP_ORDER
     );
     const status = useRuntimeStore((state: any) => state.groupInstances.status);
     const error = useRuntimeStore((state: any) => state.groupInstances.error);
@@ -394,6 +398,7 @@ export function GroupsSidebar() {
     );
     const friendsById = useFriendRosterStore((state: any) => state.friendsById);
     const instances =
+        groupInstancesState.userId === currentUserId &&
         groupInstancesState.endpoint === currentEndpoint
             ? groupInstancesState.instances
             : [];

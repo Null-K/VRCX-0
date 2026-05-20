@@ -136,6 +136,7 @@ pub struct RuntimeHostState {
     backend_starting: AtomicBool,
     registry_backup_maintenance_running: Arc<AtomicBool>,
     background_capabilities_running: Arc<AtomicBool>,
+    background_group_instances_refresh_running: Arc<AtomicBool>,
     registry_backup_lock: Arc<Mutex<()>>,
     backend_frontend_session: Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
     _profile_lock: ProfileLock,
@@ -237,6 +238,7 @@ impl RuntimeHostState {
             backend_starting: AtomicBool::new(false),
             registry_backup_maintenance_running: Arc::new(AtomicBool::new(false)),
             background_capabilities_running: Arc::new(AtomicBool::new(false)),
+            background_group_instances_refresh_running: Arc::new(AtomicBool::new(false)),
             registry_backup_lock: Arc::new(Mutex::new(())),
             backend_frontend_session: Arc::new(Mutex::new(None)),
             _profile_lock: profile_lock,
@@ -485,6 +487,8 @@ impl RuntimeHostState {
             && snapshot.phase == BackendRuntimePhase::Running
         {
             self.start_gui_background_registry_backup_loop();
+        }
+        if snapshot.phase == BackendRuntimePhase::Running {
             self.start_gui_background_capability_loops();
         }
         let detail = match mode {
@@ -507,6 +511,41 @@ impl RuntimeHostState {
         true
     }
 
+    pub fn clear_backend_frontend_session(&self) {
+        let previous = self
+            .backend_frontend_session
+            .lock()
+            .ok()
+            .and_then(|mut slot| slot.take());
+        self.realtime_runtime.stop(RealtimeStopRequest::default());
+        self.runtime_context.session.clear_realtime_context();
+        if let Some(previous) = previous {
+            self.runtime_context
+                .event_bus
+                .emit_runtime_group_instances_projection(json!({
+                    "status": "idle",
+                    "userId": previous.user_id,
+                    "endpoint": previous.endpoint,
+                    "instances": [],
+                    "groupOrder": [],
+                    "error": "",
+                }));
+        }
+    }
+
+    pub async fn refresh_runtime_group_instances(&self) {
+        run_background_group_instance_refresh(
+            &self.db,
+            &self.web,
+            &self.backend_frontend_session,
+            &self.runtime_context,
+            &self.backend_runtime,
+            &self.runtime_context.background_jobs,
+            &self.background_group_instances_refresh_running,
+        )
+        .await;
+    }
+
     pub async fn start_backend_runtime(
         &self,
         mode: BackendRuntimeMode,
@@ -526,6 +565,8 @@ impl RuntimeHostState {
                 && current.phase == BackendRuntimePhase::Running
             {
                 self.start_gui_background_registry_backup_loop();
+            }
+            if current.phase == BackendRuntimePhase::Running {
                 self.start_gui_background_capability_loops();
             }
             return Ok(self.backend_runtime.snapshot());
@@ -592,8 +633,8 @@ impl RuntimeHostState {
         self.backend_runtime.set_phase(BackendRuntimePhase::Running);
         if self.backend_runtime.snapshot().mode == BackendRuntimeMode::Background {
             self.start_gui_background_registry_backup_loop();
-            self.start_gui_background_capability_loops();
         }
+        self.start_gui_background_capability_loops();
         Ok(self.backend_runtime.snapshot())
     }
 
@@ -761,6 +802,39 @@ impl RuntimeHostState {
         if let Ok(mut slot) = self.backend_frontend_session.lock() {
             *slot = Some(snapshot);
         }
+    }
+
+    pub fn sync_frontend_authenticated_session(
+        &self,
+        user_id: String,
+        endpoint: String,
+        websocket: String,
+        current_user_snapshot: Value,
+    ) {
+        let user_id = user_id.trim().to_string();
+        if user_id.is_empty() {
+            return;
+        }
+        let display_name = string_field(&current_user_snapshot, "displayName")
+            .or_else(|| string_field(&current_user_snapshot, "username"))
+            .unwrap_or_else(|| user_id.clone());
+        self.runtime_context.auth_scope.set(&user_id, &endpoint);
+        let snapshot = BackendRuntimeFrontendSessionSnapshot {
+            authenticated: true,
+            user_id: user_id.clone(),
+            display_name: display_name.clone(),
+            endpoint,
+            websocket,
+            current_user_snapshot,
+        };
+        if let Ok(mut slot) = self.backend_frontend_session.lock() {
+            *slot = Some(snapshot);
+        }
+        self.backend_runtime
+            .set_auth_success(user_id, display_name.clone());
+        let snapshot = self.backend_runtime.set_phase(BackendRuntimePhase::Running);
+        self.emit_backend_runtime_telemetry_snapshot("authSuccess", display_name, snapshot);
+        self.start_gui_background_capability_loops();
     }
 
     fn start_log_watcher_for_current_platform(
@@ -1001,9 +1075,12 @@ impl RuntimeHostState {
 
     fn start_gui_background_capability_loops(&self) {
         let current = self.backend_runtime.snapshot();
-        if current.mode != BackendRuntimeMode::Background
-            || current.phase != BackendRuntimePhase::Running
-        {
+        let auth_scope = self.runtime_context.auth_scope.snapshot();
+        let active_runtime =
+            is_authenticated_gui_maintenance_active_snapshot(&current, &auth_scope);
+        let active_session =
+            background_session_scope_matches_auth(&self.backend_frontend_session, &auth_scope);
+        if !active_runtime || !active_session {
             return;
         }
         if self
@@ -1049,6 +1126,8 @@ impl RuntimeHostState {
         let backend_runtime = self.backend_runtime.clone();
         let background_jobs = self.runtime_context.background_jobs.clone();
         let running = Arc::clone(&self.background_capabilities_running);
+        let group_instances_refresh_running =
+            Arc::clone(&self.background_group_instances_refresh_running);
         let session_slot = Arc::clone(&self.backend_frontend_session);
         let realtime_runtime = Arc::clone(&self.realtime_runtime);
         let runtime_context = Arc::clone(&self.runtime_context);
@@ -1068,16 +1147,38 @@ impl RuntimeHostState {
                 let mut next_moderation = Instant::now();
                 let mut favorite_friend_groups_by_key: HashMap<String, Vec<String>> =
                     HashMap::new();
+                let mut active_scope_key =
+                    background_capability_session_scope_key(&session_slot).unwrap_or_default();
                 let sleep_chunk = Duration::from_secs(1);
 
                 loop {
                     if stop_token.is_stop_requested()
-                        || !is_background_registry_maintenance_active(&backend_runtime)
+                        || !is_authenticated_gui_maintenance_active(
+                            &backend_runtime,
+                            &runtime_context,
+                            &session_slot,
+                        )
                     {
                         break;
                     }
 
                     let now = Instant::now();
+                    let scope_key =
+                        background_capability_session_scope_key(&session_slot).unwrap_or_default();
+                    if scope_key != active_scope_key {
+                        active_scope_key = scope_key;
+                        presence_state = BackgroundPresenceAutomationState::default();
+                        discord_state = BackgroundDiscordPresenceState::default();
+                        discord_success_info = None;
+                        favorite_friend_groups_by_key.clear();
+                        next_presence = now;
+                        next_discord = now;
+                        next_current_user = now;
+                        next_group_instances = now;
+                        next_social = now;
+                        next_moderation = now;
+                    }
+
                     if now >= next_current_user {
                         run_background_current_user_refresh(
                             &db,
@@ -1101,6 +1202,7 @@ impl RuntimeHostState {
                             &runtime_context,
                             &backend_runtime,
                             &background_jobs,
+                            &group_instances_refresh_running,
                         )
                         .await;
                         next_group_instances =
@@ -1223,6 +1325,50 @@ fn is_background_registry_maintenance_active(runtime: &BackendRuntime) -> bool {
         && snapshot.phase == BackendRuntimePhase::Running
 }
 
+fn is_authenticated_gui_maintenance_active(
+    runtime: &BackendRuntime,
+    runtime_context: &Arc<RuntimeHostContext>,
+    session_slot: &Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
+) -> bool {
+    let auth_scope = runtime_context.auth_scope.snapshot();
+    if !is_authenticated_gui_maintenance_active_snapshot(&runtime.snapshot(), &auth_scope) {
+        return false;
+    }
+    background_capability_session(session_slot)
+        .map(|session| background_session_matches_auth(&session, &auth_scope))
+        .unwrap_or(auth_scope.active)
+}
+
+fn is_authenticated_gui_maintenance_active_snapshot(
+    snapshot: &BackendRuntimeSnapshot,
+    auth_scope: &vrcx_0_application::RuntimeAuthScopeSnapshot,
+) -> bool {
+    snapshot.mode != BackendRuntimeMode::Headless
+        && snapshot.phase == BackendRuntimePhase::Running
+        && snapshot.auth_status == "authenticated"
+        && !snapshot.auth_user_id.trim().is_empty()
+        && auth_scope.active
+        && auth_scope.current_user_id == snapshot.auth_user_id
+}
+
+fn background_session_scope_matches_auth(
+    session_slot: &Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
+    auth_scope: &vrcx_0_application::RuntimeAuthScopeSnapshot,
+) -> bool {
+    background_capability_session(session_slot)
+        .map(|session| background_session_matches_auth(&session, auth_scope))
+        .unwrap_or(false)
+}
+
+fn background_session_matches_auth(
+    session: &BackgroundCapabilitySession,
+    auth_scope: &vrcx_0_application::RuntimeAuthScopeSnapshot,
+) -> bool {
+    auth_scope.active
+        && session.current_user_id == auth_scope.current_user_id
+        && normalize_vrchat_api_endpoint(Some(&session.endpoint)) == auth_scope.endpoint
+}
+
 fn emit_background_info(
     runtime_context: &Arc<RuntimeHostContext>,
     backend_runtime: &BackendRuntime,
@@ -1260,13 +1406,8 @@ fn emit_background_output(
     detail: impl Into<String>,
 ) {
     let snapshot = backend_runtime.snapshot();
-    if snapshot.mode != BackendRuntimeMode::Background
-        || !matches!(
-            snapshot.phase,
-            BackendRuntimePhase::Starting
-                | BackendRuntimePhase::Authenticating
-                | BackendRuntimePhase::Running
-        )
+    if snapshot.mode == BackendRuntimeMode::Headless
+        || !matches!(snapshot.phase, BackendRuntimePhase::Running)
     {
         return;
     }
@@ -1293,11 +1434,37 @@ fn background_capability_session(
     })
 }
 
+fn background_capability_session_scope_key(
+    session_slot: &Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
+) -> Option<String> {
+    background_capability_session(session_slot).map(|session| {
+        format!(
+            "{}:{}",
+            session.current_user_id,
+            normalize_vrchat_api_endpoint(Some(&session.endpoint))
+        )
+    })
+}
+
 fn background_capability_session_matches(
     session_slot: &Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
     session: &BackgroundCapabilitySession,
 ) -> bool {
     session_slot_matches(session_slot.lock().ok().as_deref(), session)
+}
+
+fn read_group_order(user_id: &str) -> Value {
+    if !is_host_capability_available(HostCapability::RegistryPrefs) {
+        return json!([]);
+    }
+    let key = format!("VRC_GROUP_ORDER_{}", user_id.trim());
+    let Ok(raw) = vrcx_0_host::vrchat_registry::get_registry_key_string(&key) else {
+        return json!([]);
+    };
+    match serde_json::from_str::<Value>(&raw) {
+        Ok(value) if value.is_array() => value,
+        _ => json!([]),
+    }
 }
 
 async fn run_background_presence_tick(
@@ -1686,7 +1853,16 @@ async fn run_background_group_instance_refresh(
     runtime_context: &Arc<RuntimeHostContext>,
     backend_runtime: &BackendRuntime,
     background_jobs: &RuntimeBackgroundJobs,
+    refresh_running: &Arc<AtomicBool>,
 ) {
+    let Some(_refresh_guard) = AtomicFlagGuard::try_acquire(refresh_running) else {
+        background_jobs.mark_scheduled(
+            BACKGROUND_FACTS_REFRESH_JOB,
+            "Background group instance refresh is already running.",
+            BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
+        );
+        return;
+    };
     background_jobs.mark_running(
         BACKGROUND_FACTS_REFRESH_JOB,
         "Refreshing background group instance facts.",
@@ -1699,14 +1875,68 @@ async fn run_background_group_instance_refresh(
         );
         return;
     };
+    runtime_context
+        .event_bus
+        .emit_runtime_group_instances_projection(json!({
+            "status": "running",
+            "userId": &session.current_user_id,
+            "endpoint": &session.endpoint,
+        }));
     match refresh_background_group_instances(web.as_ref(), db.as_ref(), &session).await {
-        Ok(count) => {
+        Ok(refresh) => {
+            if !background_capability_session_matches(session_slot, &session) {
+                tracing::warn!("ignored stale background group instance refresh");
+                emit_stale_group_instance_refresh_idle(
+                    session_slot,
+                    runtime_context,
+                    &session,
+                );
+                background_jobs.mark_scheduled(
+                    BACKGROUND_FACTS_REFRESH_JOB,
+                    "Stale background group instance refresh ignored.",
+                    BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
+                );
+                return;
+            }
+            let count = refresh.instances.len();
+            runtime_context
+                .event_bus
+                .emit_runtime_group_instances_projection(json!({
+                    "status": "ready",
+                    "userId": &session.current_user_id,
+                    "endpoint": &session.endpoint,
+                    "instances": refresh.instances,
+                    "groupOrder": read_group_order(&session.current_user_id),
+                    "fetchedAt": refresh.fetched_at,
+                }));
             let detail = format!("group instance facts refreshed: {count} rows.");
             emit_background_info(runtime_context, backend_runtime, detail.clone());
             background_jobs.mark_completed(BACKGROUND_FACTS_REFRESH_JOB, detail);
         }
         Err(error) => {
+            if !background_capability_session_matches(session_slot, &session) {
+                tracing::warn!("ignored stale background group instance refresh error");
+                emit_stale_group_instance_refresh_idle(
+                    session_slot,
+                    runtime_context,
+                    &session,
+                );
+                background_jobs.mark_scheduled(
+                    BACKGROUND_FACTS_REFRESH_JOB,
+                    "Stale background group instance refresh error ignored.",
+                    BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
+                );
+                return;
+            }
             tracing::warn!(error = %error, "background group instance refresh failed");
+            runtime_context
+                .event_bus
+                .emit_runtime_group_instances_projection(json!({
+                    "status": "error",
+                    "userId": &session.current_user_id,
+                    "endpoint": &session.endpoint,
+                    "error": error.to_string(),
+                }));
             emit_background_error(
                 runtime_context,
                 backend_runtime,
@@ -1720,6 +1950,38 @@ async fn run_background_group_instance_refresh(
         "Next background group instance facts refresh is waiting.",
         BACKGROUND_GROUP_INSTANCE_CADENCE_SECONDS,
     );
+}
+
+fn emit_stale_group_instance_refresh_idle(
+    session_slot: &Arc<Mutex<Option<BackendRuntimeFrontendSessionSnapshot>>>,
+    runtime_context: &Arc<RuntimeHostContext>,
+    session: &BackgroundCapabilitySession,
+) {
+    let same_scope = background_capability_session(session_slot)
+        .map(|current| {
+            current.current_user_id == session.current_user_id
+                && current.endpoint == session.endpoint
+        })
+        .unwrap_or(false);
+    if same_scope {
+        runtime_context
+            .event_bus
+            .emit_runtime_group_instances_projection(json!({
+                "status": "idle",
+                "userId": &session.current_user_id,
+                "endpoint": &session.endpoint,
+            }));
+        return;
+    }
+    runtime_context
+        .event_bus
+        .emit_runtime_group_instances_projection(json!({
+            "status": "idle",
+            "userId": &session.current_user_id,
+            "endpoint": &session.endpoint,
+            "instances": [],
+            "groupOrder": [],
+        }));
 }
 
 async fn run_background_social_baseline_refresh(
@@ -2036,6 +2298,26 @@ impl<'a> BackendStartGuard<'a> {
 }
 
 impl Drop for BackendStartGuard<'_> {
+    fn drop(&mut self) {
+        self.flag.store(false, Ordering::Release);
+    }
+}
+
+struct AtomicFlagGuard {
+    flag: Arc<AtomicBool>,
+}
+
+impl AtomicFlagGuard {
+    fn try_acquire(flag: &Arc<AtomicBool>) -> Option<Self> {
+        flag.compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
+            .ok()
+            .map(|_| Self {
+                flag: Arc::clone(flag),
+            })
+    }
+}
+
+impl Drop for AtomicFlagGuard {
     fn drop(&mut self) {
         self.flag.store(false, Ordering::Release);
     }

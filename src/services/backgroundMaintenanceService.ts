@@ -1,6 +1,5 @@
 import { tauriClient } from '@/platform/tauri/client';
 import configRepository from '@/repositories/configRepository';
-import groupProfileRepository from '@/repositories/groupProfileRepository';
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import { clearFavoriteRemoteDetailsCache } from '@/services/favoriteRemoteDetailsCacheService';
 import { isHostCapabilityAvailable } from '@/services/hostCapabilityService';
@@ -14,28 +13,20 @@ import {
     hasUpdateForBranch,
     sanitizeBranch
 } from '@/services/updateService';
-import { parseLocation } from '@/shared/utils/locationParser';
 import { useModalStore } from '@/state/modalStore';
 import { useNotificationStore } from '@/state/notificationStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
 import { buildAvatarWearSnapshotUpdate } from './avatarWearTimeService';
-import { runDiscordPresenceMaintenanceTick } from './discordPresenceService';
-import {
-    recordCurrentUserSnapshot,
-    recordLocationHintsFromInstances
-} from './domainIngestionService';
+import { recordCurrentUserSnapshot } from './domainIngestionService';
 import { bootstrapFavorites } from './favoriteBootstrapService';
 import {
     bootstrapFriendRoster,
     syncFriendRosterStateFromCurrentUserSnapshot
 } from './friendBootstrapService';
 import { refreshModerationSync } from './moderationSyncService';
-import {
-    resetPresenceAutomationExecutor,
-    runPresenceAutomation
-} from './presence-automation/index';
+import { resetPresenceAutomationExecutor } from './presence-automation/index';
 import {
     recordRuntimeJobTelemetry,
     runRuntimeTelemetryJob
@@ -43,15 +34,6 @@ import {
 
 // 3hr
 const APP_UPDATE_CHECK_INTERVAL_SECONDS = 3 * 3600;
-
-const groupInstanceProfileCache = new Map();
-
-function groupInstanceProfileCacheKey(endpoint: any, groupId: any) {
-    const normalizedEndpoint = String(endpoint || '')
-        .trim()
-        .replace(/\/+$/, '');
-    return normalizedEndpoint ? `${normalizedEndpoint}:${groupId}` : groupId;
-}
 
 let running = false;
 
@@ -71,240 +53,6 @@ function setUpdaterCheckResult(hasAvailableUpdate: any, detail: any = '') {
         hasAvailableUpdate: Boolean(hasAvailableUpdate),
         lastUpdaterCheckAt: new Date().toISOString(),
         lastUpdaterCheckDetail: detail
-    });
-}
-
-function safeJsonParse(value: any, fallback: any) {
-    if (!value) {
-        return fallback;
-    }
-    try {
-        return JSON.parse(value);
-    } catch {
-        return fallback;
-    }
-}
-
-function extractFirstJsonValue(input: any) {
-    const trimmed = String(input || '').trimStart();
-    if (!trimmed) {
-        return null;
-    }
-    const firstChar = trimmed[0];
-    if (firstChar !== '[' && firstChar !== '{') {
-        return null;
-    }
-
-    let depth = 0;
-    let inString = false;
-    let escaped = false;
-    for (let index = 0; index < trimmed.length; index += 1) {
-        const char = trimmed[index];
-        if (inString) {
-            if (escaped) {
-                escaped = false;
-            } else if (char === '\\') {
-                escaped = true;
-            } else if (char === '"') {
-                inString = false;
-            }
-            continue;
-        }
-
-        if (char === '"') {
-            inString = true;
-            continue;
-        }
-        if (char === '[' || char === '{') {
-            depth += 1;
-            continue;
-        }
-        if (char === ']' || char === '}') {
-            depth -= 1;
-            if (depth === 0) {
-                return trimmed.slice(0, index + 1);
-            }
-        }
-    }
-
-    return null;
-}
-
-function parseInGameGroupOrder(value: any) {
-    if (Array.isArray(value)) {
-        return value.filter(Boolean);
-    }
-    if (typeof value !== 'string') {
-        return [];
-    }
-    const parsed = safeJsonParse(value, null);
-    if (Array.isArray(parsed)) {
-        return parsed.filter(Boolean);
-    }
-    const recovered = extractFirstJsonValue(value);
-    if (!recovered) {
-        return [];
-    }
-    const recoveredParsed = safeJsonParse(recovered, null);
-    return Array.isArray(recoveredParsed)
-        ? recoveredParsed.filter(Boolean)
-        : [];
-}
-
-function firstGroupId(...values: any[]) {
-    for (const value of values) {
-        const text =
-            typeof value === 'string'
-                ? value.trim()
-                : String(value ?? '').trim();
-        if (text.startsWith('grp_')) {
-            return text;
-        }
-    }
-    return '';
-}
-
-function normalizeGroupInstanceGroupId(instance: any) {
-    const location = instance?.location || instance?.instance?.location || '';
-    const parsedLocation = parseLocation(location);
-    return firstGroupId(
-        instance?.group?.groupId ||
-            instance?.group?.id ||
-            instance?.instance?.group?.groupId ||
-            instance?.instance?.group?.id,
-        instance?.groupId,
-        instance?.group_id,
-        instance?.instance?.groupId,
-        instance?.instance?.group_id,
-        instance?.ownerId,
-        instance?.owner_id,
-        instance?.instance?.ownerId,
-        instance?.instance?.owner_id,
-        parsedLocation.groupId
-    );
-}
-
-function getGroupInstanceGroup(instance: any) {
-    return instance?.group || instance?.instance?.group || null;
-}
-
-function createGroupInstanceFallback(groupId: any) {
-    return groupId ? { id: groupId, groupId, name: groupId } : null;
-}
-
-function resolveGroupInstanceName(group: any, groupId: any = '') {
-    const name = String(group?.name || group?.displayName || '').trim();
-    if (!name || name === groupId) {
-        return '';
-    }
-    return name;
-}
-
-function hasCompleteGroupInstanceGroup(instance: any) {
-    const group = getGroupInstanceGroup(instance);
-    return Boolean(
-        group &&
-        (group.id || group.groupId) &&
-        group.name &&
-        (group.iconUrl || group.icon || group.thumbnailUrl || group.imageUrl)
-    );
-}
-
-function mergeGroupInstanceGroup(existingGroup: any, fetchedGroup: any) {
-    if (!existingGroup) {
-        return fetchedGroup;
-    }
-    if (!fetchedGroup) {
-        return existingGroup;
-    }
-    return {
-        ...fetchedGroup,
-        ...existingGroup,
-        id:
-            existingGroup.id ||
-            existingGroup.groupId ||
-            fetchedGroup.id ||
-            fetchedGroup.groupId,
-        groupId:
-            existingGroup.groupId ||
-            existingGroup.id ||
-            fetchedGroup.groupId ||
-            fetchedGroup.id,
-        name:
-            resolveGroupInstanceName(
-                existingGroup,
-                existingGroup.groupId || existingGroup.id
-            ) ||
-            resolveGroupInstanceName(
-                fetchedGroup,
-                fetchedGroup.groupId || fetchedGroup.id
-            ) ||
-            existingGroup.name ||
-            fetchedGroup.name,
-        iconUrl: existingGroup.iconUrl || fetchedGroup.iconUrl,
-        icon: existingGroup.icon || fetchedGroup.icon,
-        thumbnailUrl: existingGroup.thumbnailUrl || fetchedGroup.thumbnailUrl,
-        imageUrl: existingGroup.imageUrl || fetchedGroup.imageUrl
-    };
-}
-
-async function hydrateGroupInstances(instances: any, endpoint: any) {
-    const groupIds = Array.from(
-        new Set(
-            (instances || [])
-                .filter(
-                    (instance: any) => !hasCompleteGroupInstanceGroup(instance)
-                )
-                .map((instance: any) => normalizeGroupInstanceGroupId(instance))
-                .filter(Boolean)
-        )
-    );
-    if (!groupIds.length) {
-        return instances || [];
-    }
-
-    const results = await Promise.allSettled(
-        groupIds
-            .filter(
-                (groupId: any) =>
-                    !groupInstanceProfileCache.has(
-                        groupInstanceProfileCacheKey(endpoint, groupId)
-                    )
-            )
-            .map(async (groupId: any) => [
-                groupId,
-                await groupProfileRepository.getGroupProfile({
-                    groupId,
-                    endpoint,
-                    includeRoles: false
-                })
-            ])
-    );
-    const groupsById = new Map();
-    for (const groupId of groupIds) {
-        const cacheKey = groupInstanceProfileCacheKey(endpoint, groupId);
-        if (groupInstanceProfileCache.has(cacheKey)) {
-            groupsById.set(groupId, groupInstanceProfileCache.get(cacheKey));
-        }
-    }
-    for (const result of results) {
-        if (result.status === 'fulfilled') {
-            groupInstanceProfileCache.set(
-                groupInstanceProfileCacheKey(endpoint, result.value[0]),
-                result.value[1]
-            );
-            groupsById.set(result.value[0], result.value[1]);
-        }
-    }
-
-    return (instances || []).map((instance: any) => {
-        const groupId = normalizeGroupInstanceGroupId(instance);
-        const group = mergeGroupInstanceGroup(
-            getGroupInstanceGroup(instance) ||
-                createGroupInstanceFallback(groupId),
-            groupsById.get(groupId)
-        );
-        return group ? { ...instance, group } : instance;
     });
 }
 
@@ -652,69 +400,6 @@ export async function refreshPlayerModerations({ isCurrent = null }: any = {}) {
     }
 }
 
-async function refreshGroupUserInstances() {
-    const auth = getRuntimeAuth();
-    if (!auth.currentUserId) {
-        return;
-    }
-
-    const runtimeStore = useRuntimeStore.getState();
-    runtimeStore.setGroupInstancesState({
-        status: 'running',
-        error: ''
-    });
-
-    try {
-        const response = await groupProfileRepository.getUsersGroupInstances({
-            userId: auth.currentUserId,
-            endpoint: auth.currentUserEndpoint
-        });
-        const instances = Array.isArray(response.json)
-            ? response.json
-            : Array.isArray(response.json?.instances)
-              ? response.json.instances
-              : [];
-        const hydratedInstances = await hydrateGroupInstances(
-            instances,
-            auth.currentUserEndpoint
-        );
-        const groupOrder = await tauriClient.app
-            .GetVRChatRegistryKey(`VRC_GROUP_ORDER_${auth.currentUserId}`)
-            .then(parseInGameGroupOrder)
-            .catch(() => []);
-        const fetchedAt = response.json?.fetchedAt || new Date().toISOString();
-        runtimeStore.setGroupInstancesState({
-            status: 'ready',
-            endpoint: auth.currentUserEndpoint,
-            instances: hydratedInstances,
-            groupOrder,
-            fetchedAt,
-            lastLoadedAt: new Date().toISOString(),
-            error: ''
-        });
-        recordLocationHintsFromInstances({
-            endpoint: auth.currentUserEndpoint,
-            instances: hydratedInstances
-        });
-    } catch (error) {
-        runtimeStore.setGroupInstancesState({
-            status: 'error',
-            error: error instanceof Error ? error.message : String(error),
-            lastLoadedAt: new Date().toISOString()
-        });
-        throw error;
-    }
-}
-
-async function runGroupUserInstances() {
-    if (!useSessionStore.getState().isFriendsLoaded) {
-        await deferRuntimeScheduledFrontendJob('groupInstanceRefresh', 30);
-        return;
-    }
-
-    await refreshGroupUserInstances();
-}
-
 async function runClearVrcxCache() {
     const frequency = Number(
         await configRepository.getInt('clearVRCXCacheFrequency', 172800)
@@ -733,14 +418,6 @@ async function runClearVrcxCache() {
         lastCacheCleanupAt: new Date().toISOString(),
         lastCacheCleanupDetail: `Cleared ${cleared.detailCacheCount} remote favorite detail cache entries.`
     });
-}
-
-async function refreshDiscordPresence() {
-    await runDiscordPresenceMaintenanceTick();
-}
-
-async function updateAutoStateChange() {
-    await runPresenceAutomation();
 }
 
 async function runRegistryBackupMaintenance(reason: string) {
@@ -972,27 +649,6 @@ export async function runBackgroundMaintenanceTick() {
     });
 
     try {
-        if (dueJobs.has('friendsRefresh')) {
-            await runRuntimeScheduledTask(
-                'friendsRefresh',
-                3600,
-                refreshFriendAndFavoriteSnapshots
-            );
-        }
-        if (dueJobs.has('groupInstanceRefresh')) {
-            await runRuntimeScheduledTask(
-                'groupInstanceRefresh',
-                300,
-                runGroupUserInstances
-            );
-        }
-        if (dueJobs.has('moderationRefresh')) {
-            await runRuntimeScheduledTask(
-                'moderationRefresh',
-                3600,
-                refreshPlayerModerations
-            );
-        }
         if (dueJobs.has('appUpdateCheck')) {
             await runRuntimeScheduledTask(
                 'appUpdateCheck',
@@ -1005,20 +661,6 @@ export async function runBackgroundMaintenanceTick() {
                 'clearVRCXCacheCheck',
                 86400,
                 runClearVrcxCache
-            );
-        }
-        if (dueJobs.has('discordUpdate')) {
-            await runRuntimeScheduledTask(
-                'discordUpdate',
-                3,
-                refreshDiscordPresence
-            );
-        }
-        if (dueJobs.has('autoStateChange')) {
-            await runRuntimeScheduledTask(
-                'autoStateChange',
-                3,
-                updateAutoStateChange
             );
         }
     } finally {

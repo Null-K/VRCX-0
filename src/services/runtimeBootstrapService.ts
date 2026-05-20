@@ -6,7 +6,6 @@ import { DEFAULT_TIME_UNIT_LABELS, useShellStore } from '@/state/shellStore';
 import { bootstrapActivityCache } from './activityCacheService';
 import { startRuntimeAuthFailureRecovery } from './authSessionRecoveryService';
 import { bindRuntimeEvents } from './runtimeEventBridgeService';
-import { refreshPlayerModerations } from './backgroundMaintenanceService';
 import { bootstrapFavorites } from './favoriteBootstrapService';
 import { bootstrapFriendRoster } from './friendBootstrapService';
 import { startRuntimeGameClientSync } from './gameClientLifecycle';
@@ -38,10 +37,6 @@ function isSameAuthenticatedContext(left: any, right: any) {
         left?.endpoint === right?.endpoint &&
         left?.websocket === right?.websocket
     );
-}
-
-function isSameAuthenticatedIdentity(left: any, right: any) {
-    return left?.userId === right?.userId && left?.endpoint === right?.endpoint;
 }
 
 function getAuthenticatedRuntimeContext() {
@@ -81,7 +76,7 @@ function isBackendRuntimeOwningRealtime(context: any): boolean {
         snapshot?.phase === 'running' &&
             snapshot?.authStatus === 'authenticated' &&
             snapshot?.authUserId === context?.userId &&
-            snapshot?.mode !== 'headless'
+            snapshot?.mode === 'background'
     );
 }
 
@@ -231,12 +226,9 @@ export function startAuthenticatedRuntimeServices() {
     let disposed = false;
     let activeContext = null;
     let activeRunId = 0;
-    let activeModerationTarget = null;
-    let activeModerationRunId = 0;
     let friendBootstrapStarted = false;
     let favoritesBootstrapStarted = false;
     let activityWarmupStarted = false;
-    let moderationRefreshStarted = false;
     let realtimeTransportStarted = false;
     let realtimeTransportOwner = 'none';
     const bootstrapRetryState: any = {
@@ -274,26 +266,10 @@ export function startAuthenticatedRuntimeServices() {
         stopRealtimeTransport({ updateStatus: false });
     };
 
-    const resetModerationTarget = (context: any) => {
-        activeModerationTarget = context
-            ? {
-                  userId: context.userId,
-                  endpoint: context.endpoint
-              }
-            : null;
-        activeModerationRunId += 1;
-        moderationRefreshStarted = false;
-    };
-
     const isActiveRun = (runId: any, context: any) =>
         !disposed &&
         activeRunId === runId &&
         isCurrentAuthenticatedContext(context);
-
-    const isActiveModerationRun = (runId: any, target: any) =>
-        !disposed &&
-        activeModerationRunId === runId &&
-        isSameAuthenticatedIdentity(target, getAuthenticatedRuntimeContext());
 
     const scheduleBootstrapRetry = (key: any, runId: any, context: any) => {
         const state = bootstrapRetryState[key];
@@ -386,27 +362,6 @@ export function startAuthenticatedRuntimeServices() {
         });
     };
 
-    const runModerationRefresh = (context: any, runId: any) => {
-        moderationRefreshStarted = true;
-        const target: any = {
-            userId: context.userId,
-            endpoint: context.endpoint
-        };
-        refreshPlayerModerations({
-            isCurrent: () => isActiveModerationRun(runId, target)
-        }).catch((error: any) => {
-            if (!isActiveModerationRun(runId, target)) {
-                return;
-            }
-
-            pushRuntimeNotification({
-                level: 'warning',
-                title: 'Moderation sync failed',
-                error
-            });
-        });
-    };
-
     const runRealtimeTransport = (context: any, runId: any) => {
         realtimeTransportStarted = true;
         realtimeTransportOwner = 'frontend';
@@ -432,9 +387,6 @@ export function startAuthenticatedRuntimeServices() {
             if (activeContext) {
                 resetContext(null);
             }
-            if (activeModerationTarget) {
-                resetModerationTarget(null);
-            }
             return;
         }
 
@@ -442,12 +394,7 @@ export function startAuthenticatedRuntimeServices() {
             resetContext(context);
         }
 
-        if (!isSameAuthenticatedIdentity(activeModerationTarget, context)) {
-            resetModerationTarget(context);
-        }
-
         const runId = activeRunId;
-        const moderationRunId = activeModerationRunId;
         const sessionState = useSessionStore.getState();
 
         if (
@@ -468,10 +415,6 @@ export function startAuthenticatedRuntimeServices() {
 
         if (!activityWarmupStarted) {
             runActivityWarmup(context, runId);
-        }
-
-        if (!moderationRefreshStarted) {
-            runModerationRefresh(context, moderationRunId);
         }
 
         if (!sessionState.isFriendsLoaded) {

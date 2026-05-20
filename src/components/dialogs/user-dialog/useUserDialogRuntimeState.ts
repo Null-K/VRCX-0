@@ -8,6 +8,8 @@ import { useModalStore } from '@/state/modalStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
+const EMPTY_GROUP_ORDER: any[] = [];
+
 export function useUserDialogRuntimeState(normalizedUserId: string) {
     const currentUserId = useRuntimeStore((state: any) => state.auth.currentUserId);
     const currentUserSnapshot = useRuntimeStore(
@@ -39,6 +41,9 @@ export function useUserDialogRuntimeState(normalizedUserId: string) {
     );
     const groupInstancesEndpoint = useRuntimeStore(
         (state: any) => state.groupInstances.endpoint
+    );
+    const groupInstancesUserId = useRuntimeStore(
+        (state: any) => state.groupInstances.userId
     );
     const groupInstances = useRuntimeStore(
         (state: any) => state.groupInstances.instances
@@ -91,6 +96,7 @@ export function useUserDialogRuntimeState(normalizedUserId: string) {
     );
     const groupInstancesState = useMemo(
         () => ({
+            userId: groupInstancesUserId,
             endpoint: groupInstancesEndpoint,
             instances: groupInstances,
             lastLoadedAt: groupInstancesLastLoadedAt,
@@ -102,7 +108,8 @@ export function useUserDialogRuntimeState(normalizedUserId: string) {
             groupInstancesEndpoint,
             groupInstancesFetchedAt,
             groupInstancesLastLoadedAt,
-            groupInstancesStatus
+            groupInstancesStatus,
+            groupInstancesUserId
         ]
     );
 
@@ -148,8 +155,11 @@ export function useUserDialogTabbedRuntimeState() {
                 globalThis?.$debug?.debugVrcPlus
         )
     );
-    const inGameGroupOrder = useRuntimeStore(
-        (state: any) => state.groupInstances.groupOrder
+    const inGameGroupOrder = useRuntimeStore((state: any) =>
+        state.groupInstances.userId === state.auth.currentUserId &&
+        state.groupInstances.endpoint === state.auth.currentUserEndpoint
+            ? state.groupInstances.groupOrder
+            : EMPTY_GROUP_ORDER
     );
     const friendsById = useFriendRosterStore((state: any) => state.friendsById);
     const openImagePreview = useModalStore((state: any) => state.openImagePreview);

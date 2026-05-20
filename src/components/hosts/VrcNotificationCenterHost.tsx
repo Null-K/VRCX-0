@@ -63,6 +63,9 @@ export function VrcNotificationCenterHost() {
     const groupInstancesEndpoint = useRuntimeStore(
         (state: any) => state.groupInstances.endpoint
     );
+    const groupInstancesUserId = useRuntimeStore(
+        (state: any) => state.groupInstances.userId
+    );
     const groupInstances = useRuntimeStore(
         (state: any) => state.groupInstances.instances
     );
@@ -94,7 +97,10 @@ export function VrcNotificationCenterHost() {
     const [activeTab, setActiveTab] = useState('friend');
     const [inviteResponseRequest, setInviteResponseRequest] = useState(null);
     const groupInstanceRows =
-        groupInstancesEndpoint === endpoint ? groupInstances : [];
+        groupInstancesUserId === currentUserId &&
+        groupInstancesEndpoint === endpoint
+            ? groupInstances
+            : [];
     const gameState = useMemo(
         () => ({
             currentLocation,

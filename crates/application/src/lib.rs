@@ -54,9 +54,9 @@ pub use background_capabilities::{
     refresh_background_current_user, refresh_background_group_instances,
     run_background_presence_automation, BackgroundCapabilitySession,
     BackgroundDiscordActivityPayload, BackgroundDiscordPresenceCommand,
-    BackgroundDiscordPresenceState, BackgroundPresenceAutomationResult,
-    BackgroundPresenceAutomationState, BackgroundPresenceFacts, BackgroundPresenceFactsInput,
-    ParsedLocation, PresencePlayer,
+    BackgroundDiscordPresenceState, BackgroundGroupInstancesRefresh,
+    BackgroundPresenceAutomationResult, BackgroundPresenceAutomationState,
+    BackgroundPresenceFacts, BackgroundPresenceFactsInput, ParsedLocation, PresencePlayer,
 };
 pub use diagnostics::{RuntimeDiagnostics, RuntimeDiagnosticsSnapshot};
 pub use error::Error;

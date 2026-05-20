@@ -59,6 +59,17 @@ type InstanceQueueState = Record<string, unknown> & {
     updatedAt: string | null;
 };
 
+type GroupInstancesState = Record<string, any> & {
+    status: string;
+    userId: string;
+    endpoint: string;
+    instances: unknown[];
+    groupOrder: unknown[];
+    fetchedAt: string | null;
+    lastLoadedAt: string | null;
+    error: string;
+};
+
 type RuntimeStore = {
     startup: Record<string, TaskState>;
     hostCapabilities: Record<string, any> & {
@@ -102,10 +113,7 @@ type RuntimeStore = {
     };
     instanceQueue: InstanceQueueState;
     vrcStatus: Record<string, any>;
-    groupInstances: Record<string, any> & {
-        instances: unknown[];
-        groupOrder: unknown[];
-    };
+    groupInstances: GroupInstancesState;
     systemHosts: Record<string, boolean>;
     databaseUpgrade: Record<string, unknown> & {
         open: boolean;
@@ -213,6 +221,19 @@ function createInstanceQueueState(): InstanceQueueState {
         queueSize: 0,
         label: '',
         updatedAt: null
+    };
+}
+
+export function createGroupInstancesState(): GroupInstancesState {
+    return {
+        status: 'idle',
+        userId: '',
+        endpoint: '',
+        instances: [],
+        groupOrder: [],
+        fetchedAt: null,
+        lastLoadedAt: null,
+        error: ''
     };
 }
 
@@ -334,15 +355,7 @@ const initialState = {
         pollingIntervalMs: 15 * 60 * 1000,
         error: ''
     },
-    groupInstances: {
-        status: 'idle',
-        endpoint: '',
-        instances: [],
-        groupOrder: [],
-        fetchedAt: null,
-        lastLoadedAt: null,
-        error: ''
-    },
+    groupInstances: createGroupInstancesState(),
     systemHosts: {
         databaseUpgradeOpen: false,
         updaterOpen: false,
@@ -377,6 +390,7 @@ const initialState = {
         backendRuntimeTelemetry: createRuntimeEventState(),
         gameLogPersistenceFallback: createRuntimeEventState(),
         gameLogSideEffect: createRuntimeEventState(),
+        runtimeGroupInstancesProjection: createRuntimeEventState(),
         realtimeWsStatus: createRuntimeEventState(),
         realtimeFriendProjection: createRuntimeEventState(),
         realtimeNotificationProjection: createRuntimeEventState(),
@@ -428,12 +442,23 @@ export const useRuntimeStore = create<RuntimeStore>((set: any) => ({
         }));
     },
     setAuthBootstrap(payload: any) {
-        set((state: any) => ({
-            auth: {
+        set((state: any) => {
+            const auth = {
                 ...state.auth,
                 ...payload
-            }
-        }));
+            };
+            const scopeChanged =
+                String(state.auth.currentUserId || '') !==
+                    String(auth.currentUserId || '') ||
+                String(state.auth.currentUserEndpoint || '') !==
+                    String(auth.currentUserEndpoint || '');
+            return {
+                auth,
+                groupInstances: scopeChanged
+                    ? createGroupInstancesState()
+                    : state.groupInstances
+            };
+        });
     },
     setHostCapabilities(payload: any) {
         set({

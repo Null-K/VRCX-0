@@ -288,12 +288,6 @@ pub fn restore_foreground_window_from_background_mode(
         return Ok(current);
     }
     let snapshot = state.set_gui_backend_runtime_mode(BackendRuntimeMode::Foreground);
-    if !state
-        .runtime
-        .wait_for_gui_background_capability_loops_stopped(Duration::from_secs(10))
-    {
-        tracing::warn!("timed out waiting for background capability loops before restoring UI");
-    }
     defer_frontend_maintenance_after_background_restore(state);
     ensure_main_window(app)?;
     let _ = refresh_tray_menu(app, state);
@@ -301,13 +295,7 @@ pub fn restore_foreground_window_from_background_mode(
 }
 
 fn defer_frontend_maintenance_after_background_restore(state: &AppState) {
-    for (name, delay_seconds) in [
-        ("friendsRefresh", 180),
-        ("groupInstanceRefresh", 60),
-        ("moderationRefresh", 180),
-        ("discordUpdate", 3),
-        ("autoStateChange", 3),
-    ] {
+    for (name, delay_seconds) in [("appUpdateCheck", 180), ("clearVRCXCacheCheck", 300)] {
         state
             .runtime_context
             .background_jobs

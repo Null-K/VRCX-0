@@ -39,12 +39,18 @@ export function useNotificationRuntime() {
     const groupInstancesEndpoint = useRuntimeStore(
         (state: any) => state.groupInstances.endpoint
     );
+    const groupInstancesUserId = useRuntimeStore(
+        (state: any) => state.groupInstances.userId
+    );
     const groupInstances = useRuntimeStore(
         (state: any) => state.groupInstances.instances
     );
 
     const groupInstanceRows =
-        groupInstancesEndpoint === endpoint ? groupInstances : [];
+        groupInstancesUserId === currentUserId &&
+        groupInstancesEndpoint === endpoint
+            ? groupInstances
+            : [];
     const gameState = useMemo(
         () => ({
             currentDestination,

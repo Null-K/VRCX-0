@@ -19,14 +19,15 @@ pub fn app__check_game_running(state: State<'_, AppState>) -> Result<(), AppErro
     let changed_at = chrono::Utc::now()
         .format("%Y-%m-%dT%H:%M:%S%.3fZ")
         .to_string();
-    let projection = state
-        .runtime_context
-        .session
-        .apply_game_process_status(HostSessionGameProcessStatus {
-            is_game_running: status.is_game_running,
-            is_steamvr_running: status.is_steamvr_running,
-            changed_at,
-        });
+    let projection =
+        state
+            .runtime_context
+            .session
+            .apply_game_process_status(HostSessionGameProcessStatus {
+                is_game_running: status.is_game_running,
+                is_steamvr_running: status.is_steamvr_running,
+                changed_at,
+            });
     state
         .runtime_context
         .event_bus

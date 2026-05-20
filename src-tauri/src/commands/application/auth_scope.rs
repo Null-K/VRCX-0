@@ -20,10 +20,18 @@ pub fn app__runtime_auth_scope_set(
     state: State<'_, AppState>,
     input: RuntimeAuthScopeSetInput,
 ) -> RuntimeAuthScopeSnapshot {
-    state
+    let previous = state.runtime_context.auth_scope.snapshot();
+    let snapshot = state
         .runtime_context
         .auth_scope
-        .set(input.user_id, input.endpoint)
+        .set(input.user_id, input.endpoint);
+    if !snapshot.active
+        || previous.current_user_id != snapshot.current_user_id
+        || previous.endpoint != snapshot.endpoint
+    {
+        state.clear_backend_frontend_session();
+    }
+    snapshot
 }
 
 #[tauri::command]

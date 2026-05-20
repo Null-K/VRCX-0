@@ -11,7 +11,10 @@ import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useModalStore } from '@/state/modalStore';
 import { useNotificationStore } from '@/state/notificationStore';
-import { useRuntimeStore } from '@/state/runtimeStore';
+import {
+    createGroupInstancesState,
+    useRuntimeStore
+} from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
 
@@ -149,6 +152,7 @@ export function resetCurrentUserRuntimeAuth() {
     useFavoriteStore.getState().resetFavorites();
     resetDomainFacts();
     resetActivityCacheState();
+    useRuntimeStore.getState().setGroupInstancesState(createGroupInstancesState());
     useRuntimeStore.getState().setAuthBootstrap({
         currentUserId: null,
         currentUserDisplayName: '',
@@ -170,6 +174,7 @@ function setCurrentUserRuntimeAuth(
     useFavoriteStore.getState().resetFavorites();
     resetDomainFacts();
     const runtimeStore = useRuntimeStore.getState();
+    runtimeStore.setGroupInstancesState(createGroupInstancesState());
     const { snapshot: nextSnapshot } = buildAvatarWearSnapshotUpdate({
         previousSnapshot: runtimeStore.auth.currentUserSnapshot,
         nextSnapshot: user,

@@ -194,6 +194,7 @@ function validateCurrentInviteLocation({
     }
 
     const groupInstances =
+        runtimeState.groupInstances.userId === currentUserId &&
         runtimeState.groupInstances.endpoint === endpoint
             ? runtimeState.groupInstances.instances
             : [];

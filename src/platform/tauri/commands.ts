@@ -158,6 +158,7 @@ const commandArgs: Record<string, string[]> = {
     app__runtime_frontend_schedule_job_due_claim: ['input'],
     app__runtime_frontend_schedule_job_defer: ['input'],
     app__runtime_frontend_schedule_schedules_reset: [],
+    app__runtime_group_instances_refresh: [],
     app__runtime_background_jobs_snapshot_get: [],
     app__runtime_diagnostics_get: [],
     app__external_api_avatar_search_get: ['input'],

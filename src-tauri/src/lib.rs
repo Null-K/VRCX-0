@@ -411,6 +411,7 @@ pub fn run() {
             commands::application::lifecycle::app__runtime_frontend_schedule_job_due_claim,
             commands::application::lifecycle::app__runtime_frontend_schedule_job_defer,
             commands::application::lifecycle::app__runtime_frontend_schedule_schedules_reset,
+            commands::application::lifecycle::app__runtime_group_instances_refresh,
             commands::application::lifecycle::app__runtime_background_job_record,
             commands::application::lifecycle::app__runtime_background_jobs_snapshot_get,
             commands::application::lifecycle::app__runtime_diagnostics_get,

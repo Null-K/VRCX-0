@@ -190,6 +190,7 @@ export async function buildPresenceFacts({ now = new Date() }: any = {}) {
         .map((player: any) => player.userId)
         .filter((userId: any) => userId && friendsById[userId]);
     const groupInstances =
+        runtimeState.groupInstances.userId === currentUserId &&
         runtimeState.groupInstances.endpoint === endpoint
             ? runtimeState.groupInstances.instances
             : [];

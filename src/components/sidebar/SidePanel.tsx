@@ -221,7 +221,11 @@ function useSidePanelTabData({ activeTab, prefs, setActiveTab, t }: any) {
     const currentEndpoint = useRuntimeStore(
         (state: any) => state.auth.currentUserEndpoint
     );
+    const currentUserId = useRuntimeStore(
+        (state: any) => state.auth.currentUserId
+    );
     const groupInstances =
+        groupInstancesState.userId === currentUserId &&
         groupInstancesState.endpoint === currentEndpoint
             ? groupInstancesState.instances
             : [];

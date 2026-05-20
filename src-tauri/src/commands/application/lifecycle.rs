@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
+use crate::error::AppError;
 use crate::state::AppState;
 use vrcx_0_application::RuntimeBackgroundJobSnapshot;
 use vrcx_0_application::RuntimeDiagnosticsSnapshot;
@@ -122,6 +123,14 @@ pub fn app__runtime_frontend_schedule_schedules_reset(state: State<'_, AppState>
         .runtime_context
         .background_jobs
         .reset_frontend_schedules();
+}
+
+#[tauri::command]
+pub async fn app__runtime_group_instances_refresh(
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    state.refresh_runtime_group_instances().await;
+    Ok(())
 }
 
 #[tauri::command]

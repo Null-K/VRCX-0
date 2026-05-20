@@ -1,7 +1,11 @@
 import { tauriClient } from '@/platform/tauri/client';
 import { useNotificationStore } from '@/state/notificationStore';
-import { useRuntimeStore } from '@/state/runtimeStore';
+import {
+    createGroupInstancesState,
+    useRuntimeStore
+} from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
+import { normalizeVrchatEndpointDomain } from '@/shared/vrchatEndpoint';
 
 import { resumeFrontendSessionFromBackendRuntime } from './backendRuntimeSessionResumeService';
 import { recordRuntimeGameClientEvent } from './gameClientLifecycle';
@@ -35,6 +39,7 @@ type RuntimeEventName =
     | 'gameLogSideEffect'
     | 'gameClientEvent'
     | 'runtimeWorkerError'
+    | 'runtimeGroupInstancesProjection'
     | 'realtimeFriendProjection'
     | 'realtimeNotificationProjection'
     | 'realtimeCurrentUserProjection'
@@ -431,6 +436,15 @@ function requestGameRunningStateRefresh(source: string): void {
     });
 }
 
+function requestGroupInstancesRefresh(source: string): void {
+    tauriClient.app.RuntimeGroupInstancesRefresh().catch((error: any) => {
+        console.warn(
+            `Runtime group instances refresh failed during ${source}:`,
+            error
+        );
+    });
+}
+
 function handleRuntimeEvent(name: RuntimeEventName, payload: unknown): void {
     const runtimeStore = useRuntimeStore.getState();
 
@@ -507,6 +521,53 @@ function handleRuntimeEvent(name: RuntimeEventName, payload: unknown): void {
         return;
     }
 
+    if (name === 'runtimeGroupInstancesProjection') {
+        const record = isRecord(payload) ? payload : {};
+        const status = normalizeString(record.status) || 'ready';
+        const userId = normalizeString(record.userId);
+        const endpoint = normalizeString(record.endpoint);
+        const auth = useRuntimeStore.getState().auth;
+        const currentUserId = normalizeString(auth.currentUserId);
+        const currentEndpoint = normalizeString(auth.currentUserEndpoint);
+        if (!currentUserId || !userId) {
+            if (status === 'idle') {
+                runtimeStore.setGroupInstancesState(createGroupInstancesState());
+            }
+            return;
+        }
+        if (
+            userId !== currentUserId ||
+            normalizeVrchatEndpointDomain(endpoint) !==
+                normalizeVrchatEndpointDomain(currentEndpoint)
+        ) {
+            return;
+        }
+        const instances = Array.isArray(record.instances)
+            ? record.instances
+            : undefined;
+        const groupOrder = Array.isArray(record.groupOrder)
+            ? record.groupOrder
+            : undefined;
+        const patch: Record<string, unknown> = {
+            status,
+            userId: currentUserId,
+            endpoint: currentEndpoint,
+            lastLoadedAt: new Date().toISOString(),
+            error: normalizeString(record.error)
+        };
+        if (instances) {
+            patch.instances = instances;
+        }
+        if (groupOrder) {
+            patch.groupOrder = groupOrder;
+        }
+        if (record.fetchedAt) {
+            patch.fetchedAt = record.fetchedAt;
+        }
+        runtimeStore.setGroupInstancesState(patch);
+        return;
+    }
+
     if (name === 'gameClientEvent') {
         if (!isHostCapabilityAvailable('runtimeGameClientLifecycle')) {
             return;
@@ -573,6 +634,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         'gameLogProjection',
         'gameLogPersistenceFallback',
         'gameLogSideEffect',
+        'runtimeGroupInstancesProjection',
         'gameClientEvent',
         'runtimeWorkerError',
         'realtimeFriendProjection',
@@ -622,6 +684,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         });
         console.warn('Failed to hydrate backend runtime snapshot:', error);
     }
+    requestGroupInstancesRefresh('runtime event binding after backend snapshot hydration');
 
     return () => {
         for (const unsubscribe of unsubscribers) {

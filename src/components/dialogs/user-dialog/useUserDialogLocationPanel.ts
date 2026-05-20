@@ -165,12 +165,15 @@ export function useUserDialogLocationPanel({
         gameState,
         currentUserSnapshot
     );
+    const groupInstancesScopeMatches =
+        groupInstancesState.userId === currentUserId &&
+        groupInstancesState.endpoint === currentEndpoint;
     const groupInstances =
-        groupInstancesState.endpoint === currentEndpoint
+        groupInstancesScopeMatches
             ? groupInstancesState.instances
             : [];
     const groupInstancesRevision =
-        groupInstancesState.endpoint === currentEndpoint
+        groupInstancesScopeMatches
             ? groupInstancesState.lastLoadedAt ||
               groupInstancesState.fetchedAt ||
               groupInstancesState.status
