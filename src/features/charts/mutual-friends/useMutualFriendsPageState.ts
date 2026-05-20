@@ -116,9 +116,11 @@ export function useMutualFriendsPageState() {
         () =>
             filterMutualFriendPickerOptions(
                 excludePickerOptions,
-                excludeSearchQuery
+                excludeSearchQuery,
+                undefined,
+                excludedFriendIdSet
             ),
-        [excludePickerOptions, excludeSearchQuery]
+        [excludePickerOptions, excludeSearchQuery, excludedFriendIdSet]
     );
 
     const selectedNode = useMemo(
@@ -156,12 +158,8 @@ export function useMutualFriendsPageState() {
         setSelectedNodeId
     });
 
-    const {
-        fetchProgress,
-        handleCancelFetch,
-        handleFetchGraph,
-        progressPercent
-    } = useMutualFriendsGraphFetch({
+    const { fetchProgress, handleCancelFetch, handleFetchGraph } =
+        useMutualFriendsGraphFetch({
         currentUserId,
         currentUserEndpoint,
         currentUserIdRef,
@@ -328,8 +326,7 @@ export function useMutualFriendsPageState() {
             setExcludeSearchQuery
         },
         fetch: {
-            fetchProgress,
-            progressPercent
+            fetchProgress
         },
         graph: {
             baseGraph,

@@ -19,7 +19,6 @@ export function useMutualFriendsGraphFetch({
     setDetail
 }: any) {
     const { t } = useTranslation();
-    const startedRunIdsRef = useRef(new Set<number>());
     const lastHandledRunRef = useRef(0);
     const statusRunId = useRuntimeStore((state: any) => state.mutualGraph.runId);
     const statusName = useRuntimeStore(
@@ -66,21 +65,6 @@ export function useMutualFriendsGraphFetch({
             totalFriends
         ]
     );
-    const progressPercent = useMemo(
-        () =>
-            fetchProgress.totalFriends
-                ? Math.min(
-                      100,
-                      Math.round(
-                          (fetchProgress.processedFriends /
-                              fetchProgress.totalFriends) *
-                              100
-                      )
-                  )
-                : 0,
-        [fetchProgress.processedFriends, fetchProgress.totalFriends]
-    );
-
     useEffect(() => {
         if (
             !isCurrentUserFetch ||
@@ -90,7 +74,6 @@ export function useMutualFriendsGraphFetch({
             return;
         }
 
-        const startedHere = startedRunIdsRef.current.has(statusRunId);
         if (statusName === 'completed') {
             lastHandledRunRef.current = statusRunId;
             reloadSnapshot(
@@ -105,37 +88,17 @@ export function useMutualFriendsGraphFetch({
                     )
                 );
             });
-            if (startedHere) {
-                toast.success(
-                    t('view.charts.success.mutual_friends_graph_refreshed')
-                );
-            }
             return;
         }
 
         if (statusName === 'cancelled') {
             lastHandledRunRef.current = statusRunId;
-            if (startedHere) {
-                toast.warning(
-                    t(
-                        'view.charts.label.mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced'
-                    )
-                );
-            }
             return;
         }
 
         if (statusName === 'error') {
             lastHandledRunRef.current = statusRunId;
             setDetail(lastError || 'Failed to fetch mutual-friends graph.');
-            if (startedHere) {
-                toast.error(
-                    lastError ||
-                        t(
-                            'view.charts.toast.failed_to_fetch_mutual_friends_graph'
-                        )
-                );
-            }
         }
     }, [
         isCurrentUserFetch,
@@ -169,15 +132,13 @@ export function useMutualFriendsGraphFetch({
         setDetail('Fetching mutual friends from VRChat.');
 
         try {
-            const status = await startMutualGraphFetch({
+            await startMutualGraphFetch({
                 ownerUserId,
                 endpoint: currentUserEndpoint,
                 friendIds: friendSnapshot.map((friend: any) => friend.id)
             });
-            if (status.runId) {
-                startedRunIdsRef.current.add(status.runId);
-            }
             startMutualGraphFetchStatusPolling();
+            toast.info(t('view.charts.mutual_friend.prompt.message'));
         } catch (error) {
             setDetail(
                 error instanceof Error
@@ -210,7 +171,6 @@ export function useMutualFriendsGraphFetch({
     return {
         fetchProgress,
         handleCancelFetch,
-        handleFetchGraph,
-        progressPercent
+        handleFetchGraph
     };
 }

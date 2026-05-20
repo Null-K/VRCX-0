@@ -1,5 +1,4 @@
 import {
-    MutualFriendsFetchProgress,
     MutualFriendsGraphStage,
     MutualFriendsToolbar
 } from './components/MutualFriendsGraphSections';
@@ -22,11 +21,6 @@ export function MutualFriendsPage() {
                     layout={layout}
                     mutualCommands={actions}
                     picker={picker}
-                />
-
-                <MutualFriendsFetchProgress
-                    fetchProgress={fetch.fetchProgress}
-                    progressPercent={fetch.progressPercent}
                 />
 
                 <div className="mt-3 w-full flex-1">

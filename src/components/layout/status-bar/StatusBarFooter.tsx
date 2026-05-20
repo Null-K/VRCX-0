@@ -144,6 +144,20 @@ function formatMutualGraphValue(mutualGraph: any) {
     return '';
 }
 
+function formatMutualGraphLabel(mutualGraph: any, t: any) {
+    const status = String(mutualGraph?.status || 'idle');
+    const processed = Number(mutualGraph?.processedFriends) || 0;
+    const total = Number(mutualGraph?.totalFriends) || 0;
+    if (
+        status === 'running' ||
+        status === 'cancelling' ||
+        (status === 'completed' && total > 0 && processed >= total)
+    ) {
+        return t('status_bar.mutual_graph_fetching');
+    }
+    return t('status_bar.mutual_graph');
+}
+
 function formatMutualGraphTooltip(mutualGraph: any, t: any) {
     const status = String(mutualGraph?.status || 'idle');
     if (status === 'error') {
@@ -442,10 +456,10 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                     <StatusSegment
                         visible={visibility.mutualGraph && mutualGraphVisible}
                         showDot={false}
-                        label={t('status_bar.mutual_graph')}
+                        label={formatMutualGraphLabel(mutualGraph, t)}
                         value={formatMutualGraphValue(mutualGraph)}
                         tooltip={formatMutualGraphTooltip(mutualGraph, t)}
-                        className="-ml-px border-l bg-muted/70 text-muted-foreground"
+                        className="-ml-px border-l text-muted-foreground"
                         valueClassName="text-muted-foreground"
                     />
                     {visibility.clocks

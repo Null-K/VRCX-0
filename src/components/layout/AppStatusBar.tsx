@@ -10,7 +10,8 @@ import {
 } from '@/services/preferencesService';
 import {
     refreshMutualGraphFetchStatus,
-    startMutualGraphFetchStatusPolling
+    startMutualGraphFetchStatusPolling,
+    wasMutualGraphFetchStartedInThisSession
 } from '@/services/mutualGraphFetchService';
 import { openExternalLink } from '@/services/shellIntegrationService';
 import {
@@ -171,6 +172,8 @@ function formatStatusDate(value: any) {
 export function AppStatusBar() {
     const { t } = useTranslation();
     const appStartedAtRef = useRef(Date.now());
+    const observedMutualGraphRunRef = useRef(0);
+    const notifiedMutualGraphRunRef = useRef(0);
     const [visibility, setVisibility] = useState(DEFAULT_VISIBILITY);
     const [clocks, setClocks] = useState(() => createDefaultClocks());
     const [clockCount, setClockCount] = useState(1);
@@ -352,6 +355,53 @@ export function AppStatusBar() {
             startMutualGraphFetchStatusPolling();
         }
     }, [mutualGraphStatus]);
+
+    useEffect(() => {
+        const runId = Number(mutualGraphRunId) || 0;
+        if (!runId) {
+            return;
+        }
+
+        if (
+            mutualGraphStatus === 'running' ||
+            mutualGraphStatus === 'cancelling'
+        ) {
+            observedMutualGraphRunRef.current = runId;
+            return;
+        }
+
+        if (
+            (observedMutualGraphRunRef.current !== runId &&
+                !wasMutualGraphFetchStartedInThisSession(runId)) ||
+            notifiedMutualGraphRunRef.current === runId
+        ) {
+            return;
+        }
+
+        if (mutualGraphStatus === 'completed') {
+            notifiedMutualGraphRunRef.current = runId;
+            toast.success(t('view.charts.success.mutual_friends_graph_refreshed'));
+            return;
+        }
+
+        if (mutualGraphStatus === 'cancelled') {
+            notifiedMutualGraphRunRef.current = runId;
+            toast.warning(
+                t(
+                    'view.charts.label.mutual_graph_fetch_cancelled_the_cached_graph_was_not_replaced'
+                )
+            );
+            return;
+        }
+
+        if (mutualGraphStatus === 'error') {
+            notifiedMutualGraphRunRef.current = runId;
+            toast.error(
+                mutualGraphLastError ||
+                    t('view.charts.toast.failed_to_fetch_mutual_friends_graph')
+            );
+        }
+    }, [mutualGraphLastError, mutualGraphRunId, mutualGraphStatus, t]);
 
     useEffect(() => {
         let active = true;

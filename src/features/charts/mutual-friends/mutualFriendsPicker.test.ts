@@ -65,6 +65,24 @@ describe('mutualFriendsPicker', () => {
         ).toHaveLength(1);
     });
 
+    it('keeps selected exclude-picker options at the top before limiting results', () => {
+        const options = filterMutualFriendPickerOptions(
+            [
+                { label: 'Ava', value: 'usr_a' },
+                { label: 'Ben', value: 'usr_b' },
+                { label: 'Cyd', value: 'usr_c' }
+            ],
+            '',
+            2,
+            new Set(['usr_c'])
+        );
+
+        expect(options.map((option: any) => option.value)).toEqual([
+            'usr_c',
+            'usr_a'
+        ]);
+    });
+
     it('builds hidden-friend picker choices from all cached graph ids without duplicates or self', () => {
         const options = buildMutualFriendExcludePickerOptions(
             new Map([

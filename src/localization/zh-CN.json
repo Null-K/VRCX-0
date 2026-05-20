@@ -1129,7 +1129,7 @@
                 },
                 "prompt": {
                     "title": "好友关系网",
-                    "message": "未找到缓存的共同好友数据。现在开始拉取吗？这可能需要一段时间，你会在完成时收到通知",
+                    "message": "已经在后台开始拉取，进度显示在状态栏。",
                     "confirm": "立刻开始拉取",
                     "cancel": "待会再说"
                 },
@@ -5165,6 +5165,7 @@
         "instance_queue_position_label": "队列位置",
         "instance_queue_ready_to_join": "队列已准备好，可以加入 {location}",
         "mutual_graph": "共同好友图谱",
+        "mutual_graph_fetching": "正在拉取共同好友",
         "mutual_graph_progress": "共同好友图谱获取进度",
         "start_background_mode": "切换到后台模式",
         "start_background_mode_tooltip": "切换到后台模式"

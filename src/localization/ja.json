@@ -1129,7 +1129,7 @@
                 },
                 "prompt": {
                     "title": "共通のフレンドのつながり",
-                    "message": "共通のフレンドのデータが取得されていません。データを取得しますか？ この操作は数分かかる場合があります。",
+                    "message": "バックグラウンドで取得を開始しました。進捗はステータスバーに表示されます。",
                     "confirm": "取得する",
                     "cancel": "キャンセル"
                 },
@@ -5165,6 +5165,7 @@
         "instance_queue_position_label": "キュー位置",
         "instance_queue_ready_to_join": "{location} に参加できるようになりました",
         "mutual_graph": "共通フレンドグラフ",
+        "mutual_graph_fetching": "共通フレンドを取得中",
         "mutual_graph_progress": "共通フレンドグラフの取得進捗",
         "start_background_mode": "バックグラウンドモードへ切り替える",
         "start_background_mode_tooltip": "バックグラウンドモードへ切り替えます"

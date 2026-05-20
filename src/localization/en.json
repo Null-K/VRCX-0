@@ -1129,7 +1129,7 @@
                 },
                 "prompt": {
                     "title": "Mutual Friend Network",
-                    "message": "No cached mutual friend data was found. Start fetching now? This may take a while, we will notify you when it is finishes",
+                    "message": "Fetching has started in the background. Progress is shown in the status bar.",
                     "confirm": "Start Fetch",
                     "cancel": "Maybe Later"
                 },
@@ -5165,6 +5165,7 @@
         "instance_queue_position_label": "Position",
         "instance_queue_ready_to_join": "Instance ready to join {location}",
         "mutual_graph": "Mutual graph",
+        "mutual_graph_fetching": "Fetching mutual friends",
         "mutual_graph_progress": "Mutual graph fetch progress",
         "start_background_mode": "Switch to Background Mode",
         "start_background_mode_tooltip": "Switch to Background Mode"

@@ -14,6 +14,7 @@ const TERMINAL_RESET_DELAY_MS = 5000;
 
 let pollTimer: number | null = null;
 let resetTimer: number | null = null;
+const sessionStartedRunIds = new Set<number>();
 
 function normalizeNumber(value: unknown) {
     const parsed = Number(value);
@@ -116,7 +117,11 @@ export async function startMutualGraphFetch({
         endpoint,
         friendIds
     });
-    return applyStatus(status);
+    const normalized = applyStatus(status);
+    if (normalized.runId) {
+        sessionStartedRunIds.add(normalized.runId);
+    }
+    return normalized;
 }
 
 export async function cancelMutualGraphFetch(ownerUserId: string) {
@@ -124,4 +129,8 @@ export async function cancelMutualGraphFetch(ownerUserId: string) {
         ownerUserId
     });
     return applyStatus(status);
+}
+
+export function wasMutualGraphFetchStartedInThisSession(runId: number) {
+    return sessionStartedRunIds.has(runId);
 }

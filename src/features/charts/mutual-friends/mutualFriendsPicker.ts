@@ -38,10 +38,31 @@ export function mutualFriendPickerOptionMatches(option: any, query: any) {
 export function filterMutualFriendPickerOptions(
     options: any,
     query: any,
-    limit: any = MUTUAL_GRAPH_PICKER_RESULT_LIMIT
+    limit: any = MUTUAL_GRAPH_PICKER_RESULT_LIMIT,
+    selectedIds: any = null
 ) {
+    const selectedIdSet = new Set(
+        Array.isArray(selectedIds)
+            ? selectedIds.map(normalizeMutualFriendId).filter(Boolean)
+            : selectedIds instanceof Set
+              ? [...selectedIds].map(normalizeMutualFriendId).filter(Boolean)
+              : []
+    );
+
     return (Array.isArray(options) ? options : [])
         .filter((option: any) => mutualFriendPickerOptionMatches(option, query))
+        .sort((left: any, right: any) => {
+            const leftSelected = selectedIdSet.has(
+                normalizeMutualFriendId(left?.value)
+            );
+            const rightSelected = selectedIdSet.has(
+                normalizeMutualFriendId(right?.value)
+            );
+            if (leftSelected !== rightSelected) {
+                return leftSelected ? -1 : 1;
+            }
+            return 0;
+        })
         .slice(0, limit);
 }
 

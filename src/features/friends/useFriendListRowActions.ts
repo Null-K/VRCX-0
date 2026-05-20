@@ -77,10 +77,6 @@ export function useFriendListRowActions({
     const mutualGraphTotalFriends = useRuntimeStore(
         (state: any) => state.mutualGraph.totalFriends
     );
-    const mutualGraphLastError = useRuntimeStore(
-        (state: any) => state.mutualGraph.lastError
-    );
-    const startedMutualGraphRunsRef = useRef(new Set<number>());
     const handledMutualGraphRunRef = useRef(0);
     const isMutualFetching =
         mutualGraphOwnerUserId === currentUserId &&
@@ -112,8 +108,6 @@ export function useFriendListRowActions({
             return;
         }
 
-        const startedHere =
-            startedMutualGraphRunsRef.current.has(mutualGraphRunId);
         if (mutualGraphStatus === 'completed') {
             handledMutualGraphRunRef.current = mutualGraphRunId;
             applyCachedMutualFriendStats(currentUserId).catch((error: any) => {
@@ -122,26 +116,14 @@ export function useFriendListRowActions({
                     error
                 );
             });
-            if (startedHere) {
-                toast.success(t('view.friend_list.label.mutual_friends_loaded'));
-            }
             return;
         }
 
         if (mutualGraphStatus === 'error') {
             handledMutualGraphRunRef.current = mutualGraphRunId;
-            if (startedHere) {
-                toast.error(
-                    mutualGraphLastError ||
-                        t(
-                            'view.charts.toast.failed_to_fetch_mutual_friends_graph'
-                        )
-                );
-            }
         }
     }, [
         currentUserId,
-        mutualGraphLastError,
         mutualGraphOwnerUserId,
         mutualGraphRunId,
         mutualGraphStatus,
@@ -423,17 +405,15 @@ export function useFriendListRowActions({
             total: friendSnapshot.length
         });
         try {
-            const status = await startMutualGraphFetch({
+            await startMutualGraphFetch({
                 ownerUserId: currentUserId,
                 endpoint: currentEndpoint,
                 friendIds: friendSnapshot.map((friend: any) =>
                     normalizeId(friend?.id)
                 )
             });
-            if (status.runId) {
-                startedMutualGraphRunsRef.current.add(status.runId);
-            }
             startMutualGraphFetchStatusPolling();
+            toast.info(t('view.charts.mutual_friend.prompt.message'));
         } catch (error) {
             toast.error(
                 error instanceof Error

@@ -42,6 +42,7 @@ const layoutControls = [
     {
         key: 'layoutIterations',
         labelKey: 'view.charts.mutual_friend.settings.layout_iterations',
+        helpKey: 'view.charts.mutual_friend.settings.layout_iterations_help',
         limits: LAYOUT_ITERATIONS_LIMITS,
         step: 100,
         format: (value: any) => value
@@ -49,6 +50,7 @@ const layoutControls = [
     {
         key: 'layoutSpacing',
         labelKey: 'view.charts.mutual_friend.settings.layout_spacing',
+        helpKey: 'view.charts.mutual_friend.settings.layout_spacing_help',
         limits: LAYOUT_SPACING_LIMITS,
         step: 1,
         format: (value: any) => value
@@ -56,6 +58,7 @@ const layoutControls = [
     {
         key: 'edgeCurvature',
         labelKey: 'view.charts.mutual_friend.settings.edge_curvature',
+        helpKey: 'view.charts.mutual_friend.settings.edge_curvature_help',
         limits: EDGE_CURVATURE_LIMITS,
         step: 0.01,
         format: (value: any) => value.toFixed(2)
@@ -63,6 +66,7 @@ const layoutControls = [
     {
         key: 'communitySeparation',
         labelKey: 'view.charts.mutual_friend.settings.community_separation',
+        helpKey: 'view.charts.mutual_friend.settings.community_separation_help',
         limits: COMMUNITY_SEPARATION_LIMITS,
         step: 0.1,
         format: (value: any) => value.toFixed(1)
@@ -216,6 +220,9 @@ function MutualFriendsSettingsSheet({
                                     setLayoutSetting(control.key, value)
                                 }
                             />
+                            <p className="text-muted-foreground text-xs">
+                                {t(control.helpKey)}
+                            </p>
                         </div>
                     ))}
                     <div className="flex flex-col gap-2">
@@ -430,29 +437,6 @@ export function MutualFriendsToolbar({
                         mutualCommands.toggleExcludedFriendId
                     }
                     setLayoutSetting={layout.setLayoutSetting}
-                />
-            </div>
-        </div>
-    );
-}
-
-export function MutualFriendsFetchProgress({ fetchProgress, progressPercent }: any) {
-    if (!fetchProgress.isFetching) {
-        return null;
-    }
-    return (
-        <div className="grid w-70 grid-cols-[repeat(auto-fit,minmax(150px,1fr))] items-center rounded-md bg-transparent p-3">
-            <div className="mb-1 flex justify-between text-sm">
-                <span>{Math.round(progressPercent)}%</span>
-                <strong>
-                    {fetchProgress.processedFriends} /{' '}
-                    {fetchProgress.totalFriends}
-                </strong>
-            </div>
-            <div className="bg-muted h-3 overflow-hidden rounded-full">
-                <div
-                    className="bg-primary h-full transition-[width]"
-                    style={{ width: `${progressPercent}%` }}
                 />
             </div>
         </div>
