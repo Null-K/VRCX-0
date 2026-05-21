@@ -516,7 +516,8 @@ function isCurrentBootstrapTarget(userId: any, endpoint: any = '') {
 async function runFriendBootstrap({
     userId,
     endpoint = '',
-    currentUserSnapshot
+    currentUserSnapshot,
+    preserveLoadedState = false
 }: any) {
     const normalizedUserId = normalizeUserId(userId || currentUserSnapshot?.id);
     if (!normalizedUserId) {
@@ -538,7 +539,9 @@ async function runFriendBootstrap({
             'running',
             `Loading the friend roster baseline for ${displayName}.`
         );
-    useSessionStore.getState().setFriendsLoaded(false);
+    if (!preserveLoadedState) {
+        useSessionStore.getState().setFriendsLoaded(false);
+    }
 
     const bootstrapResult = await enqueueFriendLogMutation(
         normalizedUserId,
@@ -631,6 +634,7 @@ export function bootstrapFriendRoster(options: any) {
         typeof options.currentUserSnapshot === 'object'
             ? options.currentUserSnapshot
             : null;
+    const preserveLoadedState = Boolean(options?.preserveLoadedState);
     if (!normalizedUserId || !currentUserSnapshot) {
         return Promise.reject(
             new Error('Friend bootstrap requires an authenticated user id.')
@@ -650,7 +654,9 @@ export function bootstrapFriendRoster(options: any) {
                     .setRosterError(
                         error instanceof Error ? error.message : String(error)
                     );
-                useSessionStore.getState().setFriendsLoaded(false);
+                if (!preserveLoadedState) {
+                    useSessionStore.getState().setFriendsLoaded(false);
+                }
                 useRuntimeStore
                     .getState()
                     .setStartupTask(

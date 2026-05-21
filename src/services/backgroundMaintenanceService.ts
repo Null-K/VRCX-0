@@ -335,7 +335,8 @@ async function refreshFriendsAndFavorites() {
         bootstrapFriendRoster({
             userId: auth.currentUserId,
             endpoint: auth.currentUserEndpoint,
-            currentUserSnapshot: auth.currentUserSnapshot
+            currentUserSnapshot: auth.currentUserSnapshot,
+            preserveLoadedState: true
         }),
         bootstrapFavorites({
             userId: auth.currentUserId,
