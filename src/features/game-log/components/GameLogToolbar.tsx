@@ -1,4 +1,5 @@
 import type { Table as ReactTable } from '@tanstack/react-table';
+import type { ReactNode } from 'react';
 import {
     CalendarRangeIcon,
     LogsIcon,
@@ -11,8 +12,6 @@ import {
 import { useTranslation } from 'react-i18next';
 
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
-import { cn } from '@/lib/utils';
-import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { Calendar } from '@/ui/shadcn/calendar';
 import {
@@ -144,38 +143,34 @@ function GameLogSessionDateFilter({
 }) {
     const { t } = useTranslation();
     const label = t('view.game_log.label.session_date_range');
+    const dateRangeLabel =
+        sessionDateFrom || sessionDateTo
+            ? [sessionDateFrom || '...', sessionDateTo || '...'].join(' - ')
+            : label;
 
     return (
         <Popover open={open} onOpenChange={onOpenChange}>
             <Tooltip>
                 <TooltipTrigger asChild>
                     <PopoverTrigger asChild>
-                        <Button
+                        <InputGroupButton
                             type="button"
-                            variant="outline"
-                            size="sm"
-                            className={cn(
-                                'shrink-0 gap-1.5',
-                                (sessionDateFrom || sessionDateTo) &&
-                                    'bg-accent text-accent-foreground'
-                            )}
-                            aria-label={label}
+                            size="icon-xs"
+                            variant={
+                                sessionDateFrom || sessionDateTo
+                                    ? 'secondary'
+                                    : 'ghost'
+                            }
+                            aria-label={dateRangeLabel}
+                            onMouseDown={(event) => event.preventDefault()}
                         >
-                            <CalendarRangeIcon data-icon="inline-start" />
-                            {sessionDateFrom || sessionDateTo ? (
-                                <Badge
-                                    variant="secondary"
-                                    className="ml-0.5 h-4.5 min-w-4.5 rounded-full px-1 text-xs"
-                                >
-                                    1
-                                </Badge>
-                            ) : null}
-                        </Button>
+                            <CalendarRangeIcon data-icon="icon" />
+                        </InputGroupButton>
                     </PopoverTrigger>
                 </TooltipTrigger>
-                <TooltipContent>{label}</TooltipContent>
+                <TooltipContent>{dateRangeLabel}</TooltipContent>
             </Tooltip>
-            <PopoverContent className="w-auto" align="start">
+            <PopoverContent className="w-auto" align="end">
                 <Calendar
                     mode="range"
                     numberOfMonths={2}
@@ -216,11 +211,13 @@ function GameLogSessionDateFilter({
 }
 
 function GameLogSearchInput({
+    dateFilterControl = null,
     value,
     onChange,
     onCommit,
     onClear
 }: {
+    dateFilterControl?: ReactNode;
     onChange(value: string): void;
     onClear(): void;
     onCommit(): void;
@@ -243,17 +240,22 @@ function GameLogSearchInput({
                 }}
                 placeholder={t('common.actions.search')}
             />
-            {value ? (
-                <InputGroupAddon align="inline-end">
-                    <InputGroupButton
-                        type="button"
-                        size="icon-xs"
-                        aria-label={t('common.actions.clear')}
-                        onMouseDown={(event: any) => event.preventDefault()}
-                        onClick={onClear}
-                    >
-                        <XIcon data-icon="icon" />
-                    </InputGroupButton>
+            {value || dateFilterControl ? (
+                <InputGroupAddon align="inline-end" className="gap-1">
+                    {value ? (
+                        <InputGroupButton
+                            type="button"
+                            size="icon-xs"
+                            aria-label={t('common.actions.clear')}
+                            onMouseDown={(event: any) =>
+                                event.preventDefault()
+                            }
+                            onClick={onClear}
+                        >
+                            <XIcon data-icon="icon" />
+                        </InputGroupButton>
+                    ) : null}
+                    {dateFilterControl}
                 </InputGroupAddon>
             ) : null}
         </InputGroup>
@@ -387,29 +389,31 @@ export function GameLogToolbar({
                         />
                     </div>
                 ) : (
-                    <>
-                        <GameLogSessionDateFilter
-                            open={sessionDatePopoverOpen}
-                            onOpenChange={handleSessionDatePopoverChange}
-                            sessionDateFrom={sessionDateFrom}
-                            sessionDateTo={sessionDateTo}
-                            sessionDateDraftFrom={sessionDateDraftFrom}
-                            sessionDateDraftTo={sessionDateDraftTo}
-                            sessionDateDraftRange={sessionDateDraftRange}
-                            todayDate={todayDate}
-                            onRangeSelect={updateSessionDateDraftRange}
-                            onClear={clearSessionDateRange}
-                            onApply={applySessionDateRange}
-                        />
-                        <TypeFilterToggleGroup
-                            types={availableFilterTypes}
-                            selectedTypes={queryFilterTypes}
-                            onSelectedTypesChange={setActiveSelectedTypes}
-                            className="flex min-w-0 flex-wrap items-center gap-1"
-                        />
-                    </>
+                    <TypeFilterToggleGroup
+                        types={availableFilterTypes}
+                        selectedTypes={queryFilterTypes}
+                        onSelectedTypesChange={setActiveSelectedTypes}
+                        className="flex min-w-0 flex-wrap items-center gap-1"
+                    />
                 )}
                 <GameLogSearchInput
+                    dateFilterControl={
+                        isTableView ? null : (
+                            <GameLogSessionDateFilter
+                                open={sessionDatePopoverOpen}
+                                onOpenChange={handleSessionDatePopoverChange}
+                                sessionDateFrom={sessionDateFrom}
+                                sessionDateTo={sessionDateTo}
+                                sessionDateDraftFrom={sessionDateDraftFrom}
+                                sessionDateDraftTo={sessionDateDraftTo}
+                                sessionDateDraftRange={sessionDateDraftRange}
+                                todayDate={todayDate}
+                                onRangeSelect={updateSessionDateDraftRange}
+                                onClear={clearSessionDateRange}
+                                onApply={applySessionDateRange}
+                            />
+                        )
+                    }
                     value={searchDraft}
                     onChange={setSearchDraft}
                     onCommit={commitSearchDraft}

@@ -166,7 +166,7 @@ function FeedFilterButtons({
     const { t } = useTranslation();
 
     return (
-        <div className="flex min-w-0 flex-1 flex-nowrap items-center gap-2 overflow-x-auto">
+        <div className="flex min-w-[420px] flex-[1_0_420px] flex-nowrap items-center gap-2 overflow-x-auto">
             <Button
                 type="button"
                 variant={activeFilters.length === 0 ? 'default' : 'outline'}
@@ -215,7 +215,7 @@ function FeedSearchInput({
     const { t } = useTranslation();
 
     return (
-        <InputGroup className="h-9 min-w-0 flex-1 basis-0">
+        <InputGroup className="h-9 min-w-0 flex-[1_1_0]">
             <InputGroupInput
                 value={searchDraft}
                 onChange={(event) => onSearchDraftChange(event.target.value)}
