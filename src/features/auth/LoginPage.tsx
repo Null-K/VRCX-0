@@ -41,12 +41,12 @@ export function LoginPage() {
                     />
                     <div
                         className={cn(
-                            'grid items-stretch gap-2',
+                            'grid min-h-0 items-stretch gap-2',
                             layout.hasSavedAccounts &&
-                                'md:grid-cols-[1fr_auto_1fr]'
+                                'md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]'
                         )}
                     >
-                        <div className="flex h-full flex-col gap-3">
+                        <div className="flex min-h-0 flex-col gap-3">
                             <LoginAutoLoginAlert
                                 visible={autoLogin.visible}
                                 variant={autoLogin.variant}

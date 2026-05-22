@@ -33,8 +33,8 @@ export function SavedAccountsCard({
     return (
         <>
             <div className="bg-border hidden w-px md:block" />
-            <Card className="flex h-full min-h-0 flex-col">
-                <CardHeader>
+            <Card className="flex max-h-112 min-h-0 flex-col">
+                <CardHeader className="shrink-0">
                     <CardTitle className="text-center">
                         {t('view.login.savedAccounts')}
                     </CardTitle>
