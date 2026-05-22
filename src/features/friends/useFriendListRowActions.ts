@@ -16,11 +16,26 @@ import {
     startMutualGraphFetch,
     startMutualGraphFetchStatusPolling
 } from '@/services/mutualGraphFetchService';
+import {
+    executeWithBackoff,
+    isBackoffCancelledError
+} from '@/shared/utils/retry';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 import { normalizeFriendListId as normalizeId } from './friendListRows';
+
+const FRIEND_PROFILE_LOAD_CONCURRENCY = 3;
+const FRIEND_PROFILE_LOAD_MAX_RETRIES = 4;
+const FRIEND_PROFILE_LOAD_BASE_DELAY_MS = 500;
+
+function isRateLimitedError(error: any) {
+    return (
+        error?.status === 429 ||
+        String(error?.message || '').includes('429')
+    );
+}
 
 export function useFriendListRowActions({
     cancelUserLoadRef,
@@ -298,39 +313,75 @@ export function useFriendListRowActions({
             cancelled: false
         });
         let loadedCount = 0;
+        let nextRowIndex = 0;
         try {
-            for (const friend of rowsToFetch) {
-                if (cancelUserLoadRef.current) {
-                    break;
-                }
-                const friendId = normalizeId(friend?.id);
-                try {
-                    const profile = await userProfileRepository.getUserProfile({
-                        userId: friendId,
-                        endpoint: currentEndpoint
-                    });
-                    if (profile?.id) {
-                        applyFriendPatch({
-                            userId: friendId,
-                            patch: profile,
-                            stateBucket:
-                                friend.stateBucket || friend.state || 'offline'
-                        });
-                        loadedCount += 1;
+            async function loadNextFriendProfile() {
+                while (!cancelUserLoadRef.current) {
+                    const friend = rowsToFetch[nextRowIndex];
+                    nextRowIndex += 1;
+                    if (!friend) {
+                        return;
                     }
-                } catch (error) {
-                    console.warn(
-                        '[FriendListPage] Failed to load friend profile',
-                        friendId,
-                        error
-                    );
-                } finally {
-                    setUserLoadProgress((current: any) => ({
-                        ...current,
-                        current: Math.min(current.total, current.current + 1)
-                    }));
+
+                    const friendId = normalizeId(friend?.id);
+                    try {
+                        const profile = await executeWithBackoff(
+                            () =>
+                                userProfileRepository.getUserProfile({
+                                    userId: friendId,
+                                    endpoint: currentEndpoint
+                                }),
+                            {
+                                maxRetries: FRIEND_PROFILE_LOAD_MAX_RETRIES,
+                                baseDelay: FRIEND_PROFILE_LOAD_BASE_DELAY_MS,
+                                shouldRetry: isRateLimitedError,
+                                isCancelled: () => cancelUserLoadRef.current
+                            }
+                        );
+                        if (!cancelUserLoadRef.current && profile?.id) {
+                            applyFriendPatch({
+                                userId: friendId,
+                                patch: profile,
+                                stateBucket:
+                                    friend.stateBucket ||
+                                    friend.state ||
+                                    'offline'
+                            });
+                            loadedCount += 1;
+                        }
+                    } catch (error) {
+                        if (
+                            isBackoffCancelledError(error) ||
+                            cancelUserLoadRef.current
+                        ) {
+                            return;
+                        }
+                        console.warn(
+                            '[FriendListPage] Failed to load friend profile',
+                            friendId,
+                            error
+                        );
+                    } finally {
+                        setUserLoadProgress((current: any) => ({
+                            ...current,
+                            current: Math.min(
+                                current.total,
+                                current.current + 1
+                            )
+                        }));
+                    }
                 }
             }
+
+            const workerCount = Math.min(
+                FRIEND_PROFILE_LOAD_CONCURRENCY,
+                rowsToFetch.length
+            );
+            await Promise.all(
+                Array.from({ length: workerCount }, () =>
+                    loadNextFriendProfile()
+                )
+            );
             if (cancelUserLoadRef.current) {
                 toast.warning(
                     t('view.friend_list.success.friend_detail_loading_cancelled')
