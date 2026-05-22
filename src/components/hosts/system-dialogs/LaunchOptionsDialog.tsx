@@ -1,10 +1,18 @@
+import {
+    ExternalLinkIcon,
+    FolderOpenIcon,
+    SaveIcon
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import configRepository from '@/repositories/configRepository';
-import { openExternalLink } from '@/services/shellIntegrationService';
+import {
+    openExternalLink,
+    openFileSelectorDialog
+} from '@/services/shellIntegrationService';
 import { Button } from '@/ui/shadcn/button';
 import {
     Dialog,
@@ -15,7 +23,12 @@ import {
     DialogTitle
 } from '@/ui/shadcn/dialog';
 import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
-import { Input } from '@/ui/shadcn/input';
+import {
+    InputGroup,
+    InputGroupAddon,
+    InputGroupButton,
+    InputGroupInput
+} from '@/ui/shadcn/input-group';
 import { Textarea } from '@/ui/shadcn/textarea';
 
 export function LaunchOptionsDialog({ open, onOpenChange }: any) {
@@ -110,9 +123,29 @@ export function LaunchOptionsDialog({ open, onOpenChange }: any) {
         }
     }
 
+    async function handleBrowseLaunchPath() {
+        try {
+            const selected = await openFileSelectorDialog(
+                vrcLaunchPathOverride || '',
+                '.exe',
+                'Executable Files (*.exe)|*.exe|All Files (*.*)|*.*'
+            );
+            if (selected) {
+                setVrcLaunchPathOverride(selected);
+            }
+        } catch (error) {
+            toast.error(
+                userFacingErrorMessage(
+                    error,
+                    t('host.system_dialogs.toast.failed_to_load_launch_options')
+                )
+            );
+        }
+    }
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent className="w-[calc(100%-2rem)] max-w-3xl sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>
                         {t('dialog.launch_options.header')}
@@ -153,15 +186,28 @@ export function LaunchOptionsDialog({ open, onOpenChange }: any) {
                         <FieldLabel htmlFor="launch-options-path-override">
                             {t('dialog.launch_options.path_override')}
                         </FieldLabel>
-                        <Input
-                            id="launch-options-path-override"
-                            value={vrcLaunchPathOverride}
-                            placeholder="C:\\Program Files (x86)\\Steam\\steamapps\\common\\VRChat\\launch.exe"
-                            spellCheck={false}
-                            onChange={(event: any) =>
-                                setVrcLaunchPathOverride(event.target.value)
-                            }
-                        />
+                        <InputGroup>
+                            <InputGroupInput
+                                id="launch-options-path-override"
+                                value={vrcLaunchPathOverride}
+                                placeholder="C:\\Program Files (x86)\\Steam\\steamapps\\common\\VRChat\\launch.exe"
+                                spellCheck={false}
+                                onChange={(event: any) =>
+                                    setVrcLaunchPathOverride(
+                                        event.target.value
+                                    )
+                                }
+                            />
+                            <InputGroupAddon align="inline-end">
+                                <InputGroupButton
+                                    type="button"
+                                    onClick={handleBrowseLaunchPath}
+                                >
+                                    <FolderOpenIcon data-icon="inline-start" />
+                                    {t('dialog.screenshot_metadata.browse')}
+                                </InputGroupButton>
+                            </InputGroupAddon>
+                        </InputGroup>
                     </Field>
                 </FieldGroup>
                 <DialogFooter>
@@ -174,6 +220,7 @@ export function LaunchOptionsDialog({ open, onOpenChange }: any) {
                             );
                         }}
                     >
+                        <ExternalLinkIcon data-icon="inline-start" />
                         {t('dialog.launch_options.vrchat_docs')}
                     </Button>
                     <Button
@@ -185,6 +232,7 @@ export function LaunchOptionsDialog({ open, onOpenChange }: any) {
                             );
                         }}
                     >
+                        <ExternalLinkIcon data-icon="inline-start" />
                         {t('dialog.launch_options.unity_manual')}
                     </Button>
                     <Button
@@ -194,6 +242,7 @@ export function LaunchOptionsDialog({ open, onOpenChange }: any) {
                             handleSave();
                         }}
                     >
+                        <SaveIcon data-icon="inline-start" />
                         {t('dialog.launch_options.save')}
                     </Button>
                 </DialogFooter>
