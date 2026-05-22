@@ -345,7 +345,7 @@ export const AvatarInfoLine = memo(function AvatarInfoLine({
             <Button
                 type="button"
                 variant="ghost"
-                className="hover:text-primary h-auto w-fit justify-start p-0 text-left font-normal"
+                className="text-muted-foreground hover:text-primary h-auto w-fit justify-start p-0 text-left font-normal"
                 disabled={!imageUrl}
                 onClick={() => {
                     openAvatarAuthorTarget();

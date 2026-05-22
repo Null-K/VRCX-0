@@ -100,6 +100,7 @@ function FeedLocation({ row }: any) {
                 grouphint={row.groupName || ''}
                 enableContextMenu
                 disableTooltip
+                className="text-primary"
             />
         </div>
     );
