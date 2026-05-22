@@ -17,6 +17,8 @@ type FriendRecord = Record<string, unknown> & {
     last_platform?: unknown;
     state?: unknown;
     stateBucket?: unknown;
+    trustLevel?: unknown;
+    $trustLevel?: unknown;
     friendNumber?: unknown;
     $friendNumber?: unknown;
 };
@@ -67,6 +69,28 @@ function normalizeStateBucket(value: unknown): FriendRosterBucket | '' {
     return '';
 }
 
+function resolveFriendStateBucket({
+    patch,
+    stateBucket,
+    existingEntry
+}: {
+    patch?: FriendRecord | null;
+    stateBucket?: unknown;
+    existingEntry?: FriendRecord | null;
+}): FriendRosterBucket {
+    const explicitStateBucket =
+        normalizeStateBucket(stateBucket) ||
+        normalizeStateBucket(patch?.stateBucket) ||
+        normalizeStateBucket(patch?.state);
+
+    return (
+        explicitStateBucket ||
+        normalizeStateBucket(existingEntry?.stateBucket) ||
+        normalizeStateBucket(existingEntry?.state) ||
+        'offline'
+    );
+}
+
 function getDisplayName(user: FriendRecord | null | undefined): unknown {
     return user?.displayName || user?.username || user?.id || '';
 }
@@ -100,6 +124,20 @@ function normalizeFriendEntry(
         friend ?? createFallbackFriendUser(fallbackUserId, existingRow);
     const tags = Array.isArray(source.tags) ? source.tags : [];
     const trust = computeTrustLevel(tags, String(source.developerType || ''));
+    const explicitTrustLevel = String(
+        source.$trustLevel || source.trustLevel || ''
+    );
+    const hasTrustMetadata =
+        Boolean(friend) &&
+        (tags.length > 0 ||
+            Boolean(source.developerType) ||
+            Boolean(explicitTrustLevel));
+    const trustLevel =
+        explicitTrustLevel ||
+        (hasTrustMetadata
+            ? trust.trustLevel
+            : String(existingRow?.trustLevel || existingRow?.$trustLevel || '')) ||
+        trust.trustLevel;
     const friendNumber =
         Number.parseInt(
             (source?.friendNumber ??
@@ -119,9 +157,9 @@ function normalizeFriendEntry(
         state: stateBucket,
         stateBucket,
         friendNumber,
-        trustLevel: trust.trustLevel,
+        trustLevel,
         $friendNumber: friendNumber,
-        $trustLevel: trust.trustLevel,
+        $trustLevel: trustLevel,
         $trustClass: trust.trustClass,
         $trustSortNum: trust.trustSortNum,
         $isModerator: trust.isModerator,
@@ -201,6 +239,33 @@ function buildRosterOrdering(
         offlineIds,
         orderedFriendIds: [...onlineIds, ...activeIds, ...offlineIds]
     };
+}
+
+function normalizeRosterSnapshotFriends(
+    friendsById: Record<string, FriendRecord> | null | undefined
+): Record<string, FriendRecord> {
+    const normalizedFriendsById: Record<string, FriendRecord> = {};
+    for (const [rawUserId, friend] of Object.entries(friendsById || {})) {
+        const normalizedUserId =
+            normalizeUserId(friend?.id || friend?.userId) ||
+            normalizeUserId(rawUserId);
+        if (!normalizedUserId) {
+            continue;
+        }
+        const stateBucket = resolveFriendStateBucket({
+            patch: friend,
+            existingEntry: friend
+        });
+        normalizedFriendsById[normalizedUserId] = normalizeFriendEntry(
+            {
+                ...friend,
+                id: normalizedUserId
+            },
+            stateBucket,
+            friend
+        );
+    }
+    return normalizedFriendsById;
 }
 
 function friendEntryNeedsOrderingUpdate(
@@ -287,22 +352,20 @@ export const useFriendRosterStore = create<FriendRosterStore>((set: any) => ({
     setRosterSnapshot({
         currentUserId,
         friendsById,
-        orderedFriendIds,
-        onlineIds,
-        activeIds,
-        offlineIds,
         detail = ''
     }: any) {
+        const normalizedFriendsById = normalizeRosterSnapshotFriends(friendsById);
+        const ordering = buildRosterOrdering(normalizedFriendsById);
         set({
             currentUserId,
             loadStatus: 'ready',
             detail,
             lastLoadedAt: new Date().toISOString(),
-            friendsById,
-            orderedFriendIds,
-            onlineIds,
-            activeIds,
-            offlineIds
+            friendsById: normalizedFriendsById,
+            orderedFriendIds: ordering.orderedFriendIds,
+            onlineIds: ordering.onlineIds,
+            activeIds: ordering.activeIds,
+            offlineIds: ordering.offlineIds
         });
     },
     setRosterError(detail: any) {
@@ -321,12 +384,11 @@ export const useFriendRosterStore = create<FriendRosterStore>((set: any) => ({
             }
 
             const existingEntry = state.friendsById[normalizedUserId] ?? null;
-            const nextStateBucket =
-                normalizeStateBucket(stateBucket) ||
-                normalizeStateBucket(patch?.state) ||
-                normalizeStateBucket(existingEntry?.stateBucket) ||
-                normalizeStateBucket(existingEntry?.state) ||
-                'offline';
+            const nextStateBucket = resolveFriendStateBucket({
+                patch,
+                stateBucket,
+                existingEntry
+            });
             const mergedUser: any = {
                 ...(existingEntry ??
                     createFallbackFriendUser(normalizedUserId, existingEntry)),
@@ -385,12 +447,11 @@ export const useFriendRosterStore = create<FriendRosterStore>((set: any) => ({
                 }
 
                 const existingEntry = friendsById[normalizedUserId] ?? null;
-                const nextStateBucket =
-                    normalizeStateBucket(entry?.stateBucket) ||
-                    normalizeStateBucket(patch?.state) ||
-                    normalizeStateBucket(existingEntry?.stateBucket) ||
-                    normalizeStateBucket(existingEntry?.state) ||
-                    'offline';
+                const nextStateBucket = resolveFriendStateBucket({
+                    patch,
+                    stateBucket: entry?.stateBucket,
+                    existingEntry
+                });
                 const mergedUser: any = {
                     ...(existingEntry ??
                         createFallbackFriendUser(
