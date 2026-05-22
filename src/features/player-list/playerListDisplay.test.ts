@@ -4,9 +4,7 @@ import {
     fileAnalysisSizeForPlatform,
     formatCount,
     getHomeWorldId,
-    getLanguageFlagLabel,
     getWorldImage,
-    languageClassName,
     resolvePlatformBadge,
     resolvePlatformMeta,
     resolvePlatformMode,
@@ -86,14 +84,6 @@ describe('playerListDisplay', () => {
             badgeVariant: 'outline',
             label: 'Visitor'
         });
-    });
-
-    it('shows language flags and fallback class names for profile languages', () => {
-        expect(getLanguageFlagLabel('eng')).toBe('us');
-        expect(languageClassName('language_that_does_not_exist')).toBe(
-            'language_that_does_not_exist'
-        );
-        expect(languageClassName('')).toBe('unknown');
     });
 
     it('resolves home world ids from location strings and profile objects', () => {

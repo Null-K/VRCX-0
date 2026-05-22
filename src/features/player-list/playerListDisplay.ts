@@ -2,7 +2,6 @@ import { AppleIcon, MonitorIcon, RectangleGogglesIcon } from 'lucide-react';
 
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { userStatusIndicatorClassName } from '@/shared/utils/userStatus';
-import { languageMappings } from '@/shared/constants/language';
 import { parseLocation } from '@/shared/utils/locationParser';
 
 import { normalizeString } from './playerListRows';
@@ -84,15 +83,6 @@ export function resolvePlatformMode(row: any) {
             : 'D';
     }
     return '';
-}
-
-export function getLanguageFlagLabel(languageKey: any) {
-    const key = normalizeString(languageKey).toLowerCase();
-    return languageMappings[key] || key || '';
-}
-
-export function languageClassName(languageKey: any) {
-    return getLanguageFlagLabel(languageKey) || 'unknown';
 }
 
 export function languageCodeLabel(languageKey: any) {

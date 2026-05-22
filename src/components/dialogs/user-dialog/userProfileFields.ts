@@ -18,7 +18,6 @@ const allowedSelfStatuses = new Set([
 export {
     fallbackLanguageOptions,
     languageDisplayName,
-    languageFlagClassName,
     languageOptionLabel,
     normalizeLanguageKey,
     normalizeLanguageOptionsFromConfig,

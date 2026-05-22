@@ -1,4 +1,4 @@
-import { languageMappings } from '@/shared/constants/language';
+import { languageKeys } from '@/shared/constants/language';
 
 type LanguageOption = {
     key?: unknown;
@@ -25,11 +25,6 @@ export function normalizeLanguageKey(value: unknown): string {
         .replace(/^language_/, '');
 }
 
-export function languageFlagClassName(languageKey: unknown): string {
-    const key = normalizeLanguageKey(languageKey);
-    return languageMappings[key as keyof typeof languageMappings] || key || 'unknown';
-}
-
 export function languageDisplayName(option: LanguageOption): string {
     const key = normalizeLanguageKey(option?.key || option?.value);
     return normalizeLanguageText(
@@ -44,7 +39,7 @@ export function languageOptionLabel(option: LanguageOption): string {
 }
 
 export function fallbackLanguageOptions(): Array<{ key: string; value: string }> {
-    return Object.keys(languageMappings)
+    return [...languageKeys]
         .sort()
         .map((key: any) => ({ key, value: key.toUpperCase() }));
 }

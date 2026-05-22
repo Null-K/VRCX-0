@@ -3,7 +3,6 @@ import { describe, expect, it } from 'vitest';
 import {
     buildFavoriteIdSet,
     fallbackLanguageOptions,
-    languageFlagClassName,
     languageOptionLabel,
     normalizeLanguageOptionsFromConfig,
     normalizeProfileLanguageRows,
@@ -67,7 +66,7 @@ describe('userProfileFields', () => {
         );
     });
 
-    it('shows a user language once using configured names and flag classes', () => {
+    it('shows a user language once using configured names', () => {
         const languageOptionsMap = new Map([
             ['eng', { key: 'eng', value: 'English' }],
             ['jpn', { key: 'jpn', value: 'Japanese' }],
@@ -89,8 +88,6 @@ describe('userProfileFields', () => {
             { key: 'spa', value: 'Spanish' }
         ]);
         expect(languageOptionLabel(rows[0])).toBe('English (ENG)');
-        expect(languageFlagClassName('language_eng')).toBe('us');
-        expect(languageFlagClassName('madeup')).toBe('madeup');
     });
 
     it('suggests recent statuses as readable unique entries with profile history first', () => {

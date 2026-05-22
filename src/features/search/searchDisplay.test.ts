@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { languageFlagLabel, resolveUserLanguages } from './searchDisplay';
+import { resolveUserLanguages } from './searchDisplay';
 
 describe('search display helpers', () => {
     it('uses normalized language rows when the user already has them', () => {
@@ -11,7 +11,10 @@ describe('search display helpers', () => {
                 $languages: languages,
                 tags: ['language_jpn']
             })
-        ).toBe(languages);
+        ).toEqual([
+            { key: 'eng', value: 'English' },
+            { key: 'jpn', value: 'JPN' }
+        ]);
     });
 
     it('derives user language rows from VRChat language tags', () => {
@@ -25,17 +28,9 @@ describe('search display helpers', () => {
                 ]
             })
         ).toEqual([
-            { key: 'eng', value: 'us' },
-            { key: 'jpn', value: 'jp' },
-            { key: 'custom', value: 'custom' }
+            { key: 'eng', value: 'ENG' },
+            { key: 'jpn', value: 'JPN' },
+            { key: 'custom', value: 'CUSTOM' }
         ]);
-    });
-
-    it('renders known languages as regional indicator flags and unknown languages as short labels', () => {
-        expect(languageFlagLabel('eng')).toBe(
-            String.fromCodePoint(0x1f1fa, 0x1f1f8)
-        );
-        expect(languageFlagLabel('custom')).toBe('CUS');
-        expect(languageFlagLabel('')).toBe('?');
     });
 });

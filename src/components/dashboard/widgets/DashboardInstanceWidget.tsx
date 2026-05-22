@@ -15,8 +15,8 @@ import { timeToText } from '@/lib/dateTime';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
 import playerListPersistenceRepository from '@/repositories/playerListPersistenceRepository';
-import { languageMappings } from '@/shared/constants/language';
 import { parseLocation } from '@/shared/utils/locationParser';
+import { normalizeProfileLanguageRows } from '@/shared/utils/userLanguage';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -89,23 +89,11 @@ function resolvePlatformMeta(platform: any) {
     };
 }
 
-function languageFlagLabel(languageKey: any) {
-    const countryCode =
-        languageMappings[String(languageKey || '').toLowerCase()];
-    if (!countryCode || !/^[a-z]{2}$/i.test(countryCode)) {
-        return (
-            String(languageKey || '?')
-                .slice(0, 3)
-                .toUpperCase() || '?'
-        );
-    }
-
-    return String.fromCodePoint(
-        ...countryCode
-            .toUpperCase()
-            .split('')
-            .map((letter: any) => 0x1f1e6 + letter.charCodeAt(0) - 65)
-    );
+function languageCodeLabel(languageKey: any) {
+    const key = normalizeString(languageKey)
+        .toLowerCase()
+        .replace(/^language_/, '');
+    return key ? key.toUpperCase() : '';
 }
 
 function getActiveColumns(config: any) {
@@ -128,34 +116,33 @@ function getActiveColumns(config: any) {
 }
 
 function resolveLanguageEntries(friend: any) {
-    const source =
-        friend?.$languages || friend?.languages || friend?.language || [];
-    const values = Array.isArray(source) ? source : [source];
+    const profileRows = normalizeProfileLanguageRows(friend);
+    const fallbackSource = profileRows.length ? [] : friend?.language || [];
+    const values = Array.isArray(fallbackSource)
+        ? fallbackSource
+        : [fallbackSource];
 
-    return values
-        .map((entry: any) => {
-            if (typeof entry === 'string') {
-                return {
-                    key: entry,
-                    value: languageMappings[entry] || entry
-                };
-            }
-
-            const key = entry?.key || entry?.name || entry?.label || '';
-            return {
-                key,
-                value:
-                    entry?.value ||
-                    entry?.name ||
-                    entry?.label ||
-                    languageMappings[key] ||
-                    key
-            };
+    return [
+        ...profileRows,
+        ...values.map((entry: any) => {
+            const key =
+                typeof entry === 'string'
+                    ? entry
+                    : entry?.key || entry?.id || entry?.name || entry?.label || '';
+            const value =
+                typeof entry === 'string'
+                    ? languageCodeLabel(entry)
+                    : entry?.value ||
+                      entry?.name ||
+                      entry?.label ||
+                      languageCodeLabel(key);
+            return { key, value };
         })
+    ]
         .map((entry: any) => ({
             key: normalizeString(entry.key),
             value: normalizeString(entry.value),
-            flag: languageFlagLabel(entry.key)
+            code: languageCodeLabel(entry.key)
         }))
         .filter((entry: any) => entry.key);
 }
@@ -396,8 +383,8 @@ function DashboardInstancePlayersTable({ activeColumns, rows }: any) {
                                                     key={`${row.id}:${entry.key}`}
                                                 >
                                                     <TooltipTrigger asChild>
-                                                        <span>
-                                                            {entry.flag}
+                                                        <span className="border-border/70 bg-muted/70 text-muted-foreground inline-flex h-5 min-w-8 items-center justify-center rounded border px-1 font-mono text-[10px] leading-none font-semibold">
+                                                            {entry.code}
                                                         </span>
                                                     </TooltipTrigger>
                                                     <TooltipContent>
