@@ -5,7 +5,6 @@ import {
     PageScaffold,
     PageTitle
 } from '@/components/layout/PageScaffold';
-import { Spinner } from '@/ui/shadcn/spinner';
 import { Tabs, TabsList, TabsTrigger } from '@/ui/shadcn/tabs';
 
 import { SettingsAdvancedSection } from './components/SettingsAdvancedSection';
@@ -52,12 +51,6 @@ export function SettingsPage() {
                         ))}
                     </TabsList>
                 </div>
-                {shell.loading ? (
-                    <div className="text-muted-foreground flex items-center gap-2 text-sm">
-                        <Spinner />
-                        {t('view.settings.loading.loading_settings_snapshot')}
-                    </div>
-                ) : null}
                 <SettingsSystemSection system={system} />
                 <SettingsInterfaceTab settingsInterface={settingsInterface} />
                 <SettingsMediaTab media={media} />
