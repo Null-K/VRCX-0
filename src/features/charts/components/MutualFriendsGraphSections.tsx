@@ -1,10 +1,4 @@
-import {
-    CheckIcon,
-    EyeOffIcon,
-    RefreshCcwIcon,
-    Settings2Icon,
-    UserIcon
-} from 'lucide-react';
+import { CheckIcon, RefreshCcwIcon, Settings2Icon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
@@ -326,6 +320,17 @@ export function MutualFriendsToolbar({
     const { t } = useTranslation();
     const baseNodeCount = graph.baseGraph.nodes.length;
     const fetchProgress = fetch.fetchProgress;
+    const isRefreshingSelectedNode = Boolean(
+        picker.selectedNode && picker.nodeRefreshId === picker.selectedNode.id
+    );
+    const isRefreshDisabled = picker.selectedNode
+        ? isRefreshingSelectedNode
+        : fetchProgress.isFetching;
+    const isRefreshBusy =
+        isRefreshingSelectedNode || (!picker.selectedNode && fetchProgress.isFetching);
+    const handleRefresh = picker.selectedNode
+        ? mutualCommands.refreshSelectedNode
+        : mutualCommands.refreshPage;
 
     return (
         <div className="flex w-full items-center gap-3">
@@ -365,59 +370,21 @@ export function MutualFriendsToolbar({
             </div>
 
             <div className="ml-auto flex flex-wrap items-center gap-2">
-                {picker.selectedNode ? (
-                    <>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={mutualCommands.openSelectedNode}
-                        >
-                            <UserIcon data-icon="inline-start" />
-                            {t('common.actions.open')}
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={
-                                picker.nodeRefreshId === picker.selectedNode.id
-                            }
-                            onClick={mutualCommands.refreshSelectedNode}
-                        >
-                            {picker.nodeRefreshId === picker.selectedNode.id ? (
-                                <Spinner data-icon="inline-start" />
-                            ) : (
-                                <RefreshCcwIcon data-icon="inline-start" />
-                            )}
-                            {picker.nodeRefreshId === picker.selectedNode.id
-                                ? 'Refreshing...'
-                                : 'Refresh'}
-                        </Button>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={mutualCommands.hideSelectedNode}
-                        >
-                            <EyeOffIcon data-icon="inline-start" />
-                            {t('nav_menu.custom_nav.hide')}
-                        </Button>
-                    </>
-                ) : null}
                 <Button
                     type="button"
-                    variant="ghost"
-                    size="icon"
-                    aria-label={'Refresh mutual graph'}
-                    onClick={mutualCommands.refreshPage}
-                    disabled={fetchProgress.isFetching}
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={isRefreshDisabled}
                 >
-                    {fetchProgress.isFetching ? (
+                    {isRefreshBusy ? (
                         <Spinner data-icon="inline-start" />
                     ) : (
                         <RefreshCcwIcon data-icon="inline-start" />
                     )}
+                    {isRefreshingSelectedNode
+                        ? 'Refreshing...'
+                        : t('common.actions.refresh')}
                 </Button>
                 <MutualFriendsSettingsSheet
                     edgeCount={graph.edgeCount}

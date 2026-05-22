@@ -3,7 +3,6 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import mutualGraphPersistenceRepository from '@/repositories/mutualGraphPersistenceRepository';
-import { openUserDialog } from '@/services/dialogService';
 import { useModalStore } from '@/state/modalStore';
 
 import {
@@ -170,29 +169,6 @@ export function useMutualFriendsPageState() {
         setStatus: snapshot.setStatus
     });
 
-    function handleOpenSelectedNode() {
-        if (!selectedNode?.id) {
-            return;
-        }
-
-        openUserDialog({
-            userId: selectedNode.id,
-            title: selectedNode.label
-        });
-    }
-
-    function handleHideSelectedNode() {
-        if (!selectedNode?.id) {
-            return;
-        }
-
-        setExcludedFriendIds((current: any) =>
-            current.includes(selectedNode.id)
-                ? current
-                : [...current, selectedNode.id]
-        );
-    }
-
     function selectNode(friendId: any) {
         const nextValue = normalizeMutualFriendId(friendId);
         selectedNodeIdRef.current = nextValue;
@@ -310,8 +286,6 @@ export function useMutualFriendsPageState() {
         actions: {
             cancelFetch: handleCancelFetch,
             fetchGraph: handleFetchGraph,
-            hideSelectedNode: handleHideSelectedNode,
-            openSelectedNode: handleOpenSelectedNode,
             refreshPage: () => setReloadToken((value: any) => value + 1),
             refreshSelectedNode: handleRefreshSelectedNode,
             resetLayoutAndHidden: handleResetLayoutAndHidden,
