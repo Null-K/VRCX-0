@@ -26,6 +26,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/ui/shadcn/avatar';
 import { Badge } from '@/ui/shadcn/badge';
 import { Button } from '@/ui/shadcn/button';
 import { CardTitle } from '@/ui/shadcn/card';
+import { DropdownMenuCheckboxItem } from '@/ui/shadcn/dropdown-menu';
 import { Separator } from '@/ui/shadcn/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
@@ -33,6 +34,7 @@ import {
     EntityActionDropdown,
     EntityActionItem,
     EntityActionSeparator,
+    EntityActionSub,
     EntityOverviewCard
 } from '../EntityDialogScaffold';
 import { GroupTitleLanguages } from './GroupDialogViewParts';
@@ -314,54 +316,73 @@ export function GroupDialogHeaderSection(props: any) {
                             {canSetVisibility ? (
                                 <>
                                     <EntityActionSeparator />
-                                    <EntityActionItem
+                                    <EntityActionSub
                                         icon={UserIcon}
+                                        label={t(
+                                            'dialog.group.actions.visibility'
+                                        )}
                                         disabled={
                                             actionStatus === 'member-props'
                                         }
-                                        onSelect={() =>
-                                            onVisibilityChange('visible')
-                                        }
                                     >
-                                        {memberVisibility === 'visible'
-                                            ? 'Selected: '
-                                            : ''}
-                                        {t(
-                                            'dialog.group.actions.visibility_everyone'
-                                        )}
-                                    </EntityActionItem>
-                                    <EntityActionItem
-                                        icon={UserIcon}
-                                        disabled={
-                                            actionStatus === 'member-props'
-                                        }
-                                        onSelect={() =>
-                                            onVisibilityChange('friends')
-                                        }
-                                    >
-                                        {memberVisibility === 'friends'
-                                            ? 'Selected: '
-                                            : ''}
-                                        {t(
-                                            'dialog.group.actions.visibility_friends'
-                                        )}
-                                    </EntityActionItem>
-                                    <EntityActionItem
-                                        icon={UserIcon}
-                                        disabled={
-                                            actionStatus === 'member-props'
-                                        }
-                                        onSelect={() =>
-                                            onVisibilityChange('hidden')
-                                        }
-                                    >
-                                        {memberVisibility === 'hidden'
-                                            ? 'Selected: '
-                                            : ''}
-                                        {t(
-                                            'dialog.group.actions.visibility_hidden'
-                                        )}
-                                    </EntityActionItem>
+                                        <DropdownMenuCheckboxItem
+                                            checked={
+                                                memberVisibility === 'visible'
+                                            }
+                                            disabled={
+                                                actionStatus === 'member-props'
+                                            }
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    onVisibilityChange(
+                                                        'visible'
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            {t(
+                                                'dialog.group.actions.visibility_everyone'
+                                            )}
+                                        </DropdownMenuCheckboxItem>
+                                        <DropdownMenuCheckboxItem
+                                            checked={
+                                                memberVisibility === 'friends'
+                                            }
+                                            disabled={
+                                                actionStatus === 'member-props'
+                                            }
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    onVisibilityChange(
+                                                        'friends'
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            {t(
+                                                'dialog.group.actions.visibility_friends'
+                                            )}
+                                        </DropdownMenuCheckboxItem>
+                                        <DropdownMenuCheckboxItem
+                                            checked={
+                                                memberVisibility === 'hidden'
+                                            }
+                                            disabled={
+                                                actionStatus === 'member-props'
+                                            }
+                                            onCheckedChange={(checked) => {
+                                                if (checked) {
+                                                    onVisibilityChange(
+                                                        'hidden'
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            {t(
+                                                'dialog.group.actions.visibility_hidden'
+                                            )}
+                                        </DropdownMenuCheckboxItem>
+                                    </EntityActionSub>
                                 </>
                             ) : null}
                             <EntityActionSeparator />
