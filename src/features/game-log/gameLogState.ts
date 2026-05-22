@@ -18,6 +18,9 @@ export const GAME_LOG_COLUMN_IDS = [
     'detail',
     'action'
 ];
+const GAME_LOG_SORTING_COLUMN_IDS = GAME_LOG_COLUMN_IDS.filter(
+    (columnId) => columnId !== 'displayName'
+);
 
 const STORAGE_KEY = getDataTableStorageKey('gameLog');
 
@@ -38,7 +41,7 @@ export function sanitizeGameLogSorting(value: any) {
         (entry: any) =>
             entry &&
             typeof entry.id === 'string' &&
-            GAME_LOG_COLUMN_IDS.includes(entry.id)
+            GAME_LOG_SORTING_COLUMN_IDS.includes(entry.id)
     );
     return filtered.length ? filtered : GAME_LOG_DEFAULT_SORTING;
 }

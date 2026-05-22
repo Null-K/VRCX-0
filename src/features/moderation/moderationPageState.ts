@@ -23,6 +23,10 @@ export const MODERATION_COLUMN_IDS = [
     'action',
     'trailing'
 ];
+const MODERATION_SORTING_COLUMN_IDS = MODERATION_COLUMN_IDS.filter(
+    (columnId: any) =>
+        columnId !== 'sourceDisplayName' && columnId !== 'targetDisplayName'
+);
 export const MODERATION_TYPE_FILTERS_CONFIG_KEY =
     'VRCX_playerModerationTableFilters';
 
@@ -64,7 +68,7 @@ export function sanitizeModerationSorting(value: any) {
         (entry: any) =>
             entry &&
             typeof entry.id === 'string' &&
-            MODERATION_COLUMN_IDS.includes(entry.id)
+            MODERATION_SORTING_COLUMN_IDS.includes(entry.id)
     );
     return filtered.length ? filtered : MODERATION_DEFAULT_SORTING;
 }

@@ -143,18 +143,8 @@ export function useFriendListColumns({
                 size: 200,
                 meta: { label: t('table.friendList.displayName') },
                 accessorFn: (row: any) => row?.displayName || '',
-                header: ({ column }: any) => (
-                    <SortButton
-                        column={column}
-                        label={t('table.friendList.displayName')}
-                    />
-                ),
-                sortingFn: (rowA: any, rowB: any) =>
-                    String(rowA.original?.displayName || '').localeCompare(
-                        String(rowB.original?.displayName || ''),
-                        undefined,
-                        { sensitivity: 'base' }
-                    ),
+                enableSorting: false,
+                header: () => t('table.friendList.displayName'),
                 cell: ({ row }: any) => {
                     const nameStyle =
                         randomUserColours && row.original?.id

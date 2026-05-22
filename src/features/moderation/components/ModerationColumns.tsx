@@ -118,33 +118,17 @@ export function useModerationColumns({
         {
             id: 'sourceDisplayName',
             size: 120,
+            enableSorting: false,
             meta: {
                 label: t('table.moderation.source')
             },
             accessorFn: (row: any) =>
                 row?.sourceDisplayName || row?.sourceUserId || '',
-            header: ({ column }: any) => (
-                <SortButton
-                    column={column}
-                    label={t('table.moderation.source')}
-                />
+            header: () => (
+                <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                    {t('table.moderation.source')}
+                </span>
             ),
-            sortingFn: (rowA: any, rowB: any) =>
-                String(
-                    rowA.original?.sourceDisplayName ||
-                        rowA.original?.sourceUserId ||
-                        ''
-                ).localeCompare(
-                    String(
-                        rowB.original?.sourceDisplayName ||
-                            rowB.original?.sourceUserId ||
-                            ''
-                    ),
-                    undefined,
-                    {
-                        sensitivity: 'base'
-                    }
-                ),
             cell: ({ row }: any) => (
                 <Button
                     type="button"
@@ -170,34 +154,18 @@ export function useModerationColumns({
             id: 'targetDisplayName',
             size: 260,
             minSize: 80,
+            enableSorting: false,
             meta: {
                 label: t('table.moderation.target'),
                 stretch: true
             },
             accessorFn: (row: any) =>
                 row?.targetDisplayName || row?.targetUserId || '',
-            header: ({ column }: any) => (
-                <SortButton
-                    column={column}
-                    label={t('table.moderation.target')}
-                />
+            header: () => (
+                <span className="text-muted-foreground text-xs font-medium tracking-wide uppercase">
+                    {t('table.moderation.target')}
+                </span>
             ),
-            sortingFn: (rowA: any, rowB: any) =>
-                String(
-                    rowA.original?.targetDisplayName ||
-                        rowA.original?.targetUserId ||
-                        ''
-                ).localeCompare(
-                    String(
-                        rowB.original?.targetDisplayName ||
-                            rowB.original?.targetUserId ||
-                            ''
-                    ),
-                    undefined,
-                    {
-                        sensitivity: 'base'
-                    }
-                ),
             cell: ({ row }: any) => (
                 <Button
                     type="button"

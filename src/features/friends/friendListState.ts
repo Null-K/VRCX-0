@@ -45,6 +45,9 @@ export const FRIEND_LIST_COLUMN_IDS = [
     ...VISIBLE_COLUMN_IDS,
     ...LEGACY_SORT_COLUMN_IDS
 ];
+const FRIEND_LIST_SORTING_COLUMN_IDS = FRIEND_LIST_COLUMN_IDS.filter(
+    (columnId) => columnId !== 'displayName'
+);
 
 const STORAGE_KEY = getDataTableStorageKey('friendList');
 
@@ -65,7 +68,7 @@ export function sanitizeFriendListSorting(value: any) {
         (entry: any) =>
             entry &&
             typeof entry.id === 'string' &&
-            FRIEND_LIST_COLUMN_IDS.includes(entry.id)
+            FRIEND_LIST_SORTING_COLUMN_IDS.includes(entry.id)
     );
     return filtered.length ? filtered : FRIEND_LIST_DEFAULT_SORTING;
 }

@@ -191,30 +191,8 @@ export function useGameLogColumns({
                 size: 200,
                 accessorFn: (row: GameLogRow) =>
                     row?.displayName || row?.userId || '',
-                header: ({
-                    column
-                }: {
-                    column: Column<GameLogRow, unknown>;
-                }) => (
-                    <SortButton
-                        column={column}
-                        label={t('table.gameLog.user')}
-                    />
-                ),
-                sortingFn: (rowA: Row<GameLogRow>, rowB: Row<GameLogRow>) =>
-                    String(
-                        rowA.original?.displayName ||
-                            rowA.original?.userId ||
-                            ''
-                    ).localeCompare(
-                        String(
-                            rowB.original?.displayName ||
-                                rowB.original?.userId ||
-                                ''
-                        ),
-                        undefined,
-                        { sensitivity: 'base' }
-                    ),
+                enableSorting: false,
+                header: () => t('table.gameLog.user'),
                 cell: ({ row }: { row: Row<GameLogRow> }) => {
                     const displayName = normalizeId(row.original?.displayName);
                     const canOpenUser = Boolean(

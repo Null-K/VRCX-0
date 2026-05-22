@@ -17,6 +17,9 @@ export const COLUMN_IDS = [
     'action',
     'trailing'
 ];
+const SORTING_COLUMN_IDS = COLUMN_IDS.filter(
+    (columnId) => columnId !== 'displayName'
+);
 
 const DEFAULT_SORTING = [];
 const STORAGE_KEY = getDataTableStorageKey('friendLog');
@@ -38,7 +41,7 @@ export function sanitizeSorting(value: any) {
         (entry: any) =>
             entry &&
             typeof entry.id === 'string' &&
-            COLUMN_IDS.includes(entry.id)
+            SORTING_COLUMN_IDS.includes(entry.id)
     );
 }
 

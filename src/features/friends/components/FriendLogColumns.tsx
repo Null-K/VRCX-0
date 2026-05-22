@@ -99,21 +99,8 @@ export function useFriendLogColumns({
             size: 260,
             minSize: 80,
             accessorFn: (row: any) => row?.displayName || row?.userId || '',
-            header: ({ column }: any) => (
-                <SortButton column={column} label={t('table.friendLog.user')} />
-            ),
-            sortingFn: (rowA: any, rowB: any) =>
-                String(
-                    rowA.original?.displayName || rowA.original?.userId || ''
-                ).localeCompare(
-                    String(
-                        rowB.original?.displayName ||
-                            rowB.original?.userId ||
-                            ''
-                    ),
-                    undefined,
-                    { sensitivity: 'base' }
-                ),
+            enableSorting: false,
+            header: () => t('table.friendLog.user'),
             cell: ({ row }: any) => renderUserCell(row.original)
         },
         {

@@ -103,6 +103,7 @@ describe('friendListState', () => {
             sanitizeFriendListSorting([
                 { id: 'friendNumber', desc: true },
                 { id: 'unknown', desc: false },
+                { id: 'displayName', desc: false },
                 { id: 'lastSeen', desc: true }
             ])
         ).toEqual([
