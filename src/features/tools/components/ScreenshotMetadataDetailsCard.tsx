@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, UsersIcon } from 'lucide-react';
+import { ArrowLeftIcon, UserIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Location } from '@/components/Location';
@@ -95,7 +95,7 @@ export function ScreenshotMetadataDetailsCard({
                                             );
                                         const playerContent = (
                                             <>
-                                                <UsersIcon data-icon="inline-start" />
+                                                <UserIcon data-icon="inline-start" />
                                                 {playerLabel}
                                             </>
                                         );
