@@ -44,11 +44,52 @@ export function resolvePlatformMeta(platform: any) {
     };
 }
 
+function isLivePlayerLocation(location: any) {
+    const parsed = parseLocation(normalizeString(location));
+    return Boolean(
+        parsed.worldId &&
+            !parsed.isOffline &&
+            !parsed.isPrivate &&
+            !parsed.isTraveling
+    );
+}
+
+function normalizePlayerStatus(value: any) {
+    const normalized = normalizeString(value).toLowerCase();
+    if (normalized === 'joinme') {
+        return 'join me';
+    }
+    if (normalized === 'askme') {
+        return 'ask me';
+    }
+    if (normalized === 'offline:offline' || normalized.startsWith('offline ')) {
+        return 'offline';
+    }
+    return normalized;
+}
+
+function resolveStatusIndicatorSource(row: any) {
+    if (!row?.isCurrentUser || !isLivePlayerLocation(row.location)) {
+        return row;
+    }
+
+    const status = normalizePlayerStatus(row.status);
+    return {
+        location: row.location,
+        state: 'online',
+        stateBucket: 'online',
+        status: status && status !== 'offline' ? status : 'active'
+    };
+}
+
 export function resolveStatusMeta(row: any) {
-    const indicatorClassName = userStatusIndicatorClassName(row, {
-        showOffline: true,
-        className: 'mr-1'
-    });
+    const indicatorClassName = userStatusIndicatorClassName(
+        resolveStatusIndicatorSource(row),
+        {
+            showOffline: true,
+            className: 'mr-1'
+        }
+    );
 
     if (row.isCurrentUser || row.isFavorite) {
         return {

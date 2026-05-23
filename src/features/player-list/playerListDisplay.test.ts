@@ -86,6 +86,23 @@ describe('playerListDisplay', () => {
         });
     });
 
+    it('does not render the current player as offline while they are in a live instance', () => {
+        expect(
+            resolveStatusMeta({
+                isCurrentUser: true,
+                location: 'wrld_live:123',
+                ref: {
+                    location: 'offline',
+                    state: 'offline',
+                    status: 'offline'
+                },
+                state: 'offline',
+                status: 'offline',
+                statusDescription: 'Me'
+            }).indicatorClassName
+        ).toBe('x-user-status online mr-1');
+    });
+
     it('resolves home world ids from location strings and profile objects', () => {
         expect(getHomeWorldId('wrld_home:123')).toBe('wrld_home');
         expect(
