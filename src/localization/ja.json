@@ -5359,7 +5359,7 @@
             "modal": {
                 "launch_vrchat": "VRChat を起動",
                 "launch": "起動",
-                "vrchat_is_already_running_continue_launching_this_instance": "VRChat はすでに実行中です。このインスタンスを続けて起動しますか？"
+                "vrchat_is_already_running_continue_launching_this_instance": "VRChat はすでに実行中です。VRCX-0 は実行中のクライアントへ起動リクエストを再送信します。複数のクライアントが開いている場合、GameLog、現在地、プレイヤーリスト、一部のバックグラウンドサービスが不安定になる可能性があります。続行しますか？"
             },
             "dynamic": {
                 "value_copied": "{value}をコピーしました"

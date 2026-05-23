@@ -5359,7 +5359,7 @@
             "modal": {
                 "launch_vrchat": "启动 VRChat",
                 "launch": "启动",
-                "vrchat_is_already_running_continue_launching_this_instance": "VRChat 已在运行。继续启动这个房间？"
+                "vrchat_is_already_running_continue_launching_this_instance": "VRChat 已在运行。VRCX-0 会向运行中的客户端再次发送启动请求。如果已经打开多个客户端，GameLog、当前位置、玩家列表以及部分后台服务可能变得不可靠。确定要继续吗？"
             },
             "dynamic": {
                 "value_copied": "已复制{value}"

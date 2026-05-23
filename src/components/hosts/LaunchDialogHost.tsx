@@ -302,6 +302,12 @@ export function LaunchDialogHost() {
             if (!result.ok) {
                 return false;
             }
+            await attachRunningVrchat(
+                actionTag,
+                actionLaunchToken,
+                currentEndpoint
+            );
+            return true;
         }
         await launchVrchat(
             actionTag,

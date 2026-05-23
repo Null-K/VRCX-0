@@ -5359,7 +5359,7 @@
             "modal": {
                 "launch_vrchat": "Launch VRChat",
                 "launch": "Launch",
-                "vrchat_is_already_running_continue_launching_this_instance": "VRChat is already running. Continue launching this instance?"
+                "vrchat_is_already_running_continue_launching_this_instance": "VRChat is already running. VRCX-0 will send another launch request to the running client. If multiple clients are open, GameLog, current location, player list, and some background services may be unreliable. Continue?"
             },
             "dynamic": {
                 "value_copied": "{value} copied"
