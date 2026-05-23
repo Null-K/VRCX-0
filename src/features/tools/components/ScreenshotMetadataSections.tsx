@@ -14,6 +14,8 @@ import { KeyboardShortcut } from '@/components/keyboard/KeyboardShortcut';
 import {
     PageBackButton,
     PageHeader,
+    PageToolbar,
+    PageToolbarRow,
     PageTitle
 } from '@/components/layout/PageScaffold';
 import { Badge } from '@/ui/shadcn/badge';
@@ -62,20 +64,20 @@ export function ScreenshotMetadataHeader({
     onBack
 }: any) {
     return (
-        <div className="ml-2 flex items-center gap-2">
-            <PageBackButton
-                label={backLabel}
-                onClick={onBack}
-                className="mr-2"
-            />
-            <PageHeader className="min-w-0 p-0">
-                <PageTitle>{title}</PageTitle>
-            </PageHeader>
-            {deleting ? <Badge variant="outline">{deletingLabel}</Badge> : null}
-            {uploading ? (
-                <Badge variant="outline">{uploadingLabel}</Badge>
-            ) : null}
-        </div>
+        <PageToolbar>
+            <PageToolbarRow className="items-center">
+                <PageBackButton label={backLabel} onClick={onBack} />
+                <PageHeader className="min-w-0 p-0">
+                    <PageTitle>{title}</PageTitle>
+                </PageHeader>
+                {deleting ? (
+                    <Badge variant="outline">{deletingLabel}</Badge>
+                ) : null}
+                {uploading ? (
+                    <Badge variant="outline">{uploadingLabel}</Badge>
+                ) : null}
+            </PageToolbarRow>
+        </PageToolbar>
     );
 }
 

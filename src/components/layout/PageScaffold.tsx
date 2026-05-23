@@ -62,7 +62,7 @@ export function PageTitle({ className = '', children }: any) {
     return (
         <h1
             className={cn(
-                'font-heading text-foreground text-lg leading-none font-medium',
+                'font-heading text-foreground text-base leading-5 font-medium',
                 className
             )}
         >
