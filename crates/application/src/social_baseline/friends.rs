@@ -139,7 +139,8 @@ fn insert_fetched_friend(
     let should_replace = fetched_friends_by_id
         .get(&friend_id)
         .map(|existing| {
-            existing.source_state_bucket.as_deref() != Some("online")
+            friend.source_state_bucket.is_none()
+                || existing.source_state_bucket.as_deref() != Some("online")
                 || friend.source_state_bucket.as_deref() == Some("online")
         })
         .unwrap_or(true);
@@ -163,56 +164,29 @@ fn profile_state_bucket(friend: &Value) -> Option<String> {
     })
 }
 
-fn normalize_presence_text(value: &str) -> String {
-    normalize_text(value).to_ascii_lowercase()
-}
-
-fn profile_location_tag(friend: &Value) -> String {
-    let location = object_field_string(friend, &["location"]);
-    if !location.is_empty() {
-        return normalize_presence_text(&location);
-    }
-    let location = object_field(friend, "$location")
-        .map(|value| object_field_string(value, &["tag"]))
-        .unwrap_or_default();
-    normalize_presence_text(&location)
-}
-
-fn has_vue_online_status_dot(friend: &Value) -> bool {
-    if object_field(friend, "isFriend").and_then(Value::as_bool) == Some(false) {
-        return false;
-    }
-
-    let status = normalize_presence_text(&object_field_string(friend, &["status"]));
-    let state = normalize_presence_text(&object_field_string(friend, &["state"]));
-    let location = profile_location_tag(friend);
-    if state == "active" || location == "offline" {
-        return false;
-    }
-
-    matches!(
-        status.as_str(),
-        "active" | "join me" | "joinme" | "ask me" | "askme" | "busy"
-    )
-}
-
-fn vue_online_snapshot_bucket(friend: &Value) -> String {
-    let platform = normalize_presence_text(&object_field_string(friend, &["platform"]));
+fn bulk_friend_state_input(friend: &Value) -> String {
+    let platform = object_field_string(friend, &["platform"]);
     if platform == "web" {
         return "active".into();
     }
-
-    match normalize_presence_text(&object_field_string(friend, &["state"])).as_str() {
-        "active" => return "active".into(),
-        "offline" => return "offline".into(),
-        _ => {}
+    if !platform.is_empty() {
+        return "online".into();
     }
+    "offline".into()
+}
 
-    if has_vue_online_status_dot(friend) {
-        "online".into()
-    } else {
-        "offline".into()
+fn fetched_profile_needs_user_refetch(
+    profile: &RemoteFriendProfile,
+    state_by_id: &HashMap<String, String>,
+) -> bool {
+    let current_state = state_by_id
+        .get(&profile.id)
+        .map(String::as_str)
+        .unwrap_or("offline");
+    if current_state != bulk_friend_state_input(&profile.raw) {
+        return true;
     }
+    object_field_string(&profile.raw, &["location"]) == "traveling"
 }
 
 fn fetched_source_state_bucket(profile: &RemoteFriendProfile) -> Option<String> {
@@ -796,11 +770,28 @@ pub async fn build_friend_roster_baseline(
         );
     }
 
+    let refetch_ids = if has_snapshot_state_map {
+        fetched_friends_by_id
+            .values()
+            .filter(|profile| fetched_profile_needs_user_refetch(profile, &state_by_id))
+            .map(|profile| profile.id.clone())
+            .collect::<Vec<_>>()
+    } else {
+        Vec::new()
+    };
+    for friend in fetch_missing_friends(&deps, &input.endpoint, refetch_ids).await {
+        insert_fetched_friend(
+            &mut fetched_friends_by_id,
+            &mut fetched_friend_ids_ordered,
+            &mut fetched_friend_ids_seen,
+            friend,
+            None,
+        );
+    }
+
     let missing_ids = expected_ids
         .iter()
-        .filter(|friend_id| {
-            !friend_log_initialized && !fetched_friends_by_id.contains_key(*friend_id)
-        })
+        .filter(|friend_id| !fetched_friends_by_id.contains_key(*friend_id))
         .cloned()
         .collect::<Vec<_>>();
     for friend in fetch_missing_friends(&deps, &input.endpoint, missing_ids).await {
@@ -865,15 +856,10 @@ pub async fn build_friend_roster_baseline(
 
     let mut included_ids = Vec::new();
     let mut included_seen = HashSet::new();
-    if friend_log_initialized {
+    if has_snapshot_state_map {
+        extend_unique(&mut included_ids, &mut included_seen, expected_ids);
+    } else if friend_log_initialized {
         extend_unique(&mut included_ids, &mut included_seen, existing_ids);
-        if has_friend_list {
-            extend_unique(
-                &mut included_ids,
-                &mut included_seen,
-                snapshot_friend_ids.clone(),
-            );
-        }
         extend_unique(
             &mut included_ids,
             &mut included_seen,
@@ -944,13 +930,7 @@ pub async fn build_friend_roster_baseline(
             .and_then(|profile| profile_state_bucket(&profile.raw));
         let source_state_bucket = fetched_profile.and_then(fetched_source_state_bucket);
         let state_bucket = if has_snapshot_state_map {
-            match snapshot_state.as_deref() {
-                Some("online") => fetched_profile
-                    .map(|profile| vue_online_snapshot_bucket(&profile.raw))
-                    .unwrap_or_else(|| "offline".into()),
-                Some(value) => value.to_string(),
-                None => "offline".into(),
-            }
+            snapshot_state.unwrap_or_else(|| "offline".into())
         } else {
             trusted_profile_state
                 .or(source_state_bucket)

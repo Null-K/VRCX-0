@@ -38,68 +38,6 @@ function normalizeStateBucket(value: unknown) {
     return '';
 }
 
-function normalizePresenceText(value: unknown) {
-    return normalizeUserId(value).toLowerCase();
-}
-
-function readFriendStatusSource(friend: Record<string, any> | null | undefined) {
-    const ref = friend?.ref;
-    if (ref && typeof ref === 'object') {
-        return {
-            ...friend,
-            ...ref,
-            pendingOffline: Boolean(friend?.pendingOffline || ref.pendingOffline)
-        };
-    }
-    return friend;
-}
-
-function hasVueOnlineStatusDot(
-    friend: Record<string, any> | null | undefined
-) {
-    const source = readFriendStatusSource(friend);
-    if (!source || source.pendingOffline || source.isFriend === false) {
-        return false;
-    }
-
-    const status = normalizePresenceText(source.status);
-    const location = normalizePresenceText(
-        source.location || source.$location?.tag
-    );
-    const state = normalizePresenceText(source.state);
-    if (state === 'active' || location === 'offline') {
-        return false;
-    }
-
-    return (
-        status === 'active' ||
-        status === 'join me' ||
-        status === 'joinme' ||
-        status === 'ask me' ||
-        status === 'askme' ||
-        status === 'busy'
-    );
-}
-
-function resolveCurrentUserSnapshotPatchState(
-    existingFriend: Record<string, any> | null | undefined,
-    stateBucket: string
-) {
-    if (stateBucket !== 'online') {
-        return stateBucket;
-    }
-    if (!existingFriend) {
-        return '';
-    }
-
-    const source = readFriendStatusSource(existingFriend);
-    if (normalizePresenceText(source?.platform) === 'web') {
-        return 'active';
-    }
-
-    return hasVueOnlineStatusDot(existingFriend) ? 'online' : 'offline';
-}
-
 function getDisplayName(user: Record<string, any> | null | undefined) {
     return user?.displayName || user?.username || user?.id || '';
 }
@@ -245,6 +183,15 @@ function buildFriendStateMap(currentUserSnapshot: any) {
     addStateBucketIds(stateById, currentUserSnapshot?.onlineFriends, 'online');
 
     return stateById;
+}
+
+function hasFriendStateSnapshot(currentUserSnapshot: any) {
+    return (
+        Array.isArray(currentUserSnapshot?.friends) ||
+        Array.isArray(currentUserSnapshot?.offlineFriends) ||
+        Array.isArray(currentUserSnapshot?.activeFriends) ||
+        Array.isArray(currentUserSnapshot?.onlineFriends)
+    );
 }
 
 function buildUnfriendHistoryEntry(
@@ -401,38 +348,32 @@ export function syncFriendRosterStateFromCurrentUserSnapshot(
     detail: any = ''
 ) {
     const stateById = buildFriendStateMap(currentUserSnapshot);
-    if (!stateById.size) {
+    if (!hasFriendStateSnapshot(currentUserSnapshot)) {
         return false;
     }
-    const friendsById = useFriendRosterStore.getState().friendsById || {};
-    const patchEntries = Array.from(stateById.entries()).flatMap(
-        ([userId, stateBucket]: any) => {
-            const normalizedUserId = normalizeUserId(userId);
-            const existingFriend = friendsById[normalizedUserId];
-            const nextStateBucket = resolveCurrentUserSnapshotPatchState(
-                existingFriend,
-                stateBucket
-            );
-            if (!nextStateBucket) {
-                return [];
+    const patchEntries = Array.from(stateById.entries()).map(
+        ([userId, stateBucket]: any) => ({
+            userId,
+            stateBucket,
+            patch: {
+                id: userId,
+                state: stateBucket
             }
-            return [
-                {
-                    userId: normalizedUserId,
-                    stateBucket: nextStateBucket,
-                    patch: {
-                        id: normalizedUserId,
-                        state: nextStateBucket
-                    }
-                }
-            ];
-        }
+        })
     );
-    if (!patchEntries.length) {
-        return false;
-    }
 
-    useFriendRosterStore.getState().applyFriendPatches(patchEntries, detail);
+    const rosterStore = useFriendRosterStore.getState();
+    const snapshotIds = new Set(Array.from(stateById.keys()));
+    const removedIds = Object.keys(rosterStore.friendsById || {}).filter(
+        (userId) => !snapshotIds.has(userId)
+    );
+
+    if (patchEntries.length) {
+        rosterStore.applyFriendPatches(patchEntries, detail);
+    }
+    for (const userId of removedIds) {
+        useFriendRosterStore.getState().removeFriend(userId, detail);
+    }
     for (const { userId, stateBucket, patch } of patchEntries as any[]) {
         recordFriendPatch({
             endpoint: useRuntimeStore.getState().auth.currentUserEndpoint,
@@ -441,7 +382,7 @@ export function syncFriendRosterStateFromCurrentUserSnapshot(
             patch
         });
     }
-    return true;
+    return Boolean(patchEntries.length || removedIds.length);
 }
 
 export async function recordFriendLogUnfriendByUserId({
