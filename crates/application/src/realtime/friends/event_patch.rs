@@ -157,7 +157,9 @@ pub(super) fn apply_friend_event(
                 .as_ref()
                 .filter(|previous| is_online_state(previous))
             {
-                state.pending_offline.remove(&user_id);
+                if state.pending_offline.contains_key(&user_id) {
+                    return None;
+                }
                 state.timer_token = state.timer_token.saturating_add(1);
                 let token = state.timer_token;
                 state.pending_offline.insert(
