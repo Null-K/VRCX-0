@@ -25,6 +25,43 @@ type VrcStatusResponse = Record<string, unknown> & {
     components?: unknown;
 };
 
+function hasStatusIssue(indicator: unknown, description: unknown): boolean {
+    const normalizedIndicator = String(indicator || '');
+    return (
+        (Boolean(normalizedIndicator) && normalizedIndicator !== 'none') ||
+        (Boolean(description) && description !== 'All Systems Operational')
+    );
+}
+
+function componentStatusIndicator(status: unknown): string {
+    switch (status) {
+        case 'major_outage':
+            return 'major';
+        case 'partial_outage':
+        case 'degraded_performance':
+        case 'under_maintenance':
+            return 'minor';
+        default:
+            return '';
+    }
+}
+
+function strongerStatusIndicator(left: unknown, right: unknown): string {
+    const severity: Record<string, number> = {
+        critical: 3,
+        major: 2,
+        minor: 1,
+        maintenance: 1,
+        none: 0,
+        '': 0
+    };
+    const leftValue = String(left || '');
+    const rightValue = String(right || '');
+    return (severity[rightValue] || 0) > (severity[leftValue] || 0)
+        ? rightValue
+        : leftValue;
+}
+
 let pollingTimer: ReturnType<typeof window.setTimeout> | null = null;
 let pollingActive = false;
 let pollingGeneration = 0;
@@ -54,19 +91,32 @@ async function getJson(path: string): Promise<VrcStatusResponse | null> {
     return parseResponse(response.data) as VrcStatusResponse | null;
 }
 
-async function fetchSummary(): Promise<string> {
+async function fetchSummaryIssue(): Promise<{
+    indicator: string;
+    summary: string;
+}> {
     const data = await getJson('summary.json');
     const components = Array.isArray(data?.components)
         ? (data.components as VrcStatusComponent[])
         : [];
-    return components
-        .filter(
-            (component: any) =>
-                component?.status && component.status !== 'operational'
-        )
-        .map((component: any) => component.name)
-        .filter(Boolean)
-        .join(', ');
+    const issueComponents = components.filter(
+        (component: any) =>
+            component?.status && component.status !== 'operational'
+    );
+    return {
+        indicator: issueComponents.reduce(
+            (current: string, component: any) =>
+                strongerStatusIndicator(
+                    current,
+                    componentStatusIndicator(component.status)
+                ),
+            ''
+        ),
+        summary: issueComponents
+            .map((component: any) => component.name)
+            .filter(Boolean)
+            .join(', ')
+    };
 }
 
 export async function refreshVrcStatus(): Promise<void> {
@@ -77,8 +127,19 @@ export async function refreshVrcStatus(): Promise<void> {
         const description = data?.status?.description || '';
         const indicator = data?.status?.indicator || '';
         const updatedAt = data?.page?.updated_at || null;
+        const summaryIssue = await fetchSummaryIssue().catch((error: any) => {
+            console.warn('Failed to fetch VRChat status summary:', error);
+            return {
+                indicator: '',
+                summary: ''
+            };
+        });
+        const effectiveIndicator = strongerStatusIndicator(
+            indicator,
+            summaryIssue.indicator
+        );
 
-        if (description === 'All Systems Operational') {
+        if (!hasStatusIssue(effectiveIndicator, description)) {
             runtimeStore.setVrcStatusState({
                 status: '',
                 indicator: '',
@@ -92,9 +153,12 @@ export async function refreshVrcStatus(): Promise<void> {
         }
 
         runtimeStore.setVrcStatusState({
-            status: description,
-            indicator,
-            summary: await fetchSummary(),
+            status:
+                description && description !== 'All Systems Operational'
+                    ? description
+                    : 'VRChat Server Issues',
+            indicator: effectiveIndicator,
+            summary: summaryIssue.summary,
             updatedAt,
             lastFetchedAt: new Date().toISOString(),
             pollingIntervalMs: ISSUE_POLL_MS,

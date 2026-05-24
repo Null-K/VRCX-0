@@ -2,7 +2,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/ui/shadcn/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
-export function StatusDot({ active, warn = false }: any) {
+export function StatusDot({ active, warn = false, className }: any) {
     const color = warn
         ? 'bg-[var(--status-active)]'
         : active
@@ -10,7 +10,11 @@ export function StatusDot({ active, warn = false }: any) {
           : 'bg-muted-foreground/40';
     return (
         <span
-            className={cn('inline-block size-2 shrink-0 rounded-full', color)}
+            className={cn(
+                'inline-block size-2 shrink-0 rounded-full',
+                color,
+                className
+            )}
         />
     );
 }
@@ -24,6 +28,7 @@ export function StatusSegment({
     value,
     children,
     className,
+    dotClassName,
     labelClassName,
     onClick,
     tooltip,
@@ -35,7 +40,13 @@ export function StatusSegment({
 
     const content = (
         <>
-            {showDot ? <StatusDot active={active} warn={warn} /> : null}
+            {showDot ? (
+                <StatusDot
+                    active={active}
+                    className={dotClassName}
+                    warn={warn}
+                />
+            ) : null}
             <span
                 className={cn(
                     'text-muted-foreground shrink-0 text-xs',

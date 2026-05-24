@@ -224,6 +224,13 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
         'cancelled',
         'error'
     ].includes(mutualGraphStatus);
+    const vrcStatusIndicator = String(vrcStatus?.indicator || '');
+    const vrcStatusHasIssue = Boolean(
+        vrcStatusIndicator && vrcStatusIndicator !== 'none'
+    );
+    const vrcStatusIsMajor = ['major', 'critical'].includes(
+        vrcStatusIndicator
+    );
 
     useEffect(() => {
         if (!zoomPopoverOpen) {
@@ -394,13 +401,13 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                     />
                     <StatusSegment
                         visible={visibility.servers}
-                        active={
-                            !vrcStatus.indicator ||
-                            vrcStatus.indicator === 'none'
-                        }
-                        warn={
-                            vrcStatus.indicator &&
-                            vrcStatus.indicator !== 'none'
+                        active={!vrcStatusHasIssue}
+                        dotClassName={
+                            vrcStatusHasIssue
+                                ? vrcStatusIsMajor
+                                    ? 'bg-destructive'
+                                    : 'bg-[var(--status-askme)]'
+                                : undefined
                         }
                         label={t('status_bar.servers')}
                         className="cursor-pointer"
