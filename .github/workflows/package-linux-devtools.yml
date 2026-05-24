@@ -54,20 +54,19 @@ jobs:
 
             - run: npm ci
 
-            - name: Prepare fixed AppImage DevTools config
+            - id: devtools
+              name: Prepare AppImage DevTools config
               run: |
                   node <<'NODE'
                   const fs = require('node:fs');
 
-                  const version = '0.1.0';
+                  const tauriConfigPath = 'src-tauri/tauri.conf.json';
                   const linuxConfigPath = 'src-tauri/tauri.linux.conf.json';
                   const outputConfigPath = 'src-tauri/tauri.linux-devtools.conf.json';
-                  const cargoTomlPath = 'src-tauri/Cargo.toml';
-                  const cargoLockPath = 'Cargo.lock';
 
+                  const tauriConfig = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf8'));
                   const linuxConfig = JSON.parse(fs.readFileSync(linuxConfigPath, 'utf8'));
                   const config = {
-                      version,
                       bundle: {
                           ...(linuxConfig.bundle ?? {}),
                           targets: ['appimage'],
@@ -76,23 +75,12 @@ jobs:
                   };
 
                   fs.writeFileSync(outputConfigPath, `${JSON.stringify(config, null, 4)}\n`);
-
-                  const cargoToml = fs.readFileSync(cargoTomlPath, 'utf8');
-                  const cargoVersionPattern = /(^\[package\][\s\S]*?^version\s*=\s*)"[^"]+"/m;
-                  if (!cargoVersionPattern.test(cargoToml)) {
-                      throw new Error('Failed to update src-tauri/Cargo.toml package version');
-                  }
-                  fs.writeFileSync(cargoTomlPath, cargoToml.replace(cargoVersionPattern, `$1"${version}"`));
-
-                  const cargoLock = fs.readFileSync(cargoLockPath, 'utf8');
-                  const lockVersionPattern = /(\[\[package\]\]\r?\nname = "vrcx-0"\r?\nversion = )"[^"]+"/;
-                  if (!lockVersionPattern.test(cargoLock)) {
-                      throw new Error('Failed to update Cargo.lock package version');
-                  }
-                  fs.writeFileSync(cargoLockPath, cargoLock.replace(lockVersionPattern, `$1"${version}"`));
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${tauriConfig.version}\n`);
                   NODE
 
             - name: Build Linux DevTools AppImage
+              env:
+                  VRCX-0_BUILD_LABEL: test
               run: |
                   npm run tauri:build:devtools -- \
                       --config src-tauri/tauri.linux-devtools.conf.json \
@@ -103,6 +91,6 @@ jobs:
 
             - uses: actions/upload-artifact@v7
               with:
-                  name: linux-appimage-devtools-0.1.0
+                  name: linux-appimage-devtools-${{ steps.devtools.outputs.version }}
                   path: target/release/bundle/appimage/*.AppImage
                   if-no-files-found: error

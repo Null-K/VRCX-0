@@ -121,7 +121,6 @@ export default defineConfig(() => {
                 'sonner',
                 'lucide-react',
                 'tailwindcss',
-                'dayjs',
                 'graphology',
                 'graphology-communities-louvain',
                 'graphology-layout-forceatlas2',
@@ -132,7 +131,10 @@ export default defineConfig(() => {
             ]
         },
         define: {
-            VERSION: JSON.stringify(version)
+            VERSION: JSON.stringify(version),
+            VRCX_0_BUILD_LABEL: JSON.stringify(
+                process.env['VRCX-0_BUILD_LABEL'] || ''
+            )
         },
         server: {
             port: 9000,

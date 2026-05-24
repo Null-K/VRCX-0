@@ -246,6 +246,7 @@
         "view": "视图",
         "tools": "工具",
         "help": "帮助",
+        "test_build_badge": "测试版",
         "settings": "设置...",
         "check_updates": "检查更新",
         "restart": "重启 VRCX-0",
@@ -466,7 +467,12 @@
                 "selected_favorites": "指定收藏组",
                 "groups_count": "{count} 个收藏组",
                 "favorite_groups": "收藏组",
-                "types": "类型"
+                "types": "类型",
+                "restore_preset": "恢复预设",
+                "restore_preset_title": "恢复动态分栏预设？",
+                "restore_preset_description": "这会恢复预设分栏：Location、Favorites、Profile、Presence。",
+                "restore_preset_confirm": "恢复预设",
+                "bio_diff": "简介变更"
             },
             "time": {
                 "just_now": "刚刚",

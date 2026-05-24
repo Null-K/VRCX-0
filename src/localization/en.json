@@ -246,6 +246,7 @@
         "view": "View",
         "tools": "Tools",
         "help": "Help",
+        "test_build_badge": "Test Build",
         "settings": "Settings...",
         "check_updates": "Check for Updates",
         "restart": "Restart VRCX-0",
@@ -466,7 +467,12 @@
                 "selected_favorites": "Selected favorite groups",
                 "groups_count": "{count} groups",
                 "favorite_groups": "Favorite groups",
-                "types": "Types"
+                "types": "Types",
+                "restore_preset": "Restore preset",
+                "restore_preset_title": "Restore feed columns preset?",
+                "restore_preset_description": "This restores the preset columns: Location, Favorites, Profile, Presence.",
+                "restore_preset_confirm": "Restore preset",
+                "bio_diff": "Bio change"
             },
             "time": {
                 "just_now": "just now",

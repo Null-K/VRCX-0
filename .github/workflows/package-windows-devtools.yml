@@ -29,19 +29,16 @@ jobs:
 
             - run: npm ci
 
-            - name: Prepare fixed unsigned non-updater config
+            - id: devtools
+              name: Prepare unsigned non-updater config
               run: |
                   node <<'NODE'
                   const fs = require('node:fs');
 
-                  const version = '0.1.0';
                   const tauriConfigPath = 'src-tauri/tauri.conf.json';
                   const outputConfigPath = 'src-tauri/tauri.windows-devtools.conf.json';
-                  const cargoTomlPath = 'src-tauri/Cargo.toml';
-                  const cargoLockPath = 'Cargo.lock';
 
                   const config = JSON.parse(fs.readFileSync(tauriConfigPath, 'utf8'));
-                  config.version = version;
                   config.bundle ??= {};
                   config.bundle.createUpdaterArtifacts = false;
 
@@ -50,23 +47,12 @@ jobs:
                   delete config.bundle.windows.signCommand;
 
                   fs.writeFileSync(outputConfigPath, `${JSON.stringify(config, null, 4)}\n`);
-
-                  const cargoToml = fs.readFileSync(cargoTomlPath, 'utf8');
-                  const cargoVersionPattern = /(^\[package\][\s\S]*?^version\s*=\s*)"[^"]+"/m;
-                  if (!cargoVersionPattern.test(cargoToml)) {
-                      throw new Error('Failed to update src-tauri/Cargo.toml package version');
-                  }
-                  fs.writeFileSync(cargoTomlPath, cargoToml.replace(cargoVersionPattern, `$1"${version}"`));
-
-                  const cargoLock = fs.readFileSync(cargoLockPath, 'utf8');
-                  const lockVersionPattern = /(\[\[package\]\]\r?\nname = "vrcx-0"\r?\nversion = )"[^"]+"/;
-                  if (!lockVersionPattern.test(cargoLock)) {
-                      throw new Error('Failed to update Cargo.lock package version');
-                  }
-                  fs.writeFileSync(cargoLockPath, cargoLock.replace(lockVersionPattern, `$1"${version}"`));
+                  fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${config.version}\n`);
                   NODE
 
             - name: Build unsigned Windows DevTools package
+              env:
+                  VRCX-0_BUILD_LABEL: test
               run: |
                   npm run tauri:build:devtools -- \
                       --debug \
@@ -76,6 +62,6 @@ jobs:
 
             - uses: actions/upload-artifact@v7
               with:
-                  name: windows-devtools-0.1.0
+                  name: windows-devtools-${{ steps.devtools.outputs.version }}
                   path: target/debug/vrcx-0.exe
                   if-no-files-found: error

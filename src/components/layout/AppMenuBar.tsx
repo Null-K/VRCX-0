@@ -40,6 +40,7 @@ import { formatReleaseDisplayVersion } from '@/shared/utils/releaseVersion';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';
+import { Badge } from '@/ui/shadcn/badge';
 import {
     Dialog,
     DialogContent,
@@ -181,6 +182,11 @@ export function AppMenuBar({
         hostPlatform === 'macos' ? ['Meta', 'D'] : ['Ctrl', 'D'];
     // oxlint-disable-next-line no-undef
     const appVersion = formatReleaseDisplayVersion(VERSION || '') || '-';
+    // oxlint-disable-next-line no-undef
+    const rawBuildLabel =
+        typeof VRCX_0_BUILD_LABEL === 'string' ? VRCX_0_BUILD_LABEL : '';
+    const buildLabel = rawBuildLabel.trim().toLowerCase();
+    const isTestBuild = buildLabel === 'test';
     const availableToolCategories = useMemo(
         () =>
             toolCategories
@@ -521,7 +527,17 @@ export function AppMenuBar({
 
                 <MenubarMenu>
                     <MenubarTrigger className="h-full rounded-none px-2 !py-0 text-xs">
-                        {t('app_menu.help')}
+                        <span className="flex min-w-0 items-center gap-1.5">
+                            <span>{t('app_menu.help')}</span>
+                            {isTestBuild ? (
+                                <Badge
+                                    variant="secondary"
+                                    className="h-4 rounded-md px-1 text-[10px] leading-none shadow-none"
+                                >
+                                    {t('app_menu.test_build_badge')}
+                                </Badge>
+                            ) : null}
+                        </span>
                     </MenubarTrigger>
                     <MenubarContent align="start">
                         <MenubarGroup>

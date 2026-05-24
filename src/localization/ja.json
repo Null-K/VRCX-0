@@ -246,6 +246,7 @@
         "view": "表示",
         "tools": "ツール",
         "help": "ヘルプ",
+        "test_build_badge": "テストビルド",
         "settings": "設定...",
         "check_updates": "アップデートを確認",
         "restart": "VRCX-0 を再起動",
@@ -466,7 +467,12 @@
                 "selected_favorites": "選択したお気に入りグループ",
                 "groups_count": "{count} グループ",
                 "favorite_groups": "お気に入りグループ",
-                "types": "種類"
+                "types": "種類",
+                "restore_preset": "プリセットに戻す",
+                "restore_preset_title": "フィードカラムのプリセットに戻しますか？",
+                "restore_preset_description": "プリセットのカラム（Location、Favorites、Profile、Presence）に戻します。",
+                "restore_preset_confirm": "プリセットに戻す",
+                "bio_diff": "自己紹介の変更"
             },
             "time": {
                 "just_now": "たった今",

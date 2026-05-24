@@ -1,5 +1,6 @@
 declare global {
     const VERSION: string;
+    const VRCX_0_BUILD_LABEL: string;
 
     interface Window {
         $debug?: AppDebug;
