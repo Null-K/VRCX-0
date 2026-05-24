@@ -353,6 +353,7 @@ const initialState = {
         updatedAt: null,
         lastFetchedAt: null,
         pollingIntervalMs: 15 * 60 * 1000,
+        refreshing: false,
         error: ''
     },
     groupInstances: createGroupInstancesState(),

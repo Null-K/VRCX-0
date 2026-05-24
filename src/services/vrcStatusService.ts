@@ -65,6 +65,7 @@ function strongerStatusIndicator(left: unknown, right: unknown): string {
 let pollingTimer: ReturnType<typeof window.setTimeout> | null = null;
 let pollingActive = false;
 let pollingGeneration = 0;
+let refreshPromise: Promise<void> | null = null;
 
 function pollingCadenceSeconds(intervalMs: unknown): number {
     const interval = Number(intervalMs) || OK_POLL_MS;
@@ -119,8 +120,11 @@ async function fetchSummaryIssue(): Promise<{
     };
 }
 
-export async function refreshVrcStatus(): Promise<void> {
+async function runVrcStatusRefresh(): Promise<void> {
     const runtimeStore = useRuntimeStore.getState();
+    runtimeStore.setVrcStatusState({
+        refreshing: true
+    });
 
     try {
         const data = await getJson('status.json');
@@ -147,7 +151,8 @@ export async function refreshVrcStatus(): Promise<void> {
                 updatedAt,
                 lastFetchedAt: new Date().toISOString(),
                 pollingIntervalMs: OK_POLL_MS,
-                error: ''
+                error: '',
+                refreshing: false
             });
             return;
         }
@@ -162,19 +167,31 @@ export async function refreshVrcStatus(): Promise<void> {
             updatedAt,
             lastFetchedAt: new Date().toISOString(),
             pollingIntervalMs: ISSUE_POLL_MS,
-            error: ''
+            error: '',
+            refreshing: false
         });
     } catch (error) {
+        const current = useRuntimeStore.getState().vrcStatus;
         runtimeStore.setVrcStatusState({
-            status: 'Failed to fetch VRC status',
-            indicator: 'minor',
-            summary: '',
+            status: current.status || '',
+            indicator: current.indicator || '',
+            summary: current.summary || '',
             lastFetchedAt: new Date().toISOString(),
             pollingIntervalMs: ISSUE_POLL_MS,
-            error: error instanceof Error ? error.message : String(error)
+            error: error instanceof Error ? error.message : String(error),
+            refreshing: false
         });
         throw error;
     }
+}
+
+export function refreshVrcStatus(): Promise<void> {
+    if (!refreshPromise) {
+        refreshPromise = runVrcStatusRefresh().finally(() => {
+            refreshPromise = null;
+        });
+    }
+    return refreshPromise;
 }
 
 async function deferNextVrcStatusRefresh(): Promise<void> {
@@ -230,16 +247,19 @@ export function startVrcStatusPolling(): () => void {
     const generation = pollingGeneration;
 
     const tick = async (): Promise<void> => {
-        let due = false;
+        let shouldDefer = false;
         try {
-            due = await claimVrcStatusRefreshDue();
-            if (due) {
+            const due = await claimVrcStatusRefreshDue();
+            const lastFetchedAt =
+                useRuntimeStore.getState().vrcStatus.lastFetchedAt;
+            if (due || !lastFetchedAt) {
+                shouldDefer = true;
                 await refreshVrcStatus();
             }
         } catch (error) {
             console.warn('VRChat status refresh failed:', error);
         } finally {
-            if (due) {
+            if (shouldDefer) {
                 await deferNextVrcStatusRefresh();
             }
         }

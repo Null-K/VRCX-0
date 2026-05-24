@@ -174,6 +174,33 @@ function formatMutualGraphTooltip(mutualGraph: any, t: any) {
     return t('status_bar.mutual_graph_progress');
 }
 
+function formatVrcStatusTooltip(vrcStatus: any, t: any, formatStatusDate: any) {
+    const status =
+        vrcStatus.summary ||
+        vrcStatus.status ||
+        t('status_bar.servers_ok');
+    return (
+        <div className="flex flex-col gap-1 text-xs">
+            <span>{status}</span>
+            {vrcStatus.refreshing ? (
+                <span className="text-muted-foreground">
+                    {t('common.loading')}
+                </span>
+            ) : null}
+            {vrcStatus.error ? (
+                <span className="text-muted-foreground">
+                    {vrcStatus.error}
+                </span>
+            ) : null}
+            {vrcStatus.lastFetchedAt ? (
+                <span className="text-muted-foreground">
+                    {formatStatusDate(vrcStatus.lastFetchedAt)}
+                </span>
+            ) : null}
+        </div>
+    );
+}
+
 export const StatusBarFooter = forwardRef(function StatusBarFooter(
     { className, footer, ...props }: any,
     ref: any
@@ -403,11 +430,14 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                         visible={visibility.servers}
                         active={!vrcStatusHasIssue}
                         dotClassName={
-                            vrcStatusHasIssue
-                                ? vrcStatusIsMajor
-                                    ? 'bg-destructive'
-                                    : 'bg-[var(--status-askme)]'
-                                : undefined
+                            cn(
+                                vrcStatus.refreshing && 'animate-pulse',
+                                vrcStatusHasIssue
+                                    ? vrcStatusIsMajor
+                                        ? 'bg-destructive'
+                                        : 'bg-[var(--status-askme)]'
+                                    : undefined
+                            )
                         }
                         label={t('status_bar.servers')}
                         className="cursor-pointer"
@@ -415,9 +445,11 @@ export const StatusBarFooter = forwardRef(function StatusBarFooter(
                             onOpenStatusPage();
                         }}
                         tooltip={
-                            vrcStatus.summary ||
-                            vrcStatus.status ||
-                            'VRChat status'
+                            formatVrcStatusTooltip(
+                                vrcStatus,
+                                t,
+                                formatStatusDate
+                            )
                         }
                     />
                     {visibility.ws ? (

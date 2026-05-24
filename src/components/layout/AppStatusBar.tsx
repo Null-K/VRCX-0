@@ -254,6 +254,15 @@ export function AppStatusBar() {
     const vrcStatusStatus = useRuntimeStore(
         (state: any) => state.vrcStatus.status
     );
+    const vrcStatusLastFetchedAt = useRuntimeStore(
+        (state: any) => state.vrcStatus.lastFetchedAt
+    );
+    const vrcStatusRefreshing = useRuntimeStore(
+        (state: any) => state.vrcStatus.refreshing
+    );
+    const vrcStatusError = useRuntimeStore(
+        (state: any) => state.vrcStatus.error
+    );
     const preferencesHydrated = usePreferencesStore(
         (state: any) => state.preferencesHydrated
     );
@@ -328,9 +337,19 @@ export function AppStatusBar() {
         () => ({
             indicator: vrcStatusIndicator,
             summary: vrcStatusSummary,
-            status: vrcStatusStatus
+            status: vrcStatusStatus,
+            lastFetchedAt: vrcStatusLastFetchedAt,
+            refreshing: vrcStatusRefreshing,
+            error: vrcStatusError
         }),
-        [vrcStatusIndicator, vrcStatusStatus, vrcStatusSummary]
+        [
+            vrcStatusError,
+            vrcStatusIndicator,
+            vrcStatusLastFetchedAt,
+            vrcStatusRefreshing,
+            vrcStatusStatus,
+            vrcStatusSummary
+        ]
     );
     const gameStartedAt = Date.parse(lastGameStartedAt || '');
     const currentLocationStartedTimestamp = Date.parse(
