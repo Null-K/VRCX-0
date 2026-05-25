@@ -1,4 +1,4 @@
-import { CheckIcon, ImageIcon } from 'lucide-react';
+import { CheckIcon, PersonStandingIcon } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -91,7 +91,7 @@ export function useMyAvatarsColumns({
                             className="text-muted-foreground h-6 w-10 p-0"
                             onClick={() => openAvatarDetails(row.original)}
                         >
-                            <ImageIcon data-icon="inline-start" />
+                            <PersonStandingIcon data-icon="inline-start" />
                         </Button>
                     )
             },

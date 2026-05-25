@@ -1,4 +1,8 @@
-import { CopyIcon, ExternalLinkIcon, ImageIcon } from 'lucide-react';
+import {
+    CopyIcon,
+    ExternalLinkIcon,
+    PersonStandingIcon
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -221,7 +225,7 @@ function AvatarDialogOverviewSection({
                         />
                     ) : (
                         <span className="flex size-full items-center justify-center">
-                            <ImageIcon className="text-muted-foreground size-10" />
+                            <PersonStandingIcon className="text-muted-foreground size-10" />
                         </span>
                     )}
                 </Button>

@@ -5,9 +5,9 @@ import {
     ImageIcon,
     MoreHorizontalIcon,
     PencilIcon,
+    PersonStandingIcon,
     RefreshCwIcon,
-    TagIcon,
-    UserIcon
+    TagIcon
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -136,7 +136,7 @@ export function AvatarActionMenuItems({
             <Separator />
             <Group>
                 <Item disabled={disabled} {...actionItemProps(releaseAction)}>
-                    <UserIcon />
+                    <PersonStandingIcon />
                     {avatar?.releaseStatus === 'public'
                         ? t('dialog.avatar.actions.make_private')
                         : t('dialog.avatar.actions.make_public')}
@@ -239,7 +239,7 @@ export function MyAvatarGridCard({
                                 />
                             ) : (
                                 <div className="text-muted-foreground grid h-full w-full place-items-center [&>svg]:size-6">
-                                    <ImageIcon />
+                                    <PersonStandingIcon />
                                 </div>
                             )}
                             <div className="absolute top-1 left-1 flex max-w-[calc(100%-2rem)] flex-col items-start gap-1">

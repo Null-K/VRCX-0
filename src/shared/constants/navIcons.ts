@@ -28,6 +28,7 @@ const navIconEntries: Array<readonly [NavIconKey, string]> = [
     ['lucide:Boxes', 'Model Library'],
     ['lucide:Contact', 'Contact'],
     ['lucide:ContactRound', 'Round Contact'],
+    ['lucide:PersonStanding', 'Person Standing'],
     ['lucide:BookOpen', 'Book'],
     ['lucide:ShieldAlert', 'Shield'],
     ['lucide:ShieldUser', 'Moderation'],

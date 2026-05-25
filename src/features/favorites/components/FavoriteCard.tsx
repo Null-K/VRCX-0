@@ -1,8 +1,8 @@
 import {
     GlobeIcon,
-    ImageIcon,
     LockIcon,
     MoreHorizontalIcon,
+    PersonStandingIcon,
     TriangleAlertIcon,
     UserIcon,
     UsersIcon
@@ -115,7 +115,7 @@ const FavoriteCard = memo(function FavoriteCard({
             ? UserIcon
             : item.kind === 'world'
               ? GlobeIcon
-              : ImageIcon;
+              : PersonStandingIcon;
     const openHandler =
         item.kind === 'friend'
             ? () =>

@@ -4,12 +4,12 @@ import {
     ArrowUpIcon,
     BanIcon,
     BellOffIcon,
-    BoxIcon,
     CalendarIcon,
     CheckIcon,
     ExternalLinkIcon,
     GlobeIcon,
     MessageCircleIcon,
+    PersonStandingIcon,
     ReplyIcon,
     TagIcon,
     UserIcon,
@@ -72,7 +72,7 @@ export function getNotificationLinkIcon(link: any) {
         case 'world':
             return GlobeIcon;
         case 'avatar':
-            return BoxIcon;
+            return PersonStandingIcon;
         default:
             return ExternalLinkIcon;
     }

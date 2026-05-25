@@ -1,4 +1,9 @@
-import { GlobeIcon, UserIcon, UsersIcon } from 'lucide-react';
+import {
+    GlobeIcon,
+    PersonStandingIcon,
+    UserIcon,
+    UsersIcon
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { EmptyState, LoadingState } from '@/components/layout/PageScaffold';
@@ -210,7 +215,7 @@ export function AvatarCard({ avatar }: any) {
             imageAlt={avatar.name || 'Avatar'}
             title={avatar.name || ''}
             subtitle={avatar.authorName || ''}
-            FallbackIcon={UserIcon}
+            FallbackIcon={PersonStandingIcon}
             onClick={() =>
                 openAvatarDialog({
                     avatarId: avatar.id,

@@ -1,4 +1,4 @@
-import { GlobeIcon, ImageIcon, UsersIcon } from 'lucide-react';
+import { GlobeIcon, PersonStandingIcon, UsersIcon } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -567,7 +567,7 @@ export function QuickSearchDialog({ open, onOpenChange }: any) {
                                     disabled
                                     className="gap-3 opacity-70"
                                 >
-                                    <ImageIcon />
+                                    <PersonStandingIcon />
                                     <span className="min-w-0 flex-1 truncate">
                                         {t('side_panel.search_avatars')}
                                     </span>

@@ -1,4 +1,4 @@
-import { BoxIcon, MapPinIcon, PencilIcon } from 'lucide-react';
+import { MapPinIcon, PencilIcon, PersonStandingIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Location } from '@/components/Location';
@@ -183,7 +183,7 @@ export function FeedEntryContent({ row, friend }: any) {
         case 'Avatar':
             return (
                 <div className="flex min-w-0 items-center">
-                    <BoxIcon className="text-muted-foreground mr-1 size-3.5 shrink-0" />
+                    <PersonStandingIcon className="text-muted-foreground mr-1 size-3.5 shrink-0" />
                     <FeedUserName row={row} friend={friend} />
                     <span className="text-muted-foreground ml-1 min-w-0 truncate">
                         {row?.avatarName ? `→ ${row.avatarName}` : ''}

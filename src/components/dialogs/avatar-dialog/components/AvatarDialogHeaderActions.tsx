@@ -4,9 +4,9 @@ import {
     DownloadIcon,
     ImageIcon,
     PencilIcon,
+    PersonStandingIcon,
     RefreshCwIcon,
-    Trash2Icon,
-    UserIcon
+    Trash2Icon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -55,7 +55,7 @@ export function AvatarDialogHeaderActions({
     const selectLabel = isCurrentAvatar
         ? t('dialog.avatar.actions.current_avatar')
         : t('dialog.avatar.actions.select');
-    const SelectIcon = isCurrentAvatar ? CheckCircleIcon : UserIcon;
+    const SelectIcon = isCurrentAvatar ? CheckCircleIcon : PersonStandingIcon;
 
     return (
         <>
@@ -89,7 +89,7 @@ export function AvatarDialogHeaderActions({
                     {t('common.actions.refresh')}
                 </EntityActionItem>
                 <EntityActionItem
-                    icon={UserIcon}
+                    icon={PersonStandingIcon}
                     disabled={
                         !canSelectFallbackAvatar || actionStatus === 'fallback'
                     }
@@ -122,7 +122,7 @@ export function AvatarDialogHeaderActions({
                             {t('dialog.avatar.actions.change_content_tags')}
                         </EntityActionItem>
                         <EntityActionItem
-                            icon={UserIcon}
+                            icon={PersonStandingIcon}
                             disabled={actionStatus === 'release-status'}
                             onSelect={() =>
                                 onReleaseStatus(
@@ -159,7 +159,7 @@ export function AvatarDialogHeaderActions({
                     </EntityActionItem>
                 ) : canManageAvatar ? (
                     <EntityActionItem
-                        icon={UserIcon}
+                        icon={PersonStandingIcon}
                         disabled={actionStatus === 'imposter'}
                         onSelect={onCreateImposter}
                     >

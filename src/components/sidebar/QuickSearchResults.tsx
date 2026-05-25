@@ -1,4 +1,9 @@
-import { GlobeIcon, ImageIcon, UserIcon, UsersIcon } from 'lucide-react';
+import {
+    GlobeIcon,
+    PersonStandingIcon,
+    UserIcon,
+    UsersIcon
+} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { CommandGroup, CommandItem } from '@/ui/shadcn/command';
@@ -23,7 +28,7 @@ function ResultRow({ item, onSelect }: any) {
         item.type === 'friend'
             ? UserIcon
             : item.type === 'avatar'
-              ? ImageIcon
+              ? PersonStandingIcon
               : item.type === 'world'
                 ? GlobeIcon
                 : UsersIcon;

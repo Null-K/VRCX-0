@@ -1,4 +1,4 @@
-import { UserIcon } from 'lucide-react';
+import { PersonStandingIcon, UserIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { UserStatusAvatar } from '@/components/UserStatusAvatar';
@@ -68,6 +68,8 @@ export function EntityList({ rows, kind = '', loading = false, error = '' }: any
                           : row?.description || '';
                 const imageRoundedClassName =
                     kind === 'user' ? 'rounded-full' : 'rounded-md';
+                const RowFallbackIcon =
+                    kind === 'avatar' ? PersonStandingIcon : UserIcon;
                 const travelingTimestamp =
                     kind === 'user' ? userTravelingTimestamp(row) : 0;
                 const userId = kind === 'user' ? userIdForRow(row) : '';
@@ -110,7 +112,7 @@ export function EntityList({ rows, kind = '', loading = false, error = '' }: any
                                             imageRoundedClassName
                                         )}
                                     >
-                                        <UserIcon className="text-muted-foreground" />
+                                        <RowFallbackIcon className="text-muted-foreground" />
                                     </span>
                                 )}
                             </span>

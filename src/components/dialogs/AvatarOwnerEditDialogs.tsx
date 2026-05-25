@@ -1,4 +1,4 @@
-import { UserIcon } from 'lucide-react';
+import { PersonStandingIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -105,7 +105,7 @@ function AvatarOwnerRow({ avatar, selected, onToggle }: any) {
                     />
                 ) : (
                     <div className="bg-muted mr-2.5 flex size-9 shrink-0 items-center justify-center rounded-full">
-                        <UserIcon
+                        <PersonStandingIcon
                             data-icon="inline-start"
                             className="text-muted-foreground"
                         />

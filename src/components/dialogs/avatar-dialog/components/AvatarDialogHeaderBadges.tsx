@@ -1,8 +1,8 @@
 import {
     AppleIcon,
     MonitorIcon,
-    RectangleGogglesIcon,
-    UserIcon
+    PersonStandingIcon,
+    RectangleGogglesIcon
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -51,7 +51,7 @@ export function AvatarDialogHeaderBadges({
             </Badge>
             {isCurrentAvatar ? (
                 <Badge variant="secondary">
-                    <UserIcon data-icon="inline-start" />
+                    <PersonStandingIcon data-icon="inline-start" />
                     {t('common.current_session')}
                 </Badge>
             ) : null}
