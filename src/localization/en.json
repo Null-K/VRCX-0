@@ -800,7 +800,7 @@
             "avatars": {
                 "search": "Search",
                 "vrchat_favorites": "VRChat Favorites",
-                "local_favorites": "Local Favorites (Requires VRChat+)",
+                "local_favorites": "Local Favorites (VRChat+)",
                 "new_group": "New Group",
                 "cancel_refresh": "Cancel Refresh",
                 "check_invalid": "Check for deleted/private avatars",
@@ -3618,7 +3618,7 @@
             "header": "Choose Group",
             "vrchat_favorites": "VRChat Favorites",
             "local_favorites": "Local Favorites",
-            "local_avatar_favorites": "Local Favorites (Requires VRChat+)"
+            "local_avatar_favorites": "Local Favorites (VRChat+)"
         },
         "social_status": {
             "header": "Social Status",
@@ -4862,7 +4862,7 @@
             "load_failed": "Failed to load friends list, logging out"
         },
         "vrcplus": {
-            "required": "VRChat+ required"
+            "required": "VRChat+"
         },
         "screenshot_metadata": {
             "deleted": "Screenshot metadata deleted",

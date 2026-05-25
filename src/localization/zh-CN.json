@@ -800,7 +800,7 @@
             "avatars": {
                 "search": "搜索",
                 "vrchat_favorites": "VRChat 收藏",
-                "local_favorites": "本地收藏夹（需要 VRC+）",
+                "local_favorites": "本地收藏夹（VRChat+）",
                 "new_group": "创建新的收藏夹",
                 "cancel_refresh": "取消刷新",
                 "check_invalid": "检测这个分组的失效模型",
@@ -3618,7 +3618,7 @@
             "header": "选择收藏夹（分组）",
             "vrchat_favorites": "在线收藏夹",
             "local_favorites": "本地收藏夹",
-            "local_avatar_favorites": "模型收藏夹（本地，需要 VRC+）"
+            "local_avatar_favorites": "模型收藏夹（本地，VRChat+）"
         },
         "social_status": {
             "header": "社交状态",
@@ -3694,7 +3694,7 @@
             "legacy": "传统",
             "roles": "身份组",
             "open_ingame": "在 VRChat 中打开",
-            "display_name": "自定义房间名称 (需要 VRC+)"
+            "display_name": "自定义房间名称 (VRChat+)"
         },
         "launch": {
             "header": "启动",
@@ -4862,7 +4862,7 @@
             "load_failed": "加载好友列表失败，即将登出"
         },
         "vrcplus": {
-            "required": "需要 VRChat+ 才能使用此功能"
+            "required": "VRChat+"
         },
         "screenshot_metadata": {
             "deleted": "已删除图片元数据",

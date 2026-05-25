@@ -800,7 +800,7 @@
             "avatars": {
                 "search": "搜尋",
                 "vrchat_favorites": "VRChat 收藏",
-                "local_favorites": "本地收藏列表 (需要 VRC+)",
+                "local_favorites": "本地收藏列表 (VRChat+)",
                 "new_group": "新群組",
                 "cancel_refresh": "取消刷新",
                 "check_invalid": "檢查已刪除／私人角色",
@@ -3618,7 +3618,7 @@
             "header": "選擇群組",
             "vrchat_favorites": "VRChat 收藏",
             "local_favorites": "本地收藏",
-            "local_avatar_favorites": "本地收藏 (需要 VRC+)"
+            "local_avatar_favorites": "本地收藏 (VRChat+)"
         },
         "social_status": {
             "header": "社交狀態",
@@ -4862,7 +4862,7 @@
             "load_failed": "載入好友清單失敗，正在登出"
         },
         "vrcplus": {
-            "required": "需要 VRCPlus"
+            "required": "VRChat+"
         },
         "screenshot_metadata": {
             "deleted": "刪除截圖附加資料",

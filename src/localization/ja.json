@@ -800,7 +800,7 @@
             "avatars": {
                 "search": "検索",
                 "vrchat_favorites": "VRChat のお気に入り",
-                "local_favorites": "ローカルのお気に入り (VRC+が必要)",
+                "local_favorites": "ローカルのお気に入り (VRChat+)",
                 "new_group": "新規グループ",
                 "cancel_refresh": "更新をキャンセル",
                 "check_invalid": "このグループの無効なアバターをチェック",
@@ -3618,7 +3618,7 @@
             "header": "グループを選択",
             "vrchat_favorites": "VRChat のお気に入り",
             "local_favorites": "ローカルのお気に入り",
-            "local_avatar_favorites": "ローカルのお気に入り (VRC+が必要)"
+            "local_avatar_favorites": "ローカルのお気に入り (VRChat+)"
         },
         "social_status": {
             "header": "ソーシャルステータス",
@@ -4862,7 +4862,7 @@
             "load_failed": "フレンドリストの読み込みに失敗しました、ログアウトしています"
         },
         "vrcplus": {
-            "required": "VRC+が必要です"
+            "required": "VRChat+"
         },
         "screenshot_metadata": {
             "deleted": "スクリーンショットのメタデータを削除しました",
