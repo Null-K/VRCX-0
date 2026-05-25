@@ -4,7 +4,6 @@ import {
     computeTrustLevel,
     computeUserPlatform
 } from '@/shared/utils/userTransforms';
-import { parseLocation } from '@/shared/utils/location';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
@@ -186,44 +185,17 @@ function buildFriendStateMap(currentUserSnapshot: any) {
     return stateById;
 }
 
-function hasFriendStateSnapshot(currentUserSnapshot: any) {
+function hasCompleteFriendStateSnapshot(currentUserSnapshot: any) {
     return (
-        Array.isArray(currentUserSnapshot?.friends) ||
-        Array.isArray(currentUserSnapshot?.offlineFriends) ||
-        Array.isArray(currentUserSnapshot?.activeFriends) ||
+        Array.isArray(currentUserSnapshot?.friends) &&
+        Array.isArray(currentUserSnapshot?.offlineFriends) &&
+        Array.isArray(currentUserSnapshot?.activeFriends) &&
         Array.isArray(currentUserSnapshot?.onlineFriends)
     );
 }
 
-function hasCompleteFriendRosterSnapshot(currentUserSnapshot: any) {
-    return Array.isArray(currentUserSnapshot?.friends);
-}
-
-function hasRealInstanceLocation(friend: any) {
-    const parsed = parseLocation(friend?.location || friend?.$location?.tag);
-    return parsed.worldId.startsWith('wrld_') && Boolean(parsed.instanceId);
-}
-
-function resolveSnapshotStateBucket(
-    userId: any,
-    stateBucket: any,
-    friendsById: any
-) {
-    const normalizedStateBucket = normalizeStateBucket(stateBucket);
-    const existingEntry = friendsById?.[normalizeUserId(userId)];
-    const existingStateBucket =
-        normalizeStateBucket(existingEntry?.stateBucket) ||
-        normalizeStateBucket(existingEntry?.state);
-    // Current-user bucket snapshots can lag behind realtime location patches.
-    if (
-        normalizedStateBucket === 'offline' &&
-        existingStateBucket &&
-        existingStateBucket !== 'offline' &&
-        hasRealInstanceLocation(existingEntry)
-    ) {
-        return existingStateBucket;
-    }
-    return normalizedStateBucket || 'offline';
+function resolveSnapshotStateBucket(stateBucket: any) {
+    return normalizeStateBucket(stateBucket) || 'offline';
 }
 
 function buildUnfriendHistoryEntry(
@@ -379,19 +351,14 @@ export function syncFriendRosterStateFromCurrentUserSnapshot(
     currentUserSnapshot: any,
     detail: any = ''
 ) {
-    const stateById = buildFriendStateMap(currentUserSnapshot);
-    if (!hasFriendStateSnapshot(currentUserSnapshot)) {
+    if (!hasCompleteFriendStateSnapshot(currentUserSnapshot)) {
         return false;
     }
+    const stateById = buildFriendStateMap(currentUserSnapshot);
     const rosterStore = useFriendRosterStore.getState();
-    const friendsById = rosterStore.friendsById || {};
     const patchEntries = Array.from(stateById.entries()).map(
         ([userId, stateBucket]: any) => {
-            const nextStateBucket = resolveSnapshotStateBucket(
-                userId,
-                stateBucket,
-                friendsById
-            );
+            const nextStateBucket = resolveSnapshotStateBucket(stateBucket);
             return {
                 userId,
                 stateBucket: nextStateBucket,
@@ -404,11 +371,9 @@ export function syncFriendRosterStateFromCurrentUserSnapshot(
     );
 
     const snapshotIds = new Set(Array.from(stateById.keys()));
-    const removedIds = hasCompleteFriendRosterSnapshot(currentUserSnapshot)
-        ? Object.keys(rosterStore.friendsById || {}).filter(
-              (userId) => !snapshotIds.has(userId)
-          )
-        : [];
+    const removedIds = Object.keys(rosterStore.friendsById || {}).filter(
+        (userId) => !snapshotIds.has(userId)
+    );
 
     if (patchEntries.length) {
         rosterStore.applyFriendPatches(patchEntries, detail);

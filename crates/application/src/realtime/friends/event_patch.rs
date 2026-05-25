@@ -235,12 +235,25 @@ pub(super) fn apply_friend_event(
         }
         "friend-location" => {
             let user_id = event_user_id(content)?;
-            state.pending_offline.remove(&user_id);
+            let has_embedded_user = has_embedded_location_user(content);
+            if has_embedded_user {
+                state.pending_offline.remove(&user_id);
+            }
             let previous = get_friend_value(state, &user_id);
             let user_patch =
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
             let state_bucket = resolve_location_event_state_bucket(content, previous.as_ref())?;
-            let patch = online_patch(content, user_patch, previous.as_ref(), now, &state_bucket);
+            let state_bucket_authority = if has_embedded_user {
+                "explicit"
+            } else {
+                "preserve"
+            };
+            let mut patch = online_patch(content, user_patch, previous.as_ref(), now, &state_bucket);
+            if !has_embedded_user {
+                if let Some(patch_object) = patch.as_object_mut() {
+                    patch_object.remove("pendingOffline");
+                }
+            }
             if let Some(previous) = previous.as_ref() {
                 add_gps_feed_entry_if_not_repeated(
                     state,
@@ -260,7 +273,14 @@ pub(super) fn apply_friend_event(
                 &patch,
                 &state_bucket,
             );
-            apply_patch_to_state(state, &mut output, &user_id, patch, &state_bucket);
+            apply_patch_to_state_with_authority(
+                state,
+                &mut output,
+                &user_id,
+                patch,
+                &state_bucket,
+                state_bucket_authority,
+            );
         }
         _ => return None,
     }
@@ -358,6 +378,17 @@ pub(super) fn apply_patch_to_state(
     patch: serde_json::Value,
     state_bucket: &str,
 ) {
+    apply_patch_to_state_with_authority(state, output, user_id, patch, state_bucket, "explicit");
+}
+
+pub(super) fn apply_patch_to_state_with_authority(
+    state: &mut RealtimeFriendState,
+    output: &mut RealtimeFriendOutput,
+    user_id: &str,
+    patch: serde_json::Value,
+    state_bucket: &str,
+    state_bucket_authority: &str,
+) {
     let mut merged = state
         .baseline
         .as_ref()
@@ -388,6 +419,7 @@ pub(super) fn apply_patch_to_state(
         user_id: user_id.to_string(),
         patch: serde_json::Value::Object(merged),
         state_bucket: state_bucket.to_string(),
+        state_bucket_authority: Some(state_bucket_authority.to_string()),
     });
 }
 

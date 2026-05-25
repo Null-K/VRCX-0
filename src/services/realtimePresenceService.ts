@@ -9,6 +9,7 @@ import {
     recordCurrentUserSnapshot,
     recordFriendPatch
 } from './domainIngestionService';
+import { syncFriendRosterStateFromCurrentUserSnapshot } from './friendBootstrapService';
 import { handleInviteAutomationNotification } from './inviteAutomationService';
 import {
     handleRealtimeInstanceQueueProjection
@@ -42,19 +43,6 @@ function normalizeUserId(value: unknown): string {
         : String(value ?? '').trim();
 }
 
-function removeFromArray(values: unknown, userId: string): string[] {
-    return Array.isArray(values)
-        ? values.filter((value: any) => normalizeUserId(value) !== userId)
-        : [];
-}
-
-function ensureArrayMembership(values: unknown, userId: string): string[] {
-    const list = Array.isArray(values)
-        ? values.map((value: any) => normalizeUserId(value)).filter(Boolean)
-        : [];
-    return list.includes(userId) ? list : [...list, userId];
-}
-
 function getCurrentUserSnapshot(
     runtimeState: any = useRuntimeStore.getState()
 ) {
@@ -72,25 +60,58 @@ function currentUserDisplayName(snapshot: AnyRecord, fallback: any = '') {
     );
 }
 
+function hasCompleteCurrentUserFriendBucketSnapshot(source: AnyRecord) {
+    return CURRENT_USER_FRIEND_ARRAY_FIELDS.every((field) =>
+        Array.isArray(source[field])
+    );
+}
+
+function getCurrentUserProjectionFriendBucketSource(projection: AnyRecord) {
+    const patch = asRecord(projection.patch);
+    if (hasCompleteCurrentUserFriendBucketSnapshot(patch)) {
+        return patch;
+    }
+    const snapshot = asRecord(projection.snapshot);
+    if (
+        Object.keys(patch).length === 0 &&
+        hasCompleteCurrentUserFriendBucketSnapshot(snapshot)
+    ) {
+        return snapshot;
+    }
+    return null;
+}
+
 function mergeCurrentUserProjectionSnapshot(
     runtimeState: ReturnType<typeof useRuntimeStore.getState>,
     projection: AnyRecord
 ) {
     const currentSnapshot = getCurrentUserSnapshot(runtimeState);
     const patch = asRecord(projection.patch);
+    const snapshotSource = isRecord(projection.snapshot)
+        ? projection.snapshot
+        : {};
     const source = Object.keys(patch).length
         ? patch
-        : isRecord(projection.snapshot)
-          ? projection.snapshot
-          : {};
+        : snapshotSource;
+    const completeFriendBucketSource =
+        getCurrentUserProjectionFriendBucketSource(projection);
     const nextSnapshot: any = {
         ...(currentSnapshot || {}),
         ...source
     };
 
+    if (completeFriendBucketSource) {
+        for (const field of CURRENT_USER_FRIEND_ARRAY_FIELDS) {
+            nextSnapshot[field] = completeFriendBucketSource[field];
+        }
+    }
+
     if (currentSnapshot) {
         for (const field of CURRENT_USER_FRIEND_ARRAY_FIELDS) {
-            if (Array.isArray(currentSnapshot[field])) {
+            if (
+                !completeFriendBucketSource &&
+                Array.isArray(currentSnapshot[field])
+            ) {
                 nextSnapshot[field] = currentSnapshot[field];
             }
         }
@@ -99,93 +120,11 @@ function mergeCurrentUserProjectionSnapshot(
     return nextSnapshot;
 }
 
-function syncCurrentUserFriendState(userId: string, stateBucket: string) {
-    const normalizedUserId = normalizeUserId(userId);
-    if (!normalizedUserId) {
-        return;
-    }
-    const nextStateBucket = normalizeUserId(stateBucket) || 'offline';
-    const runtimeStore = useRuntimeStore.getState();
-    const snapshot = getCurrentUserSnapshot(runtimeStore);
-    if (!snapshot) {
-        return;
-    }
-
-    const nextSnapshot: any = {
-        ...snapshot,
-        friends: ensureArrayMembership(snapshot.friends, normalizedUserId),
-        onlineFriends: removeFromArray(
-            snapshot.onlineFriends,
-            normalizedUserId
-        ),
-        activeFriends: removeFromArray(
-            snapshot.activeFriends,
-            normalizedUserId
-        ),
-        offlineFriends: removeFromArray(
-            snapshot.offlineFriends,
-            normalizedUserId
-        )
-    };
-
-    if (nextStateBucket === 'online') {
-        nextSnapshot.onlineFriends = ensureArrayMembership(
-            nextSnapshot.onlineFriends,
-            normalizedUserId
-        );
-    } else if (nextStateBucket === 'active') {
-        nextSnapshot.activeFriends = ensureArrayMembership(
-            nextSnapshot.activeFriends,
-            normalizedUserId
-        );
-    } else {
-        nextSnapshot.offlineFriends = ensureArrayMembership(
-            nextSnapshot.offlineFriends,
-            normalizedUserId
-        );
-    }
-
-    runtimeStore.setAuthBootstrap({
-        currentUserSnapshot: nextSnapshot
-    });
-    recordCurrentUserSnapshot(nextSnapshot, {
-        endpoint: runtimeStore.auth.currentUserEndpoint,
-        source: 'currentUser'
-    });
-}
-
-function removeCurrentUserFriend(userId: string) {
-    const normalizedUserId = normalizeUserId(userId);
-    const runtimeStore = useRuntimeStore.getState();
-    const snapshot = getCurrentUserSnapshot(runtimeStore);
-    if (!normalizedUserId || !snapshot) {
-        return;
-    }
-
-    runtimeStore.setAuthBootstrap({
-        currentUserSnapshot: {
-            ...snapshot,
-            friends: removeFromArray(snapshot.friends, normalizedUserId),
-            onlineFriends: removeFromArray(
-                snapshot.onlineFriends,
-                normalizedUserId
-            ),
-            activeFriends: removeFromArray(
-                snapshot.activeFriends,
-                normalizedUserId
-            ),
-            offlineFriends: removeFromArray(
-                snapshot.offlineFriends,
-                normalizedUserId
-            )
-        }
-    });
-}
-
 function applyFriendPatch(
     userId: string,
     patch: AnyRecord,
-    stateBucket: string
+    stateBucket: string,
+    stateBucketAuthority: string
 ) {
     const normalizedUserId = normalizeUserId(
         userId || patch.id || patch.userId
@@ -196,15 +135,16 @@ function applyFriendPatch(
     useFriendRosterStore.getState().applyFriendPatch({
         userId: normalizedUserId,
         patch,
-        stateBucket
+        stateBucket,
+        stateBucketAuthority
     });
     recordFriendPatch({
         endpoint: useRuntimeStore.getState().auth.currentUserEndpoint,
         userId: normalizedUserId,
         patch,
-        stateBucket
+        stateBucket,
+        stateBucketAuthority
     });
-    syncCurrentUserFriendState(normalizedUserId, stateBucket);
 }
 
 function pushProjectionFeedEntry(entry: unknown) {
@@ -288,7 +228,6 @@ function handleRealtimeFriendProjection(payload: unknown) {
             continue;
         }
         useFriendRosterStore.getState().removeFriend(normalizedUserId);
-        removeCurrentUserFriend(normalizedUserId);
     }
 
     for (const entry of Array.isArray(projection.patches)
@@ -301,7 +240,8 @@ function handleRealtimeFriendProjection(payload: unknown) {
             patch,
             normalizeUserId(
                 patchEntry.stateBucket || patch.stateBucket || patch.state
-            )
+            ),
+            normalizeUserId(patchEntry.stateBucketAuthority || 'explicit')
         );
     }
 
@@ -411,6 +351,15 @@ function handleRealtimeCurrentUserProjection(payload: unknown) {
         endpoint: runtimeStore.auth.currentUserEndpoint,
         source: 'currentUser'
     });
+    if (getCurrentUserProjectionFriendBucketSource(projection)) {
+        syncFriendRosterStateFromCurrentUserSnapshot(
+            snapshot,
+            `Friend roster states refreshed for ${currentUserDisplayName(
+                snapshot,
+                runtimeStore.auth.currentUserDisplayName
+            )}.`
+        );
+    }
 }
 
 async function handleRealtimeInstanceClosedProjection(payload: unknown) {

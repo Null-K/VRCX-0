@@ -108,6 +108,42 @@ describe('friendRosterStore', () => {
         });
     });
 
+    it('preserves bucket membership for location-only friend patches', () => {
+        const store = useFriendRosterStore.getState();
+        store.applyFriendPatch({
+            userId: 'usr_friend',
+            patch: {
+                id: 'usr_friend',
+                displayName: 'Friend',
+                state: 'online',
+                location: 'wrld_old:1'
+            },
+            stateBucket: 'online'
+        });
+
+        store.applyFriendPatch({
+            userId: 'usr_friend',
+            patch: {
+                id: 'usr_friend',
+                location: 'wrld_new:2'
+            },
+            stateBucket: 'offline',
+            stateBucketAuthority: 'preserve'
+        });
+
+        expect(useFriendRosterStore.getState()).toMatchObject({
+            onlineIds: ['usr_friend'],
+            offlineIds: [],
+            friendsById: {
+                usr_friend: {
+                    state: 'online',
+                    stateBucket: 'online',
+                    location: 'wrld_new:2'
+                }
+            }
+        });
+    });
+
     it('removes friends and rebuilds bucket ordering', () => {
         const store = useFriendRosterStore.getState();
 

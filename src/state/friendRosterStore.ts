@@ -38,6 +38,7 @@ type FriendPatchEntry = {
     userId?: unknown;
     patch?: FriendRecord;
     stateBucket?: unknown;
+    stateBucketAuthority?: unknown;
 };
 type FriendRosterStore = FriendRosterSnapshot & {
     loadStatus: 'idle' | 'running' | 'ready' | 'error';
@@ -73,12 +74,22 @@ function normalizeStateBucket(value: unknown): FriendRosterBucket | '' {
 function resolveFriendStateBucket({
     patch,
     stateBucket,
+    stateBucketAuthority,
     existingEntry
 }: {
     patch?: FriendRecord | null;
     stateBucket?: unknown;
+    stateBucketAuthority?: unknown;
     existingEntry?: FriendRecord | null;
 }): FriendRosterBucket {
+    if (normalizeUserId(stateBucketAuthority).toLowerCase() === 'preserve') {
+        return (
+            normalizeStateBucket(existingEntry?.stateBucket) ||
+            normalizeStateBucket(existingEntry?.state) ||
+            'offline'
+        );
+    }
+
     const explicitStateBucket =
         normalizeStateBucket(stateBucket) ||
         normalizeStateBucket(patch?.stateBucket) ||
@@ -379,7 +390,13 @@ export const useFriendRosterStore = create<FriendRosterStore>((set: any) => ({
             lastLoadedAt: new Date().toISOString()
         }));
     },
-    applyFriendPatch({ userId, patch = {}, stateBucket, detail = '' }: any) {
+    applyFriendPatch({
+        userId,
+        patch = {},
+        stateBucket,
+        stateBucketAuthority,
+        detail = ''
+    }: any) {
         set((state: any) => {
             const normalizedUserId = normalizeUserId(userId || patch?.id);
             if (!normalizedUserId) {
@@ -390,6 +407,7 @@ export const useFriendRosterStore = create<FriendRosterStore>((set: any) => ({
             const nextStateBucket = resolveFriendStateBucket({
                 patch,
                 stateBucket,
+                stateBucketAuthority,
                 existingEntry
             });
             const mergedUser: any = {
@@ -453,6 +471,7 @@ export const useFriendRosterStore = create<FriendRosterStore>((set: any) => ({
                 const nextStateBucket = resolveFriendStateBucket({
                     patch,
                     stateBucket: entry?.stateBucket,
+                    stateBucketAuthority: entry?.stateBucketAuthority,
                     existingEntry
                 });
                 const mergedUser: any = {

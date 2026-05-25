@@ -7,6 +7,8 @@ pub struct FriendProjectionPatch {
     pub user_id: String,
     pub patch: Value,
     pub state_bucket: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub state_bucket_authority: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize)]

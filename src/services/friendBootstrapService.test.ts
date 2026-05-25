@@ -29,7 +29,7 @@ describe('friendBootstrapService snapshot state sync', () => {
         });
     });
 
-    it('does not demote a real-location friend from a state-only offline snapshot', async () => {
+    it('uses a complete current-user bucket snapshot as roster state authority', async () => {
         const { useFriendRosterStore } =
             await import('@/state/friendRosterStore');
         const { syncFriendRosterStateFromCurrentUserSnapshot } = await import(
@@ -61,21 +61,55 @@ describe('friendBootstrapService snapshot state sync', () => {
         );
 
         const state = useFriendRosterStore.getState();
-        expect(state.onlineIds).toEqual(['usr_friend']);
-        expect(state.offlineIds).toEqual([]);
+        expect(state.onlineIds).toEqual([]);
+        expect(state.offlineIds).toEqual(['usr_friend']);
         expect(state.friendsById.usr_friend).toMatchObject({
-            state: 'online',
-            stateBucket: 'online',
+            state: 'offline',
+            stateBucket: 'offline',
             location: 'wrld_live:123'
         });
         expect(serviceMocks.recordFriendPatch).toHaveBeenLastCalledWith(
             expect.objectContaining({
                 userId: 'usr_friend',
-                stateBucket: 'online',
+                stateBucket: 'offline',
                 patch: expect.objectContaining({
-                    state: 'online'
+                    state: 'offline'
                 })
             })
         );
+    });
+
+    it('ignores partial current-user bucket snapshots', async () => {
+        const { useFriendRosterStore } =
+            await import('@/state/friendRosterStore');
+        const { syncFriendRosterStateFromCurrentUserSnapshot } = await import(
+            './friendBootstrapService'
+        );
+
+        useFriendRosterStore.getState().applyFriendPatches([
+            {
+                userId: 'usr_friend',
+                stateBucket: 'online',
+                patch: {
+                    id: 'usr_friend',
+                    displayName: 'Friend',
+                    state: 'online'
+                }
+            }
+        ]);
+
+        const synced = syncFriendRosterStateFromCurrentUserSnapshot(
+            {
+                id: 'usr_self',
+                friends: ['usr_friend']
+            },
+            'partial snapshot refresh'
+        );
+
+        const state = useFriendRosterStore.getState();
+        expect(synced).toBe(false);
+        expect(state.onlineIds).toEqual(['usr_friend']);
+        expect(state.offlineIds).toEqual([]);
+        expect(serviceMocks.recordFriendPatch).not.toHaveBeenCalled();
     });
 });
