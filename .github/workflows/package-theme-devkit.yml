@@ -5,11 +5,6 @@ on:
         types:
             - published
     workflow_dispatch:
-        inputs:
-            version:
-                description: Release version or tag to package, for example 2.2.1 or v2.2.1
-                required: true
-                type: string
 
 concurrency:
     group: ${{ github.ref }}-package-theme-devkit
@@ -50,27 +45,20 @@ jobs:
               with:
                   fetch-depth: 0
 
-            - id: release
-              name: Checkout release tag
+            - name: Checkout release tag
+              if: github.event_name == 'release'
               env:
-                  RELEASE_TAG: ${{ github.event.release.tag_name || '' }}
-                  INPUT_VERSION: ${{ inputs.version || '' }}
+                  RELEASE_TAG: ${{ github.event.release.tag_name }}
               run: |
-                  raw="${RELEASE_TAG:-$INPUT_VERSION}"
-                  raw="${raw#refs/tags/}"
-                  version="${raw#v}"
+                  tag="${RELEASE_TAG#refs/tags/}"
 
-                  if [[ -z "$version" ]]; then
-                      echo "Missing release version." >&2
+                  if [[ -z "$tag" ]]; then
+                      echo "Missing release tag." >&2
                       exit 1
                   fi
 
-                  tag="v$version"
                   git fetch --force --tags origin "refs/tags/$tag:refs/tags/$tag"
                   git checkout --force "$tag"
-
-                  echo "version=$version" >> "$GITHUB_OUTPUT"
-                  echo "tag=$tag" >> "$GITHUB_OUTPUT"
 
             - uses: dtolnay/rust-toolchain@stable
 
@@ -111,10 +99,22 @@ jobs:
 
             - run: npm ci
 
-            - name: Validate requested version
+            - id: version
+              name: Read package version
+              run: |
+                  version="$(node -p "require('./src-tauri/tauri.conf.json').version")"
+
+                  if [[ -z "$version" ]]; then
+                      echo "Missing package version." >&2
+                      exit 1
+                  fi
+
+                  echo "version=$version" >> "$GITHUB_OUTPUT"
+
+            - name: Validate package version
               run: |
                   node build-scripts/prepare-release-version.ts \
-                      --version "${{ steps.release.outputs.version }}" \
+                      --version "${{ steps.version.outputs.version }}" \
                       --dry-run
 
             - id: config
@@ -192,7 +192,7 @@ jobs:
             - name: Collect Theme Dev Kit artifact
               run: |
                   mkdir -p theme-devkit-assets
-                  version="${{ steps.release.outputs.version }}"
+                  version="${{ steps.version.outputs.version }}"
                   output="${{ matrix.output }}"
                   output="${output//\$\{version\}/$version}"
 
@@ -216,7 +216,7 @@ jobs:
 
             - uses: actions/upload-artifact@v7
               with:
-                  name: theme-devkit-${{ matrix.platform }}-${{ steps.release.outputs.version }}
+                  name: theme-devkit-${{ matrix.platform }}-${{ steps.version.outputs.version }}
                   path: theme-devkit-assets/*
                   if-no-files-found: error
 
