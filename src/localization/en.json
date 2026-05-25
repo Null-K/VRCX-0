@@ -265,7 +265,7 @@
         "all_tools": "All Tools...",
         "github": "GitHub",
         "report_issue": "Report Issue",
-        "open_source_licenses": "Open Source Licenses",
+        "open_source_licenses": "Third-Party Notices",
         "about": "About VRCX-0",
         "about_title": "About VRCX-0",
         "about_description": "Desktop companion for VRChat.",
@@ -1737,7 +1737,7 @@
                     "info": "VRCX-0 is an assistant application for VRChat that helps manage friendships and provides related information. This application makes use of the unofficial VRChat API SDK.",
                     "disclaimer1": "VRCX-0 is not endorsed by VRChat and does not reflect the views or opinions of VRChat or anyone officially involved in producing or managing VRChat properties. VRChat and all associated properties are trademarks or registered trademarks of VRChat Inc. VRChat © VRChat Inc.",
                     "disclaimer2": "All contributors are not responsible for any problems caused by VRCX-0. Use at your own risk!",
-                    "open_source_software_notice": "Open Source Software Notice"
+                    "open_source_software_notice": "Third-Party Notices"
                 },
                 "contributors": {
                     "header": "Contributors"
@@ -4352,8 +4352,8 @@
             "github": "GitHub"
         },
         "open_source": {
-            "header": "Open Source Software Notice",
-            "description": "VRCX-0 is based on open source software. It was possible because of their contribution.",
+            "header": "Third-Party Notices",
+            "description": "Review third-party dependency licenses and notices bundled with VRCX-0.",
             "loading": "Loading generated third-party notices...",
             "unavailable": "No generated third-party notice manifest is available in this build. Run a production build to regenerate it.",
             "search_placeholder": "Search packages, versions, or licenses",

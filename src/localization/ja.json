@@ -265,7 +265,7 @@
         "all_tools": "すべてのツール...",
         "github": "GitHub",
         "report_issue": "問題を報告",
-        "open_source_licenses": "オープンソースライセンス",
+        "open_source_licenses": "サードパーティー通知",
         "about": "VRCX-0 について",
         "about_title": "VRCX-0 について",
         "about_description": "VRChat 用のデスクトップコンパニオンです。",
@@ -1737,7 +1737,7 @@
                     "info": "VRCX-0 は VRChat のアシスタント用アプリケーションで、フレンドに関する情報の提供や管理を行うツールです。本アプリケーションは非公式の「VRChat API SDK」を使用しています。",
                     "disclaimer1": "VRCX-0 は VRChat によって承認されておらず、VRChat または VRChat の開発もしくは管理に公式に関与する者の見解や意見が反映されたものではありません。VRChat および関連するすべての財産は VRChat Inc. の商標または登録商標です。",
                     "disclaimer2": "すべての貢献者は VRCX-0 の使用によって発生したいかなる問題にも責任を負いません。自己責任でご使用ください！",
-                    "open_source_software_notice": "オープンソースソフトウェアに関する注意事項"
+                    "open_source_software_notice": "サードパーティー通知"
                 },
                 "contributors": {
                     "header": "貢献者"
@@ -4352,8 +4352,8 @@
             "github": "GitHub"
         },
         "open_source": {
-            "header": "オープンソースソフトウェアに関する注意事項",
-            "description": "VRCX-0はオープンソースソフトウェアをベースに開発されています。彼らの貢献のおかげで実現することができました。",
+            "header": "サードパーティー通知",
+            "description": "VRCX-0 に同梱されているサードパーティー依存関係のライセンスと通知を確認できます。",
             "loading": "サードパーティーの通知を読み込んでいます...",
             "unavailable": "サードパーティーの通知を読み込めませんでした。プロダクションのビルドを行い、再生成してください。",
             "search_placeholder": "パッケージ、ライセンス、またはバージョンで検索",

@@ -265,7 +265,7 @@
         "all_tools": "所有工具...",
         "github": "在 GitHub 上查看",
         "report_issue": "回報問題",
-        "open_source_licenses": "開放原始碼授權",
+        "open_source_licenses": "第三方聲明",
         "about": "關於 VRCX-0",
         "about_title": "關於 VRCX-0",
         "about_description": "VRChat 桌面輔助工具。",
@@ -1737,7 +1737,7 @@
                     "info": "VRCX-0 是一個提供好友管理資訊的輔助應用程式。這個程式使用非官方的 VRChat API (VRCSDK)。",
                     "disclaimer1": "VRCX-0 不受 VRChat 的認可，也不代表 VRChat 或任何正式參與製作或管理 VRChat 的人的觀點或意見。VRChat 是 VRChat Inc. 的商標，VRChat © VRChat Inc.",
                     "disclaimer2": "所有貢獻者將不對使用 VRCX-0 引起的任何問題負責。使用時請自負風險！",
-                    "open_source_software_notice": "開放原始碼軟體授權條款"
+                    "open_source_software_notice": "第三方聲明"
                 },
                 "contributors": {
                     "header": "貢獻者"
@@ -4352,15 +4352,15 @@
             "github": "GitHub"
         },
         "open_source": {
-            "header": "開放原始碼軟體授權條款",
-            "description": "VRCX-0 是基於開放原始碼軟體上開發的。沒有他們的貢獻的話，這個程式是不可能開發出來的",
-            "loading": "正在載入已產生的第三方通知…",
-            "unavailable": "此版本未包含已產生的第三方通知清單。請執行正式建置以重新產生。",
+            "header": "第三方聲明",
+            "description": "檢視 VRCX-0 隨附的第三方相依套件授權與聲明。",
+            "loading": "正在載入已產生的第三方聲明…",
+            "unavailable": "此版本未包含已產生的第三方聲明清單。請執行正式建置以重新產生。",
             "search_placeholder": "搜尋套件、版本或授權",
-            "notice_location_prefix": "完整通知檔案在應用程式目錄中的位置：",
+            "notice_location_prefix": "完整聲明檔案在應用程式目錄中的位置：",
             "open_project": "開啟專案",
             "open_license_url": "開放授權網址",
-            "notice_unavailable": "此項目未產生本地授權文本。請開啟完整通知檔案，並在發佈前檢查此元件。",
+            "notice_unavailable": "此項目沒有可用的本地授權文字。你可以在完整聲明檔案中查看此相依套件的聲明。",
             "select_package": "選取套裝檢視詳細資訊。",
             "review_required": "需要審查",
             "no_results": "沒有符合的套裝。",

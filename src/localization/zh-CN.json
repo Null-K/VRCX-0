@@ -265,7 +265,7 @@
         "all_tools": "所有工具...",
         "github": "在 GitHub 上查看",
         "report_issue": "反馈问题",
-        "open_source_licenses": "开源许可证",
+        "open_source_licenses": "第三方声明",
         "about": "关于 VRCX-0",
         "about_title": "关于 VRCX-0",
         "about_description": "VRChat 桌面辅助工具。",
@@ -1737,7 +1737,7 @@
                     "info": "VRCX-0 是一个提供 VRChat 好友管理信息的辅助应用。这个程序使用了非官方的 VRChat API (VRCSDK)。",
                     "disclaimer1": "VRCX-0 不受 VRChat 的认可，也不反映 VRChat 或者任何正式参与制作或管理 VRChat 的人员/团体的观点或意见。VRChat 是 VRChat Inc. 的商标。 VRChat © VRChat Inc.",
                     "disclaimer2": "本项目的全体贡献者均不对使用 VRCX-0 引起的任何问题负责。使用时请自负风险！",
-                    "open_source_software_notice": "开放源代码软件许可"
+                    "open_source_software_notice": "第三方声明"
                 },
                 "contributors": {
                     "header": "贡献者们"
@@ -4352,8 +4352,8 @@
             "github": "在 GitHub 上查看"
         },
         "open_source": {
-            "header": "开放源代码许可条款",
-            "description": "VRCX-0 是基于开放源代码软件开发的。没有他们的贡献，这个程序不可能开发出来。",
+            "header": "第三方声明",
+            "description": "查看 VRCX-0 随附的第三方依赖许可证和声明。",
             "loading": "正在加载生成的第三方声明...",
             "unavailable": "此构建中没有可用的生成的第三方声明清单。请进行生产构建以重新生成。",
             "search_placeholder": "搜索软件包、版本或许可证",
