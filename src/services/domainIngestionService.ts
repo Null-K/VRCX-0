@@ -17,6 +17,7 @@ interface FriendPatchInput {
     userId?: unknown;
     patch?: Record<string, unknown>;
     stateBucket?: unknown;
+    stateBucketAuthority?: unknown;
 }
 
 interface FriendRosterFactsInput {

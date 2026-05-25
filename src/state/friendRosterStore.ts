@@ -15,6 +15,7 @@ type FriendRecord = Record<string, unknown> & {
     developerType?: unknown;
     platform?: unknown;
     last_platform?: unknown;
+    lastPlatform?: unknown;
     location?: unknown;
     state?: unknown;
     stateBucket?: unknown;
@@ -124,6 +125,16 @@ function createFallbackFriendUser(
     };
 }
 
+function normalizePlatformAliases(friend: FriendRecord): FriendRecord {
+    const normalizedFriend = { ...friend };
+    const lastPlatform = normalizeUserId(normalizedFriend.lastPlatform);
+    if (lastPlatform) {
+        normalizedFriend.last_platform = lastPlatform;
+    }
+    delete normalizedFriend.lastPlatform;
+    return normalizedFriend;
+}
+
 function normalizeFriendEntry(
     friend: FriendRecord | null | undefined,
     stateBucket: FriendRosterBucket,
@@ -132,8 +143,9 @@ function normalizeFriendEntry(
     const fallbackUserId = normalizeUserId(
         existingRow?.id || existingRow?.userId
     );
-    const source =
-        friend ?? createFallbackFriendUser(fallbackUserId, existingRow);
+    const source = normalizePlatformAliases(
+        friend ?? createFallbackFriendUser(fallbackUserId, existingRow)
+    );
     const tags = Array.isArray(source.tags) ? source.tags : [];
     const trust = computeTrustLevel(tags, String(source.developerType || ''));
     const explicitTrustLevel = String(
