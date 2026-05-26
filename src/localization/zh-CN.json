@@ -2589,6 +2589,35 @@
                 "override_cleared": "Override CSS 已清空。",
                 "disable_failed": "更新社区主题设置失败。"
             }
+        },
+        "official_backgrounds": {
+            "settings": {
+                "header": "每日背景",
+                "enabled": "每日背景",
+                "description": "每天从所选来源更新应用背景图。启用后会关闭社区主题。",
+                "provider": "来源",
+                "apod_note": "NASA APOD 只使用没有 copyright 字段的图片。",
+                "current_image": "当前图片",
+                "no_image": "尚未加载图片"
+            },
+            "status": {
+                "enabled": "已启用",
+                "disabled": "关闭"
+            },
+            "action": {
+                "off": "关闭",
+                "refresh": "刷新"
+            },
+            "menu": {
+                "header": "每日背景",
+                "appearance_disabled": "每日背景启用时，亮色/暗色模式固定。"
+            },
+            "toast": {
+                "enabled": "每日背景已启用。",
+                "disabled": "每日背景已关闭。",
+                "refreshed": "每日背景已刷新。",
+                "failed": "更新每日背景失败。"
+            }
         }
     },
     "dialog": {

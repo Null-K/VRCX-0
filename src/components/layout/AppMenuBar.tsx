@@ -13,9 +13,15 @@ import { logoutFromReactShell } from '@/services/authExecutionService';
 import { startBackgroundModeForCurrentSession } from '@/services/backgroundModeService';
 import {
     disableInstalledCommunityTheme,
-    enableInstalledCommunityTheme
+    enableInstalledCommunityTheme,
+    stopLocalCommunityThemePreview
 } from '@/services/communityThemeService';
 import { openExternalLink } from '@/services/entityMediaService';
+import {
+    disableOfficialBackground,
+    enableOfficialBackground,
+    officialImageProviders
+} from '@/services/officialBackgroundService';
 import {
     setSidebarCollapsedPreference,
     setTableDensityPreference,
@@ -55,6 +61,7 @@ import {
     communityThemeControlsAppearance,
     useCommunityThemeStore
 } from '@/state/communityThemeStore';
+import { useOfficialBackgroundStore } from '@/state/officialBackgroundStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useShellStore } from '@/state/shellStore';
@@ -194,6 +201,12 @@ export function AppMenuBar({
     const localCommunityThemePreview = useCommunityThemeStore(
         (state: any) => state.localPreview
     );
+    const officialBackgroundEnabled = useOfficialBackgroundStore(
+        (state: any) => state.enabled
+    );
+    const officialBackgroundProviderId = useOfficialBackgroundStore(
+        (state: any) => state.providerId
+    );
     const notificationLayout = usePreferencesStore(
         (state: any) => state.notificationLayout
     );
@@ -253,6 +266,8 @@ export function AppMenuBar({
         installedCommunityTheme,
         localCommunityThemePreview
     );
+    const customThemeAppearanceControlled =
+        communityThemeAppearanceControlled || officialBackgroundEnabled;
 
     useEffect(() => {
         let active = true;
@@ -376,6 +391,41 @@ export function AppMenuBar({
                 error instanceof Error
                     ? error.message
                     : t('view.community_themes.toast.disable_failed')
+            );
+        }
+    }
+
+    async function runEnableOfficialBackground(providerId: string) {
+        try {
+            const enabledBackground = await enableOfficialBackground(providerId);
+            if (!enabledBackground) {
+                return;
+            }
+            await stopLocalCommunityThemePreview();
+            await disableInstalledCommunityTheme();
+            toast.success(t('view.official_backgrounds.toast.enabled'));
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('view.official_backgrounds.toast.failed')
+            );
+        }
+    }
+
+    async function runDisableOfficialBackground() {
+        if (!officialBackgroundEnabled) {
+            return;
+        }
+
+        try {
+            await disableOfficialBackground();
+            toast.success(t('view.official_backgrounds.toast.disabled'));
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t('view.official_backgrounds.toast.failed')
             );
         }
     }
@@ -515,9 +565,7 @@ export function AppMenuBar({
                                     <MenubarRadioGroup
                                         value={themeMode}
                                         onValueChange={(value: any) => {
-                                            if (
-                                                communityThemeAppearanceControlled
-                                            ) {
+                                            if (customThemeAppearanceControlled) {
                                                 return;
                                             }
                                             setThemeModePreference(value);
@@ -528,7 +576,7 @@ export function AppMenuBar({
                                                 key={mode}
                                                 value={mode}
                                                 disabled={
-                                                    communityThemeAppearanceControlled
+                                                    customThemeAppearanceControlled
                                                 }
                                             >
                                                 {themeModeLabel(mode, t)}
@@ -540,6 +588,13 @@ export function AppMenuBar({
                                         <MenubarLabel className="text-muted-foreground px-2 py-1.5 text-[11px] leading-snug whitespace-normal">
                                             {t(
                                                 'view.community_themes.menu.appearance_disabled'
+                                            )}
+                                        </MenubarLabel>
+                                    ) : null}
+                                    {officialBackgroundEnabled ? (
+                                        <MenubarLabel className="text-muted-foreground px-2 py-1.5 text-[11px] leading-snug whitespace-normal">
+                                            {t(
+                                                'view.official_backgrounds.menu.appearance_disabled'
                                             )}
                                         </MenubarLabel>
                                     ) : null}
@@ -642,6 +697,59 @@ export function AppMenuBar({
                                     >
                                         {t('view.community_themes.header')}
                                     </MenuItem>
+                                </MenubarSubContent>
+                            </MenubarSub>
+                            <MenubarSub>
+                                <MenubarSubTrigger className="min-h-7 min-w-48 text-xs">
+                                    {t('view.official_backgrounds.menu.header')}
+                                </MenubarSubTrigger>
+                                <MenubarSubContent className="w-60">
+                                    <MenuItem
+                                        onSelect={() => {
+                                            runDisableOfficialBackground();
+                                        }}
+                                    >
+                                        <span className="flex min-w-0 items-center gap-2">
+                                            <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
+                                                {!officialBackgroundEnabled ? (
+                                                    <CheckIcon data-icon="inline-start" />
+                                                ) : null}
+                                            </span>
+                                            <span className="min-w-0 truncate">
+                                                {t(
+                                                    'view.official_backgrounds.action.off'
+                                                )}
+                                            </span>
+                                        </span>
+                                    </MenuItem>
+                                    <MenubarSeparator />
+                                    {officialImageProviders.map((provider) => {
+                                        const active =
+                                            officialBackgroundEnabled &&
+                                            officialBackgroundProviderId ===
+                                                provider.id;
+                                        return (
+                                            <MenuItem
+                                                key={provider.id}
+                                                onSelect={() => {
+                                                    runEnableOfficialBackground(
+                                                        provider.id
+                                                    );
+                                                }}
+                                            >
+                                                <span className="flex min-w-0 items-center gap-2">
+                                                    <span className="inline-flex size-3.5 shrink-0 items-center justify-center">
+                                                        {active ? (
+                                                            <CheckIcon data-icon="inline-start" />
+                                                        ) : null}
+                                                    </span>
+                                                    <span className="min-w-0 truncate">
+                                                        {provider.name}
+                                                    </span>
+                                                </span>
+                                            </MenuItem>
+                                        );
+                                    })}
                                 </MenubarSubContent>
                             </MenubarSub>
                             <MenubarSub>

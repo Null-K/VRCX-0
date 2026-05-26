@@ -76,6 +76,9 @@ export const ConfigKeys = {
     tableDensity: { type: 'string', default: null },
     tablePageSize: { type: 'int', default: null },
     randomUserColours: { type: 'bool', default: false },
+    officialBackgroundEnabled: { type: 'bool', default: false },
+    officialBackgroundProviderId: { type: 'string', default: 'nasa-epic' },
+    officialBackgroundSnapshots: { type: 'string', default: '{}' },
 
     // ── Settings - Advanced ──────────────────────────
     bioLanguage: { type: 'string', default: null },

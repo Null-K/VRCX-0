@@ -2,6 +2,7 @@ import { SettingsTabContent } from '../SettingsViewParts';
 import { SettingsInterfaceAppearanceCard } from './SettingsInterfaceAppearanceCard';
 import { SettingsInterfaceCommunityThemesCard } from './SettingsInterfaceCommunityThemesCard';
 import { SettingsInterfaceDisplayCards } from './SettingsInterfaceDisplayCards';
+import { SettingsInterfaceOfficialBackgroundsCard } from './SettingsInterfaceOfficialBackgroundsCard';
 import { SettingsInterfaceUserColorsCard } from './SettingsInterfaceUserColorsCard';
 
 export function SettingsInterfaceTab({ settingsInterface }: any) {
@@ -53,6 +54,7 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
                     onAccessibleStatusIndicatorsChange
                 }
             />
+            <SettingsInterfaceOfficialBackgroundsCard />
             <SettingsInterfaceCommunityThemesCard />
             <SettingsInterfaceDisplayCards
                 prefs={prefs}

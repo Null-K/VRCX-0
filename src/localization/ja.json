@@ -2589,6 +2589,35 @@
                 "override_cleared": "Override CSS をクリアしました。",
                 "disable_failed": "コミュニティテーマ設定の更新に失敗しました。"
             }
+        },
+        "official_backgrounds": {
+            "settings": {
+                "header": "デイリー背景",
+                "enabled": "デイリー背景",
+                "description": "選択したデイリー画像ソースからアプリ背景を更新します。有効にするとコミュニティテーマはオフになります。",
+                "provider": "ソース",
+                "apod_note": "NASA APOD は copyright フィールドがない画像だけを使用します。",
+                "current_image": "現在の画像",
+                "no_image": "画像はまだ読み込まれていません"
+            },
+            "status": {
+                "enabled": "有効",
+                "disabled": "オフ"
+            },
+            "action": {
+                "off": "オフ",
+                "refresh": "再読み込み"
+            },
+            "menu": {
+                "header": "デイリー背景",
+                "appearance_disabled": "デイリー背景が有効な間はライト/ダークモードが固定されます。"
+            },
+            "toast": {
+                "enabled": "デイリー背景を有効化しました。",
+                "disabled": "デイリー背景を無効化しました。",
+                "refreshed": "デイリー背景を再読み込みしました。",
+                "failed": "デイリー背景の更新に失敗しました。"
+            }
         }
     },
     "dialog": {

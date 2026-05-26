@@ -18,6 +18,7 @@ import {
     communityThemeControlsAppearance,
     useCommunityThemeStore
 } from '@/state/communityThemeStore';
+import { useOfficialBackgroundStore } from '@/state/officialBackgroundStore';
 import { useShellStore } from '@/state/shellStore';
 import { useVrcNotificationStore } from '@/state/vrcNotificationStore';
 
@@ -350,6 +351,9 @@ export function AppNavMenu({ isCollapsed }: any) {
     const localCommunityThemePreview = useCommunityThemeStore(
         (state: any) => state.localPreview
     );
+    const officialBackgroundEnabled = useOfficialBackgroundStore(
+        (state: any) => state.enabled
+    );
     const dashboards = useDashboardStore((state: any) => state.dashboards);
     const dashboardsLoaded = useDashboardStore((state: any) => state.loaded);
     const ensureDashboardsLoaded = useDashboardStore(
@@ -431,6 +435,8 @@ export function AppNavMenu({ isCollapsed }: any) {
         installedCommunityTheme,
         localCommunityThemePreview
     );
+    const customThemeAppearanceControlled =
+        communityThemeAppearanceControlled || officialBackgroundEnabled;
 
     async function handleSelectEntry(entry: any) {
         if (!entry) {
@@ -510,13 +516,13 @@ export function AppNavMenu({ isCollapsed }: any) {
             <AppNavFooter
                 sidebarOpen={sidebarOpen}
                 themeMode={themeMode}
-                themeToggleDisabled={communityThemeAppearanceControlled}
+                showThemeToggle={!customThemeAppearanceControlled}
                 onNavigateSettings={() => navigate(routePathByName.settings)}
                 onToggleSidebar={() =>
                     setSidebarCollapsedPreference(sidebarOpen)
                 }
                 onToggleTheme={() => {
-                    if (communityThemeAppearanceControlled) {
+                    if (customThemeAppearanceControlled) {
                         return;
                     }
                     setThemeModePreference(

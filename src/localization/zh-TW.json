@@ -2589,6 +2589,35 @@
                 "override_cleared": "Override CSS 已清除。",
                 "disable_failed": "更新社群主題設定失敗。"
             }
+        },
+        "official_backgrounds": {
+            "settings": {
+                "header": "每日背景",
+                "enabled": "每日背景",
+                "description": "每天從所選來源更新應用程式背景圖。啟用後會關閉社群主題。",
+                "provider": "來源",
+                "apod_note": "NASA APOD 只使用沒有 copyright 欄位的圖片。",
+                "current_image": "目前圖片",
+                "no_image": "尚未載入圖片"
+            },
+            "status": {
+                "enabled": "已啟用",
+                "disabled": "關閉"
+            },
+            "action": {
+                "off": "關閉",
+                "refresh": "重新整理"
+            },
+            "menu": {
+                "header": "每日背景",
+                "appearance_disabled": "每日背景啟用時，亮色/暗色模式固定。"
+            },
+            "toast": {
+                "enabled": "每日背景已啟用。",
+                "disabled": "每日背景已關閉。",
+                "refreshed": "每日背景已重新整理。",
+                "failed": "更新每日背景失敗。"
+            }
         }
     },
     "dialog": {

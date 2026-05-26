@@ -131,7 +131,7 @@ function AppNavMenuContent({
 function AppNavFooter({
     sidebarOpen,
     themeMode,
-    themeToggleDisabled = false,
+    showThemeToggle = true,
     onNavigateSettings,
     onToggleSidebar,
     onToggleTheme
@@ -141,21 +141,19 @@ function AppNavFooter({
     return (
         <SidebarFooter className="px-2 py-3">
             <SidebarMenu>
-                <SidebarMenuItem>
-                    <SidebarMenuButton
-                        tooltip={t('nav_tooltip.toggle_theme')}
-                        disabled={themeToggleDisabled}
-                        onClick={() => {
-                            if (themeToggleDisabled) {
-                                return;
-                            }
-                            onToggleTheme();
-                        }}
-                    >
-                        {themeMode === 'light' ? <MoonIcon /> : <SunIcon />}
-                        <span>{t('nav_tooltip.toggle_theme')}</span>
-                    </SidebarMenuButton>
-                </SidebarMenuItem>
+                {showThemeToggle ? (
+                    <SidebarMenuItem>
+                        <SidebarMenuButton
+                            tooltip={t('nav_tooltip.toggle_theme')}
+                            onClick={() => {
+                                onToggleTheme();
+                            }}
+                        >
+                            {themeMode === 'light' ? <MoonIcon /> : <SunIcon />}
+                            <span>{t('nav_tooltip.toggle_theme')}</span>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                ) : null}
 
                 <SidebarMenuItem>
                     <SidebarMenuButton

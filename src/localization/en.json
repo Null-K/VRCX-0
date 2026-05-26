@@ -2589,6 +2589,35 @@
                 "override_cleared": "Override CSS cleared.",
                 "disable_failed": "Failed to update community theme settings."
             }
+        },
+        "official_backgrounds": {
+            "settings": {
+                "header": "Daily Background",
+                "enabled": "Daily Background",
+                "description": "Update the app background from the selected daily image source. Enabling it turns off community themes.",
+                "provider": "Source",
+                "apod_note": "NASA APOD only uses images without a copyright field.",
+                "current_image": "Current image",
+                "no_image": "No image loaded"
+            },
+            "status": {
+                "enabled": "Enabled",
+                "disabled": "Off"
+            },
+            "action": {
+                "off": "Off",
+                "refresh": "Refresh"
+            },
+            "menu": {
+                "header": "Daily Background",
+                "appearance_disabled": "Light and dark mode are fixed while Daily Background is active."
+            },
+            "toast": {
+                "enabled": "Daily Background enabled.",
+                "disabled": "Daily Background disabled.",
+                "refreshed": "Daily Background refreshed.",
+                "failed": "Failed to update Daily Background."
+            }
         }
     },
     "dialog": {

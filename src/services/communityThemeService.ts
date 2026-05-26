@@ -9,6 +9,7 @@ import { tauriClient } from '@/platform/tauri/client';
 import {
     COMMUNITY_THEME_CATALOG_URL,
     COMMUNITY_THEME_CSS_FILE_NAME,
+    loadCommunityThemeCss,
     loadCommunityThemeCatalog,
     resolveCommunityThemeAssetUrl
 } from '@/repositories/communityThemeRepository';
@@ -28,16 +29,17 @@ import {
     setCommunityThemeAppearanceControl
 } from './themeService';
 import {
-    isDynamicCommunityThemeCssSnapshotAllowed,
-    refreshDynamicCommunityThemeCssSnapshot,
-    resolveCommunityThemeCssSnapshot
-} from './communityThemeProviderService';
+    disableOfficialBackground,
+    isOfficialBackgroundActive,
+    migrateLegacyNasaApodCommunityTheme
+} from './officialBackgroundService';
+import { setVrcxCssLayers } from './vrcxCssLayerService';
 
 const INSTALLED_THEME_LAYER = 'installed-theme';
 const LOCAL_PREVIEW_LAYER = 'local-theme-preview';
 const USER_OVERRIDE_LAYER = 'user-override';
-const COMMUNITY_THEME_STYLE_ATTR = 'data-vrcx-0-css-layer';
 const COMMUNITY_THEME_ACCENT_ATTR = 'data-vrcx-0-community-theme-accent';
+const LEGACY_NASA_APOD_WALLPAPER_THEME_ID = 'nasa-apod-wallpaper';
 const CSS_URL_PATTERN = /url\(\s*(['"]?)([^'")]+)\1\s*\)/gi;
 
 const CONFIG_KEYS = {
@@ -70,34 +72,12 @@ function currentTimestamp(): string {
     return new Date().toISOString();
 }
 
-function ensureCommunityStyleLayer(layer: string, cssText: string): void {
-    const styleElement = document.createElement('style');
-    styleElement.setAttribute(COMMUNITY_THEME_STYLE_ATTR, layer);
-    styleElement.textContent = cssText;
-    document.head.appendChild(styleElement);
-}
-
 function syncCommunityStyleLayers(): void {
-    if (typeof document === 'undefined') {
-        return;
-    }
-
-    document
-        .querySelectorAll(`style[${COMMUNITY_THEME_STYLE_ATTR}]`)
-        .forEach((styleElement: any) => styleElement.remove());
-
-    if (installedThemeCssSnapshot.trim()) {
-        ensureCommunityStyleLayer(
-            INSTALLED_THEME_LAYER,
-            installedThemeCssSnapshot
-        );
-    }
-    if (localPreviewCssSnapshot.trim()) {
-        ensureCommunityStyleLayer(LOCAL_PREVIEW_LAYER, localPreviewCssSnapshot);
-    }
-    if (overrideCssSnapshot.trim()) {
-        ensureCommunityStyleLayer(USER_OVERRIDE_LAYER, overrideCssSnapshot);
-    }
+    setVrcxCssLayers({
+        [INSTALLED_THEME_LAYER]: installedThemeCssSnapshot,
+        [LOCAL_PREVIEW_LAYER]: localPreviewCssSnapshot,
+        [USER_OVERRIDE_LAYER]: overrideCssSnapshot
+    });
 }
 
 async function applySavedThemeColor(): Promise<void> {
@@ -127,7 +107,9 @@ async function syncCommunityThemeAppearanceControl(): Promise<void> {
         return;
     }
 
-    await applySavedThemeMode();
+    if (!isOfficialBackgroundActive()) {
+        await applySavedThemeMode();
+    }
 }
 
 async function syncCommunityThemeAccentControl(): Promise<void> {
@@ -343,32 +325,10 @@ async function persistCommunityThemeInstallState({
     ]);
 }
 
-async function refreshDynamicInstallRecord(
-    record: CommunityThemeInstalledSnapshot
-): Promise<CommunityThemeInstalledSnapshot> {
-    const cssSnapshot = await refreshDynamicCommunityThemeCssSnapshot(
-        COMMUNITY_THEME_CATALOG_URL,
-        record
-    );
-    if (!cssSnapshot || cssSnapshot === record.cssSnapshot) {
-        return record;
-    }
-
-    return {
-        ...record,
-        cssSnapshot,
-        sha256: await sha256Hex(cssSnapshot),
-        updatedAt: currentTimestamp()
-    };
-}
-
 function isInstallRecordCssSnapshotAllowed(
     record: CommunityThemeInstalledSnapshot
 ): boolean {
-    return isDynamicCommunityThemeCssSnapshotAllowed(
-        record.themeId,
-        record.cssSnapshot
-    );
+    return record.themeId !== LEGACY_NASA_APOD_WALLPAPER_THEME_ID;
 }
 
 export async function loadCatalog(): Promise<CommunityThemeCatalog> {
@@ -419,35 +379,23 @@ export async function initializeCommunityThemes(): Promise<void> {
                   cssSnapshot: String(legacyCssSnapshot || '')
               }
             : null;
-    let records = mergeInstallRecords([
+    const rawRecords = mergeInstallRecords([
         ...normalizeInstallRecords(installedThemeRecords),
         ...(legacyInstallRecord ? [legacyInstallRecord] : [])
-    ])
+    ]);
+    const legacyApodWasActive = Boolean(
+        enabled &&
+            (activeThemeId === LEGACY_NASA_APOD_WALLPAPER_THEME_ID ||
+                legacyInstallMetadata?.themeId ===
+                    LEGACY_NASA_APOD_WALLPAPER_THEME_ID)
+    );
+    const records = rawRecords
         .filter(isInstallRecordFromCurrentCatalog)
         .filter(isInstallRecordCssSnapshotAllowed);
-    let activeRecord =
+    const activeRecord =
         records.find((record) => record.themeId === activeThemeId) ??
         records.find((record) => record.themeId === legacyInstallMetadata?.themeId) ??
         null;
-
-    if (enabled && activeRecord) {
-        try {
-            activeRecord = await refreshDynamicInstallRecord(activeRecord);
-            records = mergeInstallRecords([
-                ...records.filter(
-                    (record) => record.themeId !== activeRecord?.themeId
-                ),
-                activeRecord
-            ])
-                .filter(isInstallRecordFromCurrentCatalog)
-                .filter(isInstallRecordCssSnapshotAllowed);
-        } catch (error) {
-            console.warn(
-                'Unable to refresh dynamic community theme snapshot:',
-                error
-            );
-        }
-    }
 
     if (
         (legacyInstallMetadata || Array.isArray(installedThemeRecords)) &&
@@ -464,6 +412,9 @@ export async function initializeCommunityThemes(): Promise<void> {
     installedThemeCssSnapshot =
         enabled && activeRecord ? activeRecord.cssSnapshot : '';
     overrideCssSnapshot = String(overrideCss || '');
+    if (legacyApodWasActive) {
+        await migrateLegacyNasaApodCommunityTheme();
+    }
 
     useCommunityThemeStore.getState().hydrate({
         catalogUrl: COMMUNITY_THEME_CATALOG_URL,
@@ -488,10 +439,8 @@ export async function installCommunityTheme(
     store.setError(null);
     try {
         const catalogUrl = COMMUNITY_THEME_CATALOG_URL;
-        const cssText = await resolveCommunityThemeCssSnapshot(
-            catalogUrl,
-            theme
-        );
+        const cssText = await loadCommunityThemeCss(catalogUrl, theme);
+        await disableOfficialBackground({ restoreAppTheme: false });
         const now = currentTimestamp();
         const previous = store.installedThemes.find(
             (installedTheme) => installedTheme.themeId === theme.id
@@ -573,12 +522,12 @@ export async function enableInstalledCommunityTheme(themeId?: string): Promise<v
         .filter(isInstallRecordCssSnapshotAllowed);
     const targetThemeId =
         themeId || store.installedTheme?.themeId || records[0]?.themeId || '';
-    let activeRecord =
+    const activeRecord =
         records.find((record) => record.themeId === targetThemeId) ?? null;
     if (!activeRecord) {
         return;
     }
-    activeRecord = await refreshDynamicInstallRecord(activeRecord);
+    await disableOfficialBackground({ restoreAppTheme: false });
     const nextRecords = mergeInstallRecords([
         ...records.filter((record) => record.themeId !== activeRecord.themeId),
         activeRecord
@@ -697,6 +646,7 @@ export async function loadLocalCommunityThemePreview(
         output.cssPath,
         loadedAt
     );
+    await disableOfficialBackground({ restoreAppTheme: false });
     localPreviewCssSnapshot = cssText;
 
     const preview: CommunityThemeLocalPreview = {
