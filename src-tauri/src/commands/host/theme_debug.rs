@@ -13,6 +13,7 @@ pub struct CommunityThemeDebugLocalThemeOutput {
     manifest_path: Option<String>,
     theme_name: String,
     version: String,
+    dark_mode: bool,
     accent_mode: bool,
     css: String,
 }
@@ -98,6 +99,11 @@ pub fn app__community_theme_debug_load_local_theme(
             .and_then(|value| value.get("accentMode"))
             .and_then(serde_json::Value::as_bool)
             .unwrap_or(false);
+        let dark_mode = manifest
+            .as_ref()
+            .and_then(|value| value.get("darkMode"))
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(true);
 
         Ok(CommunityThemeDebugLocalThemeOutput {
             folder_path,
@@ -107,6 +113,7 @@ pub fn app__community_theme_debug_load_local_theme(
                 .then(|| manifest_path.to_string_lossy().to_string()),
             theme_name,
             version,
+            dark_mode,
             accent_mode,
             css,
         })

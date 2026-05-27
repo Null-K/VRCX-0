@@ -705,6 +705,7 @@ export interface CommunityThemeDebugLocalThemeOutput {
     manifestPath?: string | null;
     themeName: string;
     version: string;
+    darkMode: boolean;
     accentMode: boolean;
     css: string;
 }

@@ -65,6 +65,20 @@ export function communityThemeControlsAppearance(
     return Boolean(localPreview || (enabled && installedTheme));
 }
 
+export function resolveCommunityThemeBaseMode(
+    enabled: boolean,
+    installedTheme: CommunityThemeInstallMetadata | null,
+    localPreview: CommunityThemeLocalPreview | null = null
+): 'dark' | 'light' {
+    if (localPreview) {
+        return localPreview.darkMode ? 'dark' : 'light';
+    }
+    if (enabled && installedTheme) {
+        return installedTheme.darkMode ? 'dark' : 'light';
+    }
+    return 'dark';
+}
+
 export const useCommunityThemeStore = create<CommunityThemeStore>(
     (set: any) => ({
         catalogUrl: '',

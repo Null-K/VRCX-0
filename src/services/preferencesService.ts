@@ -37,7 +37,7 @@ import {
     applyThemeColor,
     applyThemeMode,
     applyZoomLevel,
-    COMMUNITY_THEME_FIXED_THEME_MODE,
+    getCommunityThemeAppearanceThemeMode,
     isCommunityThemeAppearanceControlled,
     normalizeZoomLevel,
     resolveThemeColor,
@@ -454,7 +454,7 @@ export async function setAppLanguagePreference(language: any) {
 
 export async function setThemeModePreference(themeMode: any) {
     if (isCommunityThemeAppearanceControlled()) {
-        return COMMUNITY_THEME_FIXED_THEME_MODE;
+        return getCommunityThemeAppearanceThemeMode();
     }
 
     const nextThemeMode = resolveThemeMode(themeMode);

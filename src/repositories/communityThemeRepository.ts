@@ -2,6 +2,7 @@ import type {
     CommunityThemeAccentMode,
     CommunityThemeAuthor,
     CommunityThemeCatalog,
+    CommunityThemeDarkMode,
     CommunityThemeManifest
 } from '@/features/themes/communityThemeTypes';
 
@@ -78,6 +79,10 @@ function normalizeAuthor(value: unknown, context: string): CommunityThemeAuthor 
 
 function normalizeAccentMode(value: unknown): CommunityThemeAccentMode {
     return value === true;
+}
+
+function normalizeDarkMode(value: unknown): CommunityThemeDarkMode {
+    return value !== false;
 }
 
 function normalizeThemeIds(value: unknown): string[] {
@@ -196,6 +201,7 @@ function normalizeCommunityThemeManifest(
         tags: normalizeTags(entry.tags, context),
         testedWith: requireString(entry, 'testedWith', context),
         remoteAssets: entry.remoteAssets === true,
+        darkMode: normalizeDarkMode(entry.darkMode),
         accentMode: normalizeAccentMode(entry.accentMode),
         previewUrl: resolveCommunityThemeAssetUrl(
             catalogUrl,

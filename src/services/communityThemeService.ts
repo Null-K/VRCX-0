@@ -17,6 +17,7 @@ import configRepository from '@/repositories/configRepository';
 import {
     communityThemeControlsAccent,
     communityThemeControlsAppearance,
+    resolveCommunityThemeBaseMode,
     useCommunityThemeStore
 } from '@/state/communityThemeStore';
 import { isThemeDeveloperBuild } from '@/shared/buildLabel';
@@ -110,7 +111,11 @@ async function syncCommunityThemeAppearanceControl(): Promise<void> {
     );
 
     if (controlsAppearance) {
-        await setCommunityThemeAppearanceControl(true);
+        await setCommunityThemeAppearanceControl(
+            true,
+            undefined,
+            resolveCommunityThemeBaseMode(enabled, installedTheme, localPreview)
+        );
         return;
     }
 
@@ -214,6 +219,7 @@ function normalizeInstallMetadata(
         sha256: String(entry.sha256 || ''),
         installedAt: String(entry.installedAt || ''),
         updatedAt: String(entry.updatedAt || ''),
+        darkMode: entry.darkMode !== false,
         accentMode: entry.accentMode === true || entry.accentMode === 'app'
     };
 }
@@ -472,6 +478,7 @@ export async function installCommunityTheme(
                     ? previous.installedAt
                     : now,
             updatedAt: now,
+            darkMode: theme.darkMode !== false,
             accentMode: theme.accentMode === true
         };
         const record: CommunityThemeInstalledSnapshot = {
@@ -691,6 +698,7 @@ export async function loadLocalCommunityThemePreview(
         manifestPath: output.manifestPath,
         themeName: output.themeName,
         version: output.version,
+        darkMode: output.darkMode !== false,
         accentMode: output.accentMode === true,
         cssLength: cssText.length,
         loadedAt

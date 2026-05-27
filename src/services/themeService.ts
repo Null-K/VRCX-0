@@ -156,15 +156,25 @@ export function isCommunityThemeAppearanceControlled(): boolean {
         return false;
     }
 
-    return (
-        document.documentElement.getAttribute(COMMUNITY_THEME_APPEARANCE_ATTR) ===
-        'theme'
+    return document.documentElement.hasAttribute(COMMUNITY_THEME_APPEARANCE_ATTR);
+}
+
+export function getCommunityThemeAppearanceThemeMode(): ThemeMode {
+    if (typeof document === 'undefined') {
+        return COMMUNITY_THEME_FIXED_THEME_MODE;
+    }
+
+    const value = document.documentElement.getAttribute(
+        COMMUNITY_THEME_APPEARANCE_ATTR
     );
+    return value === 'light' || value === 'dark'
+        ? value
+        : COMMUNITY_THEME_FIXED_THEME_MODE;
 }
 
 function resolveEffectiveThemeMode(themeMode: unknown): ThemeMode {
     if (isCommunityThemeAppearanceControlled()) {
-        return COMMUNITY_THEME_FIXED_THEME_MODE;
+        return getCommunityThemeAppearanceThemeMode();
     }
 
     return resolveThemeMode(themeMode);
@@ -359,7 +369,8 @@ export async function applyThemeMode(themeMode: unknown): Promise<void> {
 
 export async function setCommunityThemeAppearanceControl(
     enabled: boolean,
-    restoredThemeMode: unknown = useShellStore.getState().themeMode
+    restoredThemeMode: unknown = useShellStore.getState().themeMode,
+    controlledThemeMode: unknown = COMMUNITY_THEME_FIXED_THEME_MODE
 ): Promise<void> {
     if (typeof document === 'undefined') {
         return;
@@ -367,8 +378,13 @@ export async function setCommunityThemeAppearanceControl(
 
     const root = document.documentElement;
     if (enabled) {
-        root.setAttribute(COMMUNITY_THEME_APPEARANCE_ATTR, 'theme');
-        await applyThemeMode(COMMUNITY_THEME_FIXED_THEME_MODE);
+        const normalizedControlledThemeMode =
+            resolveThemeMode(controlledThemeMode) === 'light' ? 'light' : 'dark';
+        root.setAttribute(
+            COMMUNITY_THEME_APPEARANCE_ATTR,
+            normalizedControlledThemeMode
+        );
+        await applyThemeMode(normalizedControlledThemeMode);
         return;
     }
 
