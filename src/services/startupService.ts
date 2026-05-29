@@ -1,3 +1,4 @@
+import { normalizeLanguageCode } from '@/localization/locales';
 import { tauriClient } from '@/platform/tauri/client';
 import configRepository from '@/repositories/configRepository';
 import databaseMaintenanceRepository from '@/repositories/databaseMaintenanceRepository';
@@ -72,7 +73,14 @@ export async function initializeReactRuntime() {
             )
         ]);
 
-        shellStore.setLocale(String(locale || 'en'));
+        const normalizedLocale = normalizeLanguageCode(locale);
+        shellStore.setLocale(normalizedLocale);
+        if (
+            String(locale || '').trim() &&
+            String(locale).trim() !== normalizedLocale
+        ) {
+            await configRepository.setString('appLanguage', normalizedLocale);
+        }
         const resolvedThemeMode = resolveThemeMode(themeMode);
         await runNonCriticalStartupSync(
             'theme',

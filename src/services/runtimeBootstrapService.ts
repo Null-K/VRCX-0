@@ -1,3 +1,4 @@
+import { normalizeLanguageCode } from '@/localization/locales';
 import { useNotificationStore } from '@/state/notificationStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
@@ -196,7 +197,7 @@ export function startThemeModeSync() {
 
 export function startI18nLanguageSync() {
     const syncLanguage = (locale: any) => {
-        const nextLocale = locale || 'en';
+        const nextLocale = normalizeLanguageCode(locale);
         if (typeof document !== 'undefined') {
             document.documentElement.setAttribute('lang', nextLocale);
         }

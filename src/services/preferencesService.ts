@@ -7,7 +7,7 @@ import {
     normalizeTrustColors,
     TRUST_COLOR_DEFAULTS
 } from '@/shared/utils/trustColors';
-import { languageCodes } from '@/localization/locales';
+import { normalizeLanguageCode } from '@/localization/locales';
 import { tauriClient } from '@/platform/tauri/client';
 import configRepository from '@/repositories/configRepository';
 import storageRepository from '@/repositories/storageRepository';
@@ -108,7 +108,7 @@ function patchPreferenceValue(key: any, value: any) {
 }
 
 function normalizeBioLanguage(language: any) {
-    return languageCodes.includes(language) ? language : 'en';
+    return normalizeLanguageCode(language);
 }
 
 function normalizeStringList(value: any) {
@@ -446,7 +446,7 @@ export async function loadPreferenceSnapshot() {
 }
 
 export async function setAppLanguagePreference(language: any) {
-    const nextLanguage = language || 'en';
+    const nextLanguage = normalizeLanguageCode(language);
     useShellStore.getState().setLocale(nextLanguage);
     setDocumentLanguage(nextLanguage);
     await configRepository.setString('appLanguage', nextLanguage);

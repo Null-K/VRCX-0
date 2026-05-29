@@ -1,6 +1,7 @@
 import { createInstance } from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
+import { normalizeLanguageCode } from '@/localization/locales';
 import { getAllLocalizedStrings } from '@/localization/index';
 
 type LocalizedMessages = Record<string, unknown>;
@@ -50,7 +51,7 @@ function resolveMessage(messages: unknown, key: string): unknown {
 }
 
 function normalizeLocale(locale: unknown): string {
-    return typeof locale === 'string' && locale.trim() ? locale.trim() : 'en';
+    return normalizeLanguageCode(locale);
 }
 
 export async function setI18nLanguage(locale: unknown): Promise<string> {
