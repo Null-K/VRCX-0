@@ -17,7 +17,7 @@ import { useRuntimeStore } from '@/state/runtimeStore';
 
 import i18n from './i18nService';
 
-const DEFAULT_APP_ID = '883308884863901717';
+const DEFAULT_APP_ID = '1510639562177642557';
 const GAME_STOP_DISCORD_CLOSE_ATTEMPTS = 5;
 const i18nKeys = [
     'dialog.new_instance.access_type_public',

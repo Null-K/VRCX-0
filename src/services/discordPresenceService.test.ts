@@ -163,7 +163,7 @@ describe('discordPresenceService', () => {
         expect(mocks.setAssets).toHaveBeenCalledTimes(1);
 
         const { appId, activity } = mocks.setAssets.mock.calls[0][0];
-        expect(appId).toBe('883308884863901717');
+        expect(appId).toBe('1510639562177642557');
         expect(activity).toMatchObject({
             type: 0,
             name: 'VRChat',

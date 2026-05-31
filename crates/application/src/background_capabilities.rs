@@ -15,7 +15,7 @@ use vrcx_0_vrchat_client::worlds::world_get_input;
 
 use crate::{Error, PlayerState, Result, RuntimeSnapshot, WebClient};
 
-const DEFAULT_APP_ID: &str = "883308884863901717";
+const DEFAULT_APP_ID: &str = "1510639562177642557";
 const GAME_STOP_DISCORD_CLOSE_ATTEMPTS: u8 = 5;
 const DEFAULT_MIN_STATUS_WRITE_INTERVAL_MS: i64 = 60_000;
 const DEFAULT_MIN_DESCRIPTION_WRITE_INTERVAL_MS: i64 = 60_000;
