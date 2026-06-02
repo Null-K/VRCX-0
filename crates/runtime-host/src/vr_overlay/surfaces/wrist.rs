@@ -1,9 +1,13 @@
-use vrcx_0_application::{OverlayActivityCategory, OverlayActivityEntry, OverlayActivitySnapshot};
+use vrcx_0_application::{
+    OverlayActivityCategory, OverlayActivityEntry, OverlayActivitySnapshot, OverlayActivityText,
+};
 use vrcx_0_host::vr_overlay::{VrDeviceSnapshot, VrDeviceStatus};
 use vrcx_0_vr_overlay::{
     Color, DeviceChip, DeviceStatus, FeedKind, FeedLine, FeedSeverity, OverlayFooter, OverlaySize,
     WristSurfaceModel,
 };
+
+use super::super::localization::{OverlayLocale, OverlayLocalizer};
 
 const MAX_FEED_ROWS: usize = 10;
 
@@ -75,6 +79,7 @@ pub struct WristOverlayFrameInput {
     pub devices: Vec<VrDeviceSnapshot>,
     pub footer: WristRuntimeFooter,
     pub options: WristOverlayRenderOptions,
+    pub locale: String,
     pub captured_at_ms: i64,
 }
 
@@ -86,6 +91,7 @@ pub struct WristRuntimeFooter {
 }
 
 pub fn build_wrist_surface_model(input: WristOverlayFrameInput) -> WristSurfaceModel {
+    let localizer = OverlayLocalizer::new(OverlayLocale::from_config(&input.locale));
     let feed_rows = input
         .activity
         .entries
@@ -93,7 +99,7 @@ pub fn build_wrist_surface_model(input: WristOverlayFrameInput) -> WristSurfaceM
         .rev()
         .filter(|entry| !should_hide_private_world(entry, input.options.hide_private_worlds))
         .take(MAX_FEED_ROWS)
-        .map(feed_line_from_activity)
+        .map(|entry| feed_line_from_activity(entry, &localizer))
         .collect();
     WristSurfaceModel {
         size: input.options.size.overlay_size(),
@@ -155,16 +161,19 @@ fn device_chip_from_snapshot(snapshot: VrDeviceSnapshot) -> DeviceChip {
     }
 }
 
-fn feed_line_from_activity(entry: &OverlayActivityEntry) -> FeedLine {
+fn feed_line_from_activity(entry: &OverlayActivityEntry, localizer: &OverlayLocalizer) -> FeedLine {
     FeedLine {
         time_text: time_text(&entry.created_at),
         kind: feed_kind(entry),
-        detail: feed_detail(entry),
+        detail: feed_detail(entry, localizer),
         severity: feed_severity(entry),
     }
 }
 
-fn feed_detail(entry: &OverlayActivityEntry) -> String {
+fn feed_detail(entry: &OverlayActivityEntry, localizer: &OverlayLocalizer) -> String {
+    let localized_summary = localized_activity_summary(entry, localizer);
+    let localized_body = localizer.text(&entry.content.body);
+    let localized_title = localizer.text(&entry.content.title);
     let summary = entry.content.summary.trim();
     let detail = entry.content.detail.trim();
     let body = entry.content.body.fallback.trim();
@@ -173,7 +182,13 @@ fn feed_detail(entry: &OverlayActivityEntry) -> String {
     let world_name = meaningful_world_name(entry);
 
     if let Some(world_name) = world_name {
-        for value in [summary, detail, body] {
+        for value in [
+            localized_summary.as_str(),
+            detail,
+            localized_body.as_str(),
+            summary,
+            body,
+        ] {
             let replaced = replace_location_ids(value, entry, world_name);
             if !replaced.trim().is_empty() {
                 return replaced;
@@ -181,12 +196,36 @@ fn feed_detail(entry: &OverlayActivityEntry) -> String {
         }
     }
 
-    let candidate = first_non_empty([summary, detail, body, title, actor]);
+    let candidate = first_non_empty([
+        localized_summary.as_str(),
+        detail,
+        localized_body.as_str(),
+        summary,
+        body,
+        localized_title.as_str(),
+        title,
+        actor,
+    ]);
     if contains_location_id(&candidate) {
-        location_id_free_detail(entry, title, actor)
+        location_id_free_detail(entry, localized_title.as_str(), title, actor, localizer)
     } else {
         candidate
     }
+}
+
+fn localized_activity_summary(
+    entry: &OverlayActivityEntry,
+    localizer: &OverlayLocalizer,
+) -> String {
+    let title = localizer.text(&entry.content.title);
+    let body = localizer.text(&entry.content.body);
+    if !body.trim().is_empty() {
+        return join_non_empty([title.as_str(), body.as_str()]);
+    }
+    if !entry.content.title.key.trim().is_empty() {
+        return title;
+    }
+    String::new()
 }
 
 fn meaningful_world_name(entry: &OverlayActivityEntry) -> Option<&str> {
@@ -213,13 +252,51 @@ fn replace_location_ids(value: &str, entry: &OverlayActivityEntry, world_name: &
     output
 }
 
-fn location_id_free_detail(entry: &OverlayActivityEntry, title: &str, actor: &str) -> String {
-    let subject = first_non_empty([title, actor]);
+fn location_id_free_detail(
+    entry: &OverlayActivityEntry,
+    localized_title: &str,
+    fallback_title: &str,
+    actor: &str,
+    localizer: &OverlayLocalizer,
+) -> String {
+    let subject = first_non_empty([localized_title, fallback_title, actor]);
     match entry.activity_type.as_str() {
-        "GPS" if !subject.is_empty() => format!("{subject} is in an instance"),
-        "Online" if !subject.is_empty() => format!("{subject} online"),
-        "invite" if !subject.is_empty() => format!("{subject} invite"),
+        "GPS" if !subject.is_empty() => {
+            let action = localizer.text(&notification_text(
+                "notifications.gps",
+                "is in an instance",
+                serde_json::json!({ "location": localizer.generic_instance_location() }),
+            ));
+            join_non_empty([subject.as_str(), action.as_str()])
+        }
+        "Online" if !subject.is_empty() => {
+            let action = localizer.text(&notification_text(
+                "notifications.online",
+                "online",
+                serde_json::json!({}),
+            ));
+            join_non_empty([subject.as_str(), action.as_str()])
+        }
+        "invite" if !subject.is_empty() => {
+            let action = localizer.text(&notification_text(
+                "notifications.invite",
+                "invite",
+                serde_json::json!({
+                    "location": localizer.generic_instance_location(),
+                    "message": "",
+                }),
+            ));
+            join_non_empty([subject.as_str(), action.as_str()])
+        }
         _ => subject,
+    }
+}
+
+fn notification_text(key: &str, fallback: &str, params: serde_json::Value) -> OverlayActivityText {
+    OverlayActivityText {
+        key: key.to_string(),
+        fallback: fallback.to_string(),
+        params,
     }
 }
 
@@ -318,9 +395,21 @@ where
         .to_string()
 }
 
+fn join_non_empty<'a, I>(values: I) -> String
+where
+    I: IntoIterator<Item = &'a str>,
+{
+    values
+        .into_iter()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
 #[cfg(test)]
 mod tests {
-    use serde_json::Value;
+    use serde_json::{json, Value};
     use vrcx_0_application::{
         OverlayActivityCategory, OverlayActivityContent, OverlayActivityEntry, OverlayActivityText,
     };
@@ -369,7 +458,7 @@ mod tests {
         entry.content.title.fallback = "Ada".to_string();
         entry.content.summary = "Ada online in wrld_1".to_string();
 
-        assert_eq!(feed_line_from_activity(&entry).detail, "Ada online in Test World");
+        assert_eq!(feed_line(&entry, "en").detail, "Ada online in Test World");
     }
 
     #[test]
@@ -379,7 +468,47 @@ mod tests {
         entry.content.title.fallback = "Ada".to_string();
         entry.content.summary = "Ada online in wrld_1".to_string();
 
-        assert_eq!(feed_line_from_activity(&entry).detail, "Ada online");
+        assert_eq!(feed_line(&entry, "en").detail, "Ada has logged in");
+    }
+
+    #[test]
+    fn feed_detail_uses_runtime_locale_for_notification_body() {
+        let mut entry = entry("OnPlayerJoined", "", "");
+        entry.category = OverlayActivityCategory::CurrentInstance;
+        entry.content.title.fallback = "Ada".to_string();
+        entry.content.body = OverlayActivityText {
+            key: "notifications.has_joined".to_string(),
+            fallback: "has joined".to_string(),
+            params: json!({}),
+        };
+
+        assert_eq!(feed_line(&entry, "zh-CN").detail, "Ada 加入了房间");
+    }
+
+    #[test]
+    fn feed_detail_replaces_world_id_after_localization() {
+        let mut entry = entry("Online", "wrld_1:123", "Test World");
+        entry.content.title.fallback = "Ada".to_string();
+        entry.content.body = OverlayActivityText {
+            key: "notifications.online_location".to_string(),
+            fallback: "online in wrld_1".to_string(),
+            params: json!({ "location": "wrld_1" }),
+        };
+
+        assert_eq!(feed_line(&entry, "zh-CN").detail, "Ada 在 Test World 上线了");
+    }
+
+    #[test]
+    fn feed_detail_uses_localized_generic_location_when_world_name_is_unknown() {
+        let mut entry = entry("GPS", "wrld_1:123", "wrld_1");
+        entry.content.title.fallback = "Ada".to_string();
+        entry.content.body = OverlayActivityText {
+            key: "notifications.gps".to_string(),
+            fallback: "is in wrld_1".to_string(),
+            params: json!({ "location": "wrld_1" }),
+        };
+
+        assert_eq!(feed_line(&entry, "zh-CN").detail, "Ada 现在位于 某个房间");
     }
 
     fn entry(activity_type: &str, location: &str, world_name: &str) -> OverlayActivityEntry {
@@ -408,5 +537,10 @@ mod tests {
             fallback: String::new(),
             params: Value::Null,
         }
+    }
+
+    fn feed_line(entry: &OverlayActivityEntry, locale: &str) -> FeedLine {
+        let localizer = OverlayLocalizer::new(OverlayLocale::from_config(locale));
+        feed_line_from_activity(entry, &localizer)
     }
 }

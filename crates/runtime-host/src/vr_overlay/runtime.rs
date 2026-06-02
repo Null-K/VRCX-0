@@ -24,6 +24,7 @@ use crate::RuntimeHostContext;
 use super::{
     build_wrist_surface_model,
     eligibility::{VrOverlayEligibility, WristOverlayStartMode},
+    localization::OverlayLocale,
     manager::VrOverlayManager,
     service::HostVrOverlayService,
     WristOverlayFrameInput, WristOverlayRenderOptions, WristOverlaySizePreset, WristRuntimeFooter,
@@ -42,6 +43,7 @@ pub const VR_OVERLAY_HIDE_PRIVATE_WORLDS_CONFIG_KEY: &str = "wristOverlayHidePri
 pub const VR_OVERLAY_DARK_BACKGROUND_CONFIG_KEY: &str = "wristOverlayDarkBackground";
 pub const VR_OVERLAY_SHOW_DEVICES_CONFIG_KEY: &str = "wristOverlayShowDevices";
 pub const VR_OVERLAY_SHOW_BATTERY_PERCENT_CONFIG_KEY: &str = "wristOverlayShowBatteryPercent";
+const APP_LANGUAGE_CONFIG_KEY: &str = "appLanguage";
 const WRIST_DEVICE_REFRESH_INTERVAL: Duration = Duration::from_secs(5);
 const WRIST_FRAME_REFRESH_INTERVAL: Duration = Duration::from_secs(1);
 
@@ -69,6 +71,7 @@ struct VrOverlayRuntimeConfig {
     button: OverlayActivationButton,
     hand: WristOverlayHand,
     render: WristOverlayRenderOptions,
+    locale: OverlayLocale,
 }
 
 impl Default for VrOverlayRuntimeConfig {
@@ -78,8 +81,31 @@ impl Default for VrOverlayRuntimeConfig {
             button: OverlayActivationButton::Grip,
             hand: WristOverlayHand::Left,
             render: WristOverlayRenderOptions::default(),
+            locale: OverlayLocale::default(),
         }
     }
+}
+
+impl VrOverlayRuntimeConfig {
+    fn surface_config_key(self) -> WristSurfaceRuntimeConfig {
+        WristSurfaceRuntimeConfig {
+            button: self.button,
+            hand: self.hand,
+            size: self.render.size,
+        }
+    }
+
+    fn should_clear_device_snapshot_for(self, next_config: Self) -> bool {
+        self.surface_config_key() != next_config.surface_config_key()
+            || self.render.show_devices != next_config.render.show_devices
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+struct WristSurfaceRuntimeConfig {
+    button: OverlayActivationButton,
+    hand: WristOverlayHand,
+    size: WristOverlaySizePreset,
 }
 
 struct VrOverlayFrameInput {
@@ -260,17 +286,25 @@ impl VrOverlayRuntime {
         if let Ok(mut manager) = self.manager.lock() {
             let mut config = self.current_runtime_config();
             if let Some(next_config) = changed_config {
-                match manager.set_surface_configs(wrist_surface_configs(next_config)) {
-                    Ok(()) => {
-                        self.commit_runtime_config(next_config);
-                        config = next_config;
+                let surface_config_changed =
+                    config.surface_config_key() != next_config.surface_config_key();
+                let clear_devices = config.should_clear_device_snapshot_for(next_config);
+                if surface_config_changed {
+                    match manager.set_surface_configs(wrist_surface_configs(next_config)) {
+                        Ok(()) => {
+                            self.commit_runtime_config(next_config, clear_devices);
+                            config = next_config;
+                        }
+                        Err(error) => {
+                            tracing::warn!(
+                                error = %error,
+                                "failed to apply VR overlay runtime config"
+                            );
+                        }
                     }
-                    Err(error) => {
-                        tracing::warn!(
-                            error = %error,
-                            "failed to apply VR overlay runtime config"
-                        );
-                    }
+                } else {
+                    self.commit_runtime_config(next_config, clear_devices);
+                    config = next_config;
                 }
             }
             let eligibility = VrOverlayEligibility {
@@ -306,7 +340,7 @@ impl VrOverlayRuntime {
         Some(next_config)
     }
 
-    fn commit_runtime_config(&self, next_config: VrOverlayRuntimeConfig) {
+    fn commit_runtime_config(&self, next_config: VrOverlayRuntimeConfig, clear_devices: bool) {
         let Ok(mut current_config) = self.config.lock() else {
             return;
         };
@@ -314,8 +348,10 @@ impl VrOverlayRuntime {
             return;
         }
         *current_config = next_config;
-        if let Ok(mut devices) = self.devices.lock() {
-            devices.clear();
+        if clear_devices {
+            if let Ok(mut devices) = self.devices.lock() {
+                devices.clear();
+            }
         }
     }
 
@@ -440,6 +476,7 @@ impl VrOverlayFrameProducer for RuntimeWristFrameProducer {
                 local_time: local_time_hh_mm(),
             },
             options: input.config.render,
+            locale: input.config.locale.as_str().to_string(),
             captured_at_ms,
         });
         self.renderer
@@ -533,6 +570,10 @@ fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntimeConfig {
     let show_battery_percent = config
         .get_bool(VR_OVERLAY_SHOW_BATTERY_PERCENT_CONFIG_KEY, false)
         .unwrap_or(false);
+    let locale = config
+        .get_string(APP_LANGUAGE_CONFIG_KEY, "en")
+        .map(|value| OverlayLocale::from_config(&value))
+        .unwrap_or_default();
 
     VrOverlayRuntimeConfig {
         start_mode,
@@ -545,6 +586,7 @@ fn load_runtime_config(config: &ConfigRepository) -> VrOverlayRuntimeConfig {
             show_devices,
             show_battery_percent,
         },
+        locale,
     }
 }
 
@@ -605,4 +647,52 @@ fn compact_duration(duration_ms: i64) -> String {
 fn is_real_instance_location(location: &str) -> bool {
     let location = location.trim().to_ascii_lowercase();
     location.starts_with("wrld_") && location.contains(':')
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn locale_is_render_only_config() {
+        let base = VrOverlayRuntimeConfig::default();
+        let mut translated = base;
+        translated.locale = OverlayLocale::ZhCn;
+
+        assert_eq!(base.surface_config_key(), translated.surface_config_key());
+        assert!(!base.should_clear_device_snapshot_for(translated));
+    }
+
+    #[test]
+    fn surface_config_key_tracks_surface_affecting_fields() {
+        let base = VrOverlayRuntimeConfig::default();
+
+        let mut resized = base;
+        resized.render.size = WristOverlaySizePreset::Large;
+        assert_ne!(base.surface_config_key(), resized.surface_config_key());
+
+        let mut moved = base;
+        moved.hand = WristOverlayHand::Right;
+        assert_ne!(base.surface_config_key(), moved.surface_config_key());
+
+        let mut button = base;
+        button.button = OverlayActivationButton::Menu;
+        assert_ne!(base.surface_config_key(), button.surface_config_key());
+    }
+
+    #[test]
+    fn render_options_do_not_rebuild_surface_except_size() {
+        let base = VrOverlayRuntimeConfig::default();
+
+        let mut dark_background = base;
+        dark_background.render.dark_background = !dark_background.render.dark_background;
+        assert_eq!(
+            base.surface_config_key(),
+            dark_background.surface_config_key()
+        );
+
+        let mut percent = base;
+        percent.render.show_battery_percent = !percent.render.show_battery_percent;
+        assert_eq!(base.surface_config_key(), percent.surface_config_key());
+    }
 }

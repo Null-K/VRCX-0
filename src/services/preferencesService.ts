@@ -78,6 +78,7 @@ const DISCORD_BOOL_PREFERENCE_KEYS = new Set([
 ]);
 const VRCHAT_RICH_PRESENCE_CONFIG_KEY = 'disableRichPresence';
 const WRIST_OVERLAY_RUNTIME_CONFIG_KEYS = new Set([
+    'appLanguage',
     'wristOverlayStartMode',
     'wristOverlayButton',
     'wristOverlayHand',
@@ -515,6 +516,7 @@ export async function setAppLanguagePreference(language: any) {
     useShellStore.getState().setLocale(nextLanguage);
     setDocumentLanguage(nextLanguage);
     await configRepository.setString('appLanguage', nextLanguage);
+    await reloadWristOverlayRuntimeConfigIfNeeded('appLanguage');
 }
 
 export async function setThemeModePreference(themeMode: any) {

@@ -1,4 +1,5 @@
 mod eligibility;
+mod localization;
 mod manager;
 mod runtime;
 mod service;

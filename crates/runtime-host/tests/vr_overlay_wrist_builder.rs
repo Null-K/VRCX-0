@@ -48,6 +48,7 @@ fn wrist_builder_keeps_renderer_model_free_of_application_entry_shape() {
             local_time: *b"12:34",
         },
         options: WristOverlayRenderOptions::default(),
+        locale: "en".to_string(),
         captured_at_ms: 42,
     });
 
