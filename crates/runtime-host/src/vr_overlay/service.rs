@@ -257,7 +257,7 @@ fn spawn_overlay_actor(kind: OverlayBackendKind) -> OverlayActorHandle {
 fn spawn_auto_overlay_actor() -> OverlayActorHandle {
     #[cfg(all(feature = "steamvr-overlay", any(windows, target_os = "linux")))]
     {
-        return OverlayActorHandle::spawn_openvr();
+        OverlayActorHandle::spawn_openvr()
     }
 
     #[cfg(not(all(feature = "steamvr-overlay", any(windows, target_os = "linux"))))]

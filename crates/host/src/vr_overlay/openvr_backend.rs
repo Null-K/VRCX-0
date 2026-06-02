@@ -470,7 +470,7 @@ fn overlay_button_mask(button: OverlayActivationButton, tracking_system_name: Op
         OverlayActivationButton::Grip => button_id::GRIP,
         OverlayActivationButton::Menu => button_id::APPLICATION_MENU,
     };
-    1u64 << (button_id as u32)
+    1u64 << button_id
 }
 
 fn is_oculus_tracking_system(value: Option<&str>) -> bool {
@@ -682,7 +682,7 @@ fn snapshot_openvr_devices(system: &openvr::System) -> Vec<VrDeviceSnapshot> {
         });
     }
 
-    rows.sort_by(|left, right| left.sort_key.cmp(&right.sort_key));
+    rows.sort_by_key(|row| row.sort_key);
     rows.into_iter().map(|row| row.snapshot).collect()
 }
 
