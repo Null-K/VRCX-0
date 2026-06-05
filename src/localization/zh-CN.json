@@ -1645,7 +1645,7 @@
                     "header": "通用设置项"
                 },
                 "vr_notifications": {
-                    "header": "通知"
+                    "header": "VR 叠加通知"
                 },
                 "wrist_overlay": {
                     "header": "手腕叠加界面",
@@ -1955,8 +1955,8 @@
                     "wrist_overlay_size_large": "大",
                     "test_notification": "发送测试通知",
                     "test_message": "这是一个测试通知。",
-                    "steamvr_notifications": {
-                        "header": "SteamVR 通知",
+                    "vr_notifications": {
+                        "header": "VR 叠加通知",
                         "steamvr_overlay": "SteamVR 叠加界面",
                         "overlay_notifications": "叠加界面通知",
                         "notification_position": "通知位置",
@@ -1964,6 +1964,7 @@
                         "wayvr_notifications": "WayVR 通知",
                         "ovrtoolkit_hud_notifications": "OVR Toolkit HUD 通知",
                         "ovrtoolkit_wrist_notifications": "OVR Toolkit 手腕通知",
+                        "notification_filters": "叠加通知过滤器",
                         "user_images": "显示玩家头像（较慢）",
                         "user_images_description": "可能影响性能。",
                         "notification_opacity": "通知透明度",
@@ -1981,7 +1982,7 @@
                     "desktop_notifications": {
                         "header": "桌面通知",
                         "when_to_display": "何时显示",
-                        "when_to_display_vr": "在 VR 中显示通知",
+                        "when_to_display_vr": "显示 VR 叠加通知",
                         "desktop_notification_while_afk": "当处于 AFK 状态时显示桌面通知",
                         "notification_sound": "通知音"
                     },
@@ -4458,6 +4459,10 @@
             "reset": "重置为默认",
             "close": "关闭并保存"
         },
+        "vr_notifications": {
+            "title": "VR 叠加通知过滤器",
+            "description": "选择 SteamVR 运行时哪些通知会发送到 XSOverlay 和 OVR Toolkit。"
+        },
         "wrist_feed_notifications": {
             "title": "手腕动态过滤器",
             "description": "选择哪些内容显示在手腕动态中。桌面通知使用单独的过滤设置。",
@@ -4519,6 +4524,7 @@
                 "OnPlayerJoining": "玩家正在加入",
                 "OnPlayerJoined": "玩家已加入",
                 "OnPlayerLeft": "玩家已离开",
+                "ChatBoxMessage": "聊天框消息",
                 "AvatarChange": "Avatar 变化",
                 "Online": "上线",
                 "Offline": "离线",

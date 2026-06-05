@@ -1645,7 +1645,7 @@
                     "header": "VR 核心功能"
                 },
                 "vr_notifications": {
-                    "header": "VR 通知"
+                    "header": "VR 疊加通知"
                 },
                 "wrist_overlay": {
                     "header": "手腕嵌入介面",
@@ -1955,8 +1955,8 @@
                     "wrist_overlay_size_large": "大型",
                     "test_notification": "發送測試用通知",
                     "test_message": "測試通知。",
-                    "steamvr_notifications": {
-                        "header": "SteamVR 通知",
+                    "vr_notifications": {
+                        "header": "VR 疊加通知",
                         "steamvr_overlay": "SteamVR 嵌入介面",
                         "overlay_notifications": "嵌入介面通知",
                         "notification_position": "通知位置",
@@ -1964,6 +1964,7 @@
                         "wayvr_notifications": "WayVR 通知",
                         "ovrtoolkit_hud_notifications": "OVR Toolkit HUD 通知",
                         "ovrtoolkit_wrist_notifications": "OVR Toolkit 手腕通知",
+                        "notification_filters": "疊加通知過濾器",
                         "user_images": "用戶照片（較慢）",
                         "user_images_description": "可能會影響效能。",
                         "notification_opacity": "通知不透明度",
@@ -1981,7 +1982,7 @@
                     "desktop_notifications": {
                         "header": "桌面通知",
                         "when_to_display": "顯示時機",
-                        "when_to_display_vr": "顯示 VR 通知",
+                        "when_to_display_vr": "顯示 VR 疊加通知",
                         "desktop_notification_while_afk": "在 AFK 時顯示桌面通知",
                         "notification_sound": "通知音"
                     },
@@ -4458,6 +4459,10 @@
             "reset": "重設",
             "close": "關閉"
         },
+        "vr_notifications": {
+            "title": "VR 疊加通知過濾器",
+            "description": "選擇 SteamVR 執行時哪些通知會傳送到 XSOverlay 和 OVR Toolkit。"
+        },
         "wrist_feed_notifications": {
             "title": "手腕動態過濾器",
             "description": "選擇哪些內容顯示在手腕動態中。桌面通知使用單獨的篩選設定。",
@@ -4519,6 +4524,7 @@
                 "OnPlayerJoining": "玩家正在加入",
                 "OnPlayerJoined": "玩家已加入",
                 "OnPlayerLeft": "玩家已離開",
+                "ChatBoxMessage": "聊天框訊息",
                 "AvatarChange": "Avatar 變更",
                 "Online": "上線",
                 "Offline": "離線",

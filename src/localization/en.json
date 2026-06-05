@@ -1645,7 +1645,7 @@
                     "header": "VR Core"
                 },
                 "vr_notifications": {
-                    "header": "VR Notifications"
+                    "header": "VR Overlay Notifications"
                 },
                 "wrist_overlay": {
                     "header": "Wrist Overlay",
@@ -1955,8 +1955,8 @@
                     "wrist_overlay_size_large": "Large",
                     "test_notification": "Send Test Notification",
                     "test_message": "Test notification",
-                    "steamvr_notifications": {
-                        "header": "SteamVR Notifications",
+                    "vr_notifications": {
+                        "header": "VR Overlay Notifications",
                         "steamvr_overlay": "SteamVR Overlay",
                         "overlay_notifications": "Overlay Notifications",
                         "notification_position": "Notification Position",
@@ -1964,6 +1964,7 @@
                         "wayvr_notifications": "WayVR Notifications",
                         "ovrtoolkit_hud_notifications": "OVR Toolkit HUD Notifications",
                         "ovrtoolkit_wrist_notifications": "OVR Toolkit Wrist Notifications",
+                        "notification_filters": "Overlay Notification Filters",
                         "user_images": "Show User Icons",
                         "user_images_description": "May impact performance.",
                         "notification_opacity": "Notification Opacity",
@@ -1981,7 +1982,7 @@
                     "desktop_notifications": {
                         "header": "Desktop Notifications",
                         "when_to_display": "Show Desktop Notifications",
-                        "when_to_display_vr": "Show VR Notifications",
+                        "when_to_display_vr": "Show VR Overlay Notifications",
                         "desktop_notification_while_afk": "Show Notifications While AFK",
                         "notification_sound": "Notification Sound"
                     },
@@ -4458,6 +4459,10 @@
             "reset": "Reset",
             "close": "Close"
         },
+        "vr_notifications": {
+            "title": "VR Overlay Notification Filters",
+            "description": "Choose which runtime notifications are sent to XSOverlay and OVR Toolkit while SteamVR is running."
+        },
         "wrist_feed_notifications": {
             "title": "Wrist Feed Filters",
             "description": "Choose what appears on the wrist feed. Desktop notifications use separate filters.",
@@ -4519,6 +4524,7 @@
                 "OnPlayerJoining": "Player Joining",
                 "OnPlayerJoined": "Player Joined",
                 "OnPlayerLeft": "Player Left",
+                "ChatBoxMessage": "Chatbox Message",
                 "AvatarChange": "Avatar Change",
                 "Online": "Online",
                 "Offline": "Offline",

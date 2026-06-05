@@ -698,6 +698,8 @@ pub fn run() {
             commands::host::registry::app__set_vrchat_registry,
             commands::host::registry::app__read_vrc_reg_json_file,
             commands::host::window::app__desktop_notification,
+            commands::host::overlay_notifications::app__xs_notification,
+            commands::host::overlay_notifications::app__ovrt_notification,
             commands::host::window::app__auth_failure_notification_show,
             commands::local::local_player_moderations::app__get_vrchat_moderations,
             commands::local::local_player_moderations::app__get_vrchat_user_moderation,

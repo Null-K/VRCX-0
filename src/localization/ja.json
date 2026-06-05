@@ -1645,7 +1645,7 @@
                     "header": "VR (基本)"
                 },
                 "vr_notifications": {
-                    "header": "VR 通知"
+                    "header": "VR オーバーレイ通知"
                 },
                 "wrist_overlay": {
                     "header": "手首のオーバーレイ",
@@ -1955,8 +1955,8 @@
                     "wrist_overlay_size_large": "大",
                     "test_notification": "テスト通知を送る",
                     "test_message": "これはテスト通知です",
-                    "steamvr_notifications": {
-                        "header": "SteamVR の通知",
+                    "vr_notifications": {
+                        "header": "VR オーバーレイ通知",
                         "steamvr_overlay": "SteamVR オーバーレイ",
                         "overlay_notifications": "通知オーバーレイ",
                         "notification_position": "通知の位置",
@@ -1964,6 +1964,7 @@
                         "wayvr_notifications": "WayVR で通知する",
                         "ovrtoolkit_hud_notifications": "OVR Toolkit HUD 上での通知",
                         "ovrtoolkit_wrist_notifications": "OVR Toolkit 手首上での通知",
+                        "notification_filters": "オーバーレイ通知フィルター",
                         "user_images": "ユーザー画像を使用 (遅延が発生します)",
                         "user_images_description": "パフォーマンスに影響を与える可能性があります",
                         "notification_opacity": "通知の不透明度",
@@ -1981,7 +1982,7 @@
                     "desktop_notifications": {
                         "header": "デスクトップの通知",
                         "when_to_display": "デスクトップでの通知の表示",
-                        "when_to_display_vr": "VR での通知の表示",
+                        "when_to_display_vr": "VR オーバーレイ通知の表示",
                         "desktop_notification_while_afk": "AFK 中でもデスクトップに通知",
                         "notification_sound": "通知音"
                     },
@@ -4458,6 +4459,10 @@
             "reset": "リセット",
             "close": "閉じる"
         },
+        "vr_notifications": {
+            "title": "VR オーバーレイ通知フィルター",
+            "description": "SteamVR の実行中に XSOverlay と OVR Toolkit へ送る通知を選択します。"
+        },
         "wrist_feed_notifications": {
             "title": "手首フィードフィルター",
             "description": "手首フィードに表示する内容を選択します。デスクトップ通知は別のフィルターを使用します。",
@@ -4519,6 +4524,7 @@
                 "OnPlayerJoining": "プレイヤー参加中",
                 "OnPlayerJoined": "プレイヤー参加",
                 "OnPlayerLeft": "プレイヤー退出",
+                "ChatBoxMessage": "チャットボックスメッセージ",
                 "AvatarChange": "Avatar 変更",
                 "Online": "オンライン",
                 "Offline": "オフライン",
