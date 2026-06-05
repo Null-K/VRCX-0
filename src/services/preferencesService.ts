@@ -40,6 +40,9 @@ import {
     readRecentActionCooldown
 } from './recentActionService';
 import {
+    APP_CJK_FONT_PACK_DEFAULT_KEY,
+    APP_FONT_DEFAULT_KEY,
+    applyAppFontPreferences,
     applyThemeColor,
     applyThemeMode,
     applyZoomLevel,
@@ -517,6 +520,20 @@ export async function setAppLanguagePreference(language: any) {
     useShellStore.getState().setLocale(nextLanguage);
     setDocumentLanguage(nextLanguage);
     await configRepository.setString('appLanguage', nextLanguage);
+    const [fontFamily, cjkFontPack, customFontFamily] = await Promise.all([
+        configRepository.getString('VRCX_fontFamily', APP_FONT_DEFAULT_KEY),
+        configRepository.getString(
+            'VRCX_cjkFontPack',
+            APP_CJK_FONT_PACK_DEFAULT_KEY
+        ),
+        configRepository.getString('customFontFamily', '')
+    ]);
+    applyAppFontPreferences({
+        fontFamily,
+        customFontFamily,
+        cjkFontPack,
+        locale: nextLanguage
+    });
     await reloadWristOverlayRuntimeConfigIfNeeded('appLanguage');
 }
 

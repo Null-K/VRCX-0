@@ -112,10 +112,10 @@ export default defineConfig(({ mode }) => {
     const isProductionBuild = mode === 'production';
     const enableReactDevtoolsStandalone =
         mode === 'development' && process.env.VITE_REACT_DEVTOOLS === '1';
-    const telemetryEndpoint =
-        isProductionBuild ?
-            process.env.VRCX_0_TELEMETRY_ENDPOINT || productionTelemetryEndpoint
-        :   '';
+    const telemetryEndpoint = isProductionBuild
+        ? process.env.VRCX_0_TELEMETRY_ENDPOINT || productionTelemetryEndpoint
+        : '';
+    const bundledCjkFontsEnabled = process.platform !== 'darwin';
 
     return {
         base: '',
@@ -173,7 +173,10 @@ export default defineConfig(({ mode }) => {
             VRCX_0_TELEMETRY_ENABLED: JSON.stringify(
                 isProductionBuild && telemetryEndpoint.length > 0
             ),
-            VRCX_0_TELEMETRY_ENDPOINT: JSON.stringify(telemetryEndpoint)
+            VRCX_0_TELEMETRY_ENDPOINT: JSON.stringify(telemetryEndpoint),
+            VRCX_0_BUNDLED_CJK_FONTS_ENABLED: JSON.stringify(
+                bundledCjkFontsEnabled
+            )
         },
         server: {
             port: 9000,
