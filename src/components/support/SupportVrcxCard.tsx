@@ -50,6 +50,17 @@ export function SupportVrcxCard({ className = '', showHeader = true }: any) {
                         <CoffeeIcon data-icon="inline-start" />
                         {t('support_vrcx.kofi')}
                     </Button>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            openExternalLink(links.afdian);
+                        }}
+                    >
+                        <HeartIcon data-icon="inline-start" />
+                        爱发电
+                    </Button>
                 </div>
             </CardContent>
         </Card>

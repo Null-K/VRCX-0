@@ -88,6 +88,7 @@ describe('SupportVrcxDialog', () => {
         expect(html).toContain('Support VRCX-0');
         expect(html).toContain('GitHub Sponsors');
         expect(html).toContain('Ko-fi');
+        expect(html).toContain('爱发电');
         expect(html).toContain('Close');
     });
 });

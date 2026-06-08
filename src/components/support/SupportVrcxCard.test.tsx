@@ -50,6 +50,14 @@ vi.mock('@/ui/shadcn/card', async () => {
 import { SupportVrcxCard } from './SupportVrcxCard';
 
 describe('SupportVrcxCard', () => {
+    it('renders the hardcoded Afdian support action', () => {
+        const html = renderToStaticMarkup(
+            React.createElement(SupportVrcxCard)
+        );
+
+        expect(html).toContain('爱发电');
+    });
+
     it('renders GitHub Sponsors and Ko-fi support actions', () => {
         const html = renderToStaticMarkup(
             React.createElement(SupportVrcxCard)
