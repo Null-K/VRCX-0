@@ -2,53 +2,56 @@
 Current version note: replace this with one short global message for this release, or remove this block when unused.
 -->
 
-<!-- vrcx-0-changelog:start tag=vrcx-0-v240-en -->
-## English
+## Changelog
 
-### Added
+[English](#vrcx-0-v000-changelog-en) | [简体中文](#vrcx-0-v000-changelog-zh-cn) | [繁體中文](#vrcx-0-v000-changelog-zh-tw) | [日本語](#vrcx-0-v000-changelog-ja) | [한국어](#vrcx-0-v000-changelog-ko)
 
-- 
-   - 
+<a id="vrcx-0-v000-changelog-en"></a>
 
-### Improved / Fixed
+### English
 
-- 
+<!-- vrcx-0-changelog:start tag=vrcx-0-v000-en -->
+**What's Fixed:**
 
-### Other
-
-- 
+* TODO
 <!-- vrcx-0-changelog:end -->
 
-<!-- vrcx-0-changelog:start tag=vrcx-0-v240-zh-CN -->
-## 简体中文
+<a id="vrcx-0-v000-changelog-zh-cn"></a>
 
-### 新增
+### 简体中文
 
-- 
-   - 
+<!-- vrcx-0-changelog:start tag=vrcx-0-v000-zh-CN -->
+**修复内容：**
 
-### 优化 / 修复
-
-- 
-
-### 其他
-
-- 
+* TODO
 <!-- vrcx-0-changelog:end -->
 
-<!-- vrcx-0-changelog:start tag=vrcx-0-v240-ja -->
-## 日本語
+<a id="vrcx-0-v000-changelog-zh-tw"></a>
 
-### 追加
+### 繁體中文
 
-- 
-   - 
+<!-- vrcx-0-changelog:start tag=vrcx-0-v000-zh-TW -->
+**修正內容：**
 
-### 改善 / 修正
+* TODO
+<!-- vrcx-0-changelog:end -->
 
-- 
+<a id="vrcx-0-v000-changelog-ja"></a>
 
-### その他
+### 日本語
 
-- 
+<!-- vrcx-0-changelog:start tag=vrcx-0-v000-ja -->
+**修正内容：**
+
+* TODO
+<!-- vrcx-0-changelog:end -->
+
+<a id="vrcx-0-v000-changelog-ko"></a>
+
+### 한국어
+
+<!-- vrcx-0-changelog:start tag=vrcx-0-v000-ko -->
+**수정 사항:**
+
+* TODO
 <!-- vrcx-0-changelog:end -->
