@@ -51,15 +51,6 @@ function getFriendsSortFunction(
                     ) {
                         return 0;
                     }
-                    if (a.pendingOffline && !b.pendingOffline) {
-                        return 1;
-                    }
-                    if (a.pendingOffline && b.pendingOffline) {
-                        return 0;
-                    }
-                    if (!a.pendingOffline && b.pendingOffline) {
-                        return -1;
-                    }
                     if (a.state !== 'online' || b.state !== 'online') {
                         return 0;
                     }

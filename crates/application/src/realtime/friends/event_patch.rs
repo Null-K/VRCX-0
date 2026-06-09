@@ -3,7 +3,7 @@ use super::persistence::{
     friend_relationship_feed_entry, gps_feed_entry, is_online_state, online_offline_feed_entry,
 };
 use super::projection::{has_event_state_bucket, resolve_state_bucket};
-use super::state::{PendingOffline, RealtimeFriendState, PENDING_OFFLINE_DELAY_MS};
+use super::state::{DelayedOfflineFeed, RealtimeFriendState, DELAYED_OFFLINE_FEED_DELAY_MS};
 use super::utils::*;
 use super::*;
 
@@ -35,6 +35,7 @@ pub(super) fn apply_friend_event(
         now,
         FriendEventOptions {
             emit_profile_diff_feed: true,
+            trust_location_online_proof: false,
         },
     )
 }
@@ -51,6 +52,7 @@ pub(super) fn apply_refetched_friend_profile_event(
         now,
         FriendEventOptions {
             emit_profile_diff_feed: false,
+            trust_location_online_proof: true,
         },
     )
 }
@@ -58,6 +60,7 @@ pub(super) fn apply_refetched_friend_profile_event(
 #[derive(Clone, Copy)]
 struct FriendEventOptions {
     emit_profile_diff_feed: bool,
+    trust_location_online_proof: bool,
 }
 
 fn apply_friend_event_with_options(
@@ -114,7 +117,7 @@ fn apply_friend_event_with_options(
         "friend-delete" => {
             let user_id = event_user_id(content)?;
             let previous = get_friend_value(state, &user_id);
-            state.pending_offline.remove(&user_id);
+            state.delayed_offline_feeds.remove(&user_id);
             state.recent_gps.remove(&user_id);
             state.friend_presence_updated_ms.remove(&user_id);
             if let Some(baseline) = state.baseline.as_mut() {
@@ -140,7 +143,7 @@ fn apply_friend_event_with_options(
         }
         "friend-update" => {
             let user_id = event_user_id(content)?;
-            let mut patch =
+            let patch =
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
             if patch.as_object().map(|object| object.len()).unwrap_or(0) <= 1
                 && !has_event_state_bucket(content)
@@ -149,12 +152,13 @@ fn apply_friend_event_with_options(
             }
             let previous = get_friend_value(state, &user_id);
             let changes = FriendChangedProps::from_patch(&patch, previous.as_ref());
-            let state_bucket = resolve_state_bucket(content, &patch, previous.as_ref(), "offline");
-            let has_state_bucket = has_event_state_bucket(content);
-            if has_state_bucket && state.pending_offline.remove(&user_id).is_some() {
-                if let Some(patch_object) = patch.as_object_mut() {
-                    patch_object.insert("pendingOffline".into(), Value::Bool(false));
-                }
+            let mut state_bucket =
+                resolve_state_bucket(content, &patch, previous.as_ref(), "offline");
+            if options.trust_location_online_proof && patch_has_online_location(&patch) {
+                state_bucket = "online".into();
+            }
+            if state_bucket == "online" {
+                state.delayed_offline_feeds.remove(&user_id);
             }
             if options.emit_profile_diff_feed {
                 add_profile_diff_feed_entries(
@@ -176,7 +180,7 @@ fn apply_friend_event_with_options(
         }
         "friend-online" => {
             let user_id = event_user_id(content)?;
-            let canceled_pending = state.pending_offline.remove(&user_id).is_some();
+            let canceled_delayed_offline = state.delayed_offline_feeds.remove(&user_id).is_some();
             let previous_record = state
                 .baseline
                 .as_ref()?
@@ -187,7 +191,7 @@ fn apply_friend_event_with_options(
             let user_patch =
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
             let patch = online_patch(content, user_patch, previous.as_ref(), now, "online");
-            if !canceled_pending
+            if !canceled_delayed_offline
                 && !previous_record
                     .as_ref()
                     .map(is_online_state)
@@ -239,10 +243,11 @@ fn apply_friend_event_with_options(
                 next_state.to_string()
             };
             if resolved_state == "online" {
-                let canceled_pending = state.pending_offline.remove(&user_id).is_some();
+                let canceled_delayed_offline =
+                    state.delayed_offline_feeds.remove(&user_id).is_some();
                 let previous = previous_record.as_ref().map(record_to_value);
                 let patch = online_patch(content, user_patch, previous.as_ref(), now, "online");
-                if !canceled_pending
+                if !canceled_delayed_offline
                     && !previous_record
                         .as_ref()
                         .map(is_online_state)
@@ -278,29 +283,24 @@ fn apply_friend_event_with_options(
                     .as_ref()
                     .filter(|previous| is_online_state(previous))
                 {
-                    if state.pending_offline.contains_key(&user_id) {
-                        return None;
-                    }
                     state.timer_token = state.timer_token.saturating_add(1);
                     let token = state.timer_token;
-                    state.pending_offline.insert(
+                    state.delayed_offline_feeds.insert(
                         user_id.clone(),
-                        PendingOffline {
+                        DelayedOfflineFeed {
                             token,
-                            patch: patch.clone(),
                             previous: previous.clone(),
+                            target_state: resolved_state.clone(),
+                            started_at_ms: now.timestamp_ms,
                         },
                     );
-                    let pending_patch = json!({
-                        "id": user_id,
-                        "pendingOffline": true,
-                    });
-                    apply_patch_to_state(state, &mut output, &user_id, pending_patch, "online");
-                    output.timer_action = PendingOfflineTimerAction::Schedule {
-                        user_id,
+                    apply_patch_to_state(state, &mut output, &user_id, patch, &resolved_state);
+                    output.timer_action = DelayedOfflineFeedTimerAction::Schedule {
+                        user_id: user_id.clone(),
                         token,
-                        delay_ms: PENDING_OFFLINE_DELAY_MS,
+                        delay_ms: DELAYED_OFFLINE_FEED_DELAY_MS,
                     };
+                    push_offline_confirm_refetch_request(&mut output, &user_id, token);
                 } else {
                     state.recent_gps.remove(&user_id);
                     apply_patch_to_state(state, &mut output, &user_id, patch, &resolved_state);
@@ -314,66 +314,80 @@ fn apply_friend_event_with_options(
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
             let has_online_location = location_event_has_online_proof(content, &user_patch);
             let has_offline_location = location_event_has_offline_proof(content, &user_patch);
-            let preserve_pending_offline =
-                !has_online_location && state.pending_offline.contains_key(&user_id);
-            if has_embedded_user && has_online_location {
-                state.pending_offline.remove(&user_id);
-            }
+            let canceled_delayed_offline = if has_online_location {
+                state.delayed_offline_feeds.remove(&user_id).is_some()
+            } else {
+                false
+            };
             let previous_record = state
                 .baseline
                 .as_ref()?
                 .friends_by_id
                 .get(&user_id)
                 .cloned();
+            if previous_record.is_none() && !has_embedded_user {
+                return None;
+            }
             let previous = previous_record.as_ref().map(record_to_value);
-            let state_bucket = resolve_location_event_state_bucket(
-                content,
-                previous.as_ref(),
-                has_online_location,
-            )?;
-            let state_bucket_authority = if has_embedded_user && has_online_location {
-                "explicit"
-            } else {
-                "preserve"
-            };
-            let mut patch =
-                online_patch(content, user_patch, previous.as_ref(), now, &state_bucket);
-            let start_pending_offline = !preserve_pending_offline
-                && !has_online_location
+            let start_delayed_offline = !has_online_location
                 && has_offline_location
                 && previous_record
                     .as_ref()
                     .map(is_online_state)
                     .unwrap_or(false);
-            if start_pending_offline {
+            if start_delayed_offline {
+                let patch = offline_like_patch(content, &user_id, "offline");
                 state.timer_token = state.timer_token.saturating_add(1);
                 let token = state.timer_token;
-                state.pending_offline.insert(
+                state.delayed_offline_feeds.insert(
                     user_id.clone(),
-                    PendingOffline {
+                    DelayedOfflineFeed {
                         token,
-                        patch: offline_like_patch(content, &user_id, "offline"),
                         previous: previous_record.expect("checked previous record"),
+                        target_state: "offline".into(),
+                        started_at_ms: now.timestamp_ms,
                     },
                 );
-                if let Some(patch_object) = patch.as_object_mut() {
-                    patch_object.insert("pendingOffline".into(), Value::Bool(true));
-                }
-                output.timer_action = PendingOfflineTimerAction::Schedule {
+                state.recent_gps.remove(&user_id);
+                apply_patch_to_state(state, &mut output, &user_id, patch, "offline");
+                output.timer_action = DelayedOfflineFeedTimerAction::Schedule {
                     user_id: user_id.clone(),
                     token,
-                    delay_ms: PENDING_OFFLINE_DELAY_MS,
+                    delay_ms: DELAYED_OFFLINE_FEED_DELAY_MS,
                 };
-            } else if preserve_pending_offline {
-                if let Some(patch_object) = patch.as_object_mut() {
-                    patch_object.insert("pendingOffline".into(), Value::Bool(true));
-                }
-            } else if !has_embedded_user {
-                if let Some(patch_object) = patch.as_object_mut() {
-                    patch_object.remove("pendingOffline");
-                }
+                push_offline_confirm_refetch_request(&mut output, &user_id, token);
+                output.projection.feed_entries = output.persistence.feed_entries.clone();
+                return Some(output);
             }
-            if let Some(previous) = previous.as_ref() {
+            let state_bucket =
+                resolve_location_event_state_bucket(previous.as_ref(), has_online_location)?;
+            let state_bucket_authority = if has_online_location {
+                "explicit"
+            } else {
+                "preserve"
+            };
+            let patch =
+                online_patch(content, user_patch, previous.as_ref(), now, &state_bucket);
+            if has_online_location
+                && !canceled_delayed_offline
+                && previous_record
+                    .as_ref()
+                    .map(|previous| !is_online_state(previous))
+                    .unwrap_or(false)
+            {
+                output
+                    .persistence
+                    .feed_entries
+                    .push(online_offline_feed_entry(
+                        "Online",
+                        &user_id,
+                        &patch,
+                        previous.as_ref().unwrap_or(&Value::Null),
+                        &string_field(patch.get("location")),
+                        0,
+                        &now.iso,
+                    ));
+            } else if let Some(previous) = previous.as_ref() {
                 add_gps_feed_entry_if_not_repeated(
                     state,
                     &mut output,
@@ -411,6 +425,7 @@ fn apply_friend_event_with_options(
     if output.projection.patches.is_empty()
         && output.projection.removals.is_empty()
         && output.persistence.is_empty()
+        && output.profile_refetch_requests.is_empty()
     {
         return None;
     }
@@ -452,13 +467,51 @@ fn request_profile_refetch_for_location_event(
 
 fn push_profile_refetch_user_id(output: &mut RealtimeFriendOutput, user_id: &str) {
     if output
-        .profile_refetch_user_ids
+        .profile_refetch_requests
         .iter()
-        .any(|existing_id| existing_id == user_id)
+        .any(|request| {
+            matches!(
+                request,
+                FriendProfileRefetchRequest::LocationRepair { user_id: existing_id }
+                    if existing_id == user_id
+            )
+        })
     {
         return;
     }
-    output.profile_refetch_user_ids.push(user_id.to_string());
+    output
+        .profile_refetch_requests
+        .push(FriendProfileRefetchRequest::LocationRepair {
+            user_id: user_id.to_string(),
+        });
+}
+
+fn push_offline_confirm_refetch_request(
+    output: &mut RealtimeFriendOutput,
+    user_id: &str,
+    token: u64,
+) {
+    if output
+        .profile_refetch_requests
+        .iter()
+        .any(|request| {
+            matches!(
+                request,
+                FriendProfileRefetchRequest::OfflineConfirm {
+                    user_id: existing_id,
+                    token: existing_token,
+                } if existing_id == user_id && *existing_token == token
+            )
+        })
+    {
+        return;
+    }
+    output
+        .profile_refetch_requests
+        .push(FriendProfileRefetchRequest::OfflineConfirm {
+            user_id: user_id.to_string(),
+            token,
+        });
 }
 
 fn patch_has_online_location(patch: &Value) -> bool {
@@ -624,11 +677,10 @@ fn has_embedded_location_user(content: &Value) -> bool {
 }
 
 fn resolve_location_event_state_bucket(
-    content: &Value,
     previous: Option<&Value>,
     has_online_location: bool,
 ) -> Option<String> {
-    if has_embedded_location_user(content) && has_online_location {
+    if has_online_location {
         return Some("online".into());
     }
     for candidate in [
@@ -725,7 +777,6 @@ pub(super) fn online_patch(
         patch.insert("platform".into(), Value::String(platform.to_string()));
     }
     patch.insert("state".into(), Value::String(state_bucket.to_string()));
-    patch.insert("pendingOffline".into(), Value::Bool(false));
 
     let event_location = first_string([
         patch.get("location").and_then(Value::as_str),
@@ -794,7 +845,6 @@ pub(super) fn offline_like_patch(content: &Value, user_id: &str, state_bucket: &
         patch.insert("platform".into(), Value::String(platform.to_string()));
     }
     patch.insert("state".into(), Value::String(state_bucket.to_string()));
-    patch.insert("pendingOffline".into(), Value::Bool(false));
     patch.insert("location".into(), Value::String("offline".into()));
     patch.insert("worldId".into(), Value::String("offline".into()));
     patch.insert("instanceId".into(), Value::String("".into()));

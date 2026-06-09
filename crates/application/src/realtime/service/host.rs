@@ -33,11 +33,11 @@ use crate::realtime::notifications::{
     apply_instance_closed_ws_message, apply_notification_ws_message,
 };
 use crate::realtime::{
-    FriendBaselineResult, FriendProjection, PendingOfflineTimerAction,
-    RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeFriendApplyResult,
-    RealtimeFriendOutput, RealtimeInstanceClosedOutput, RealtimeNotificationOutput,
-    RealtimeNotificationProjection, RealtimeSessionContext, RealtimeTransportStartResult,
-    RealtimeWsStatusPayload,
+    DelayedOfflineFeedTimerAction, FriendBaselineResult, FriendProfileRefetchRequest,
+    FriendProjection, RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput,
+    RealtimeFriendApplyResult, RealtimeFriendOutput, RealtimeInstanceClosedOutput,
+    RealtimeNotificationOutput, RealtimeNotificationProjection, RealtimeSessionContext,
+    RealtimeTransportStartResult, RealtimeWsStatusPayload,
 };
 use crate::session::HostSessionRuntime;
 use crate::social_baseline::{

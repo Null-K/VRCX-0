@@ -19,8 +19,9 @@ pub use projection::{
     RealtimeNotificationProjection, RealtimeNotificationUpsert,
 };
 pub use runtime_types::{
-    FriendBaselineResult, PendingOfflineTimerAction, RealtimeCurrentUserAuthority,
-    RealtimeFriendApplyResult, RealtimeFriendSnapshot, RealtimeSessionContext,
-    RealtimeTransportStartResult, RealtimeWsMessagePayload, RealtimeWsStatusPayload,
+    DelayedOfflineFeedTimerAction, FriendBaselineResult, FriendProfileRefetchRequest,
+    RealtimeCurrentUserAuthority, RealtimeFriendApplyResult, RealtimeFriendSnapshot,
+    RealtimeSessionContext, RealtimeTransportStartResult, RealtimeWsMessagePayload,
+    RealtimeWsStatusPayload,
 };
 pub use service::{RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest};

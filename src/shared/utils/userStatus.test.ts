@@ -11,10 +11,7 @@ describe('userStatus', () => {
         expect(normalizeUserStatus('traveling:traveling')).toBe('traveling');
     });
 
-    it('treats pending offline and offline fields as offline', () => {
-        expect(
-            normalizeUserStatus({ pendingOffline: true, status: 'join me' })
-        ).toBe('offline');
+    it('treats offline fields as offline', () => {
         expect(
             normalizeUserStatus({ state: 'active', location: 'offline' })
         ).toBe('offline');

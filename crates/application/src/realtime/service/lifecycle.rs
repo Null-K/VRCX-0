@@ -788,7 +788,7 @@ impl RealtimeHostRuntime {
 
     fn apply_friend_output(self: &Arc<Self>, mut output: RealtimeFriendOutput) {
         let timer_action = output.timer_action.clone();
-        let profile_refetch_user_ids = output.profile_refetch_user_ids.clone();
+        let profile_refetch_requests = output.profile_refetch_requests.clone();
         let mut projection = output.projection.clone();
         let projection_generation = projection.generation;
         if !self.is_friend_projection_current(&projection) {
@@ -824,7 +824,7 @@ impl RealtimeHostRuntime {
             .event_bus
             .emit_realtime_friend_projection(projection);
 
-        if let PendingOfflineTimerAction::Schedule {
+        if let DelayedOfflineFeedTimerAction::Schedule {
             user_id,
             token,
             delay_ms,
@@ -834,18 +834,22 @@ impl RealtimeHostRuntime {
             self.deps.tasks.spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_millis(delay_ms)).await;
                 let now = chrono::Utc::now().to_rfc3339();
-                runtime.fire_pending_offline(&user_id, token, now);
+                runtime.fire_delayed_offline_feed(&user_id, token, now);
             });
         }
-        self.schedule_friend_profile_refetches(projection_generation, profile_refetch_user_ids);
+        self.schedule_friend_profile_refetches(projection_generation, profile_refetch_requests);
     }
 
-    fn schedule_friend_profile_refetches(self: &Arc<Self>, generation: u64, user_ids: Vec<String>) {
-        if user_ids.is_empty() {
+    fn schedule_friend_profile_refetches(
+        self: &Arc<Self>,
+        generation: u64,
+        requests: Vec<FriendProfileRefetchRequest>,
+    ) {
+        if requests.is_empty() {
             return;
         }
         let now_ms = chrono::Utc::now().timestamp_millis();
-        let (active, refetch_ids) = {
+        let (active, refetch_requests) = {
             let mut state = match self.state.lock() {
                 Ok(state) => state,
                 Err(error) => {
@@ -864,34 +868,67 @@ impl RealtimeHostRuntime {
             {
                 return;
             }
-            let mut refetch_ids = Vec::new();
-            for user_id in user_ids {
-                let user_id = user_id.trim().to_string();
-                if user_id.is_empty() || refetch_ids.contains(&user_id) {
-                    continue;
+            let mut refetch_requests = Vec::new();
+            for request in requests {
+                match request {
+                    FriendProfileRefetchRequest::LocationRepair { user_id } => {
+                        let user_id = user_id.trim().to_string();
+                        if user_id.is_empty()
+                            || refetch_requests.iter().any(|existing| {
+                                matches!(
+                                    existing,
+                                    FriendProfileRefetchRequest::LocationRepair {
+                                        user_id: existing_id
+                                    } if existing_id == &user_id
+                                )
+                            })
+                        {
+                            continue;
+                        }
+                        let recent = state
+                            .friend_profile_refetches
+                            .get(&user_id)
+                            .map(|last_ms| {
+                                now_ms.saturating_sub(*last_ms)
+                                    < FRIEND_PROFILE_REFETCH_THROTTLE_MS
+                            })
+                            .unwrap_or(false);
+                        if recent {
+                            continue;
+                        }
+                        state
+                            .friend_profile_refetches
+                            .insert(user_id.clone(), now_ms);
+                        refetch_requests
+                            .push(FriendProfileRefetchRequest::LocationRepair { user_id });
+                    }
+                    FriendProfileRefetchRequest::OfflineConfirm { user_id, token } => {
+                        let user_id = user_id.trim().to_string();
+                        if user_id.is_empty()
+                            || refetch_requests.iter().any(|existing| {
+                                matches!(
+                                    existing,
+                                    FriendProfileRefetchRequest::OfflineConfirm {
+                                        user_id: existing_id,
+                                        token: existing_token,
+                                    } if existing_id == &user_id && *existing_token == token
+                                )
+                            })
+                        {
+                            continue;
+                        }
+                        refetch_requests
+                            .push(FriendProfileRefetchRequest::OfflineConfirm { user_id, token });
+                    }
                 }
-                let recent = state
-                    .friend_profile_refetches
-                    .get(&user_id)
-                    .map(|last_ms| {
-                        now_ms.saturating_sub(*last_ms) < FRIEND_PROFILE_REFETCH_THROTTLE_MS
-                    })
-                    .unwrap_or(false);
-                if recent {
-                    continue;
-                }
-                state
-                    .friend_profile_refetches
-                    .insert(user_id.clone(), now_ms);
-                refetch_ids.push(user_id);
             }
-            (active, refetch_ids)
+            (active, refetch_requests)
         };
-        for user_id in refetch_ids {
+        for request in refetch_requests {
             let runtime = Arc::clone(self);
             let active = active.clone();
             self.deps.tasks.spawn(async move {
-                runtime.refetch_friend_profile(active, user_id).await;
+                runtime.refetch_friend_profile(active, request).await;
             });
         }
     }
@@ -899,8 +936,12 @@ impl RealtimeHostRuntime {
     async fn refetch_friend_profile(
         self: Arc<Self>,
         active: ActiveRealtimeContext,
-        user_id: String,
+        request: FriendProfileRefetchRequest,
     ) {
+        let user_id = match &request {
+            FriendProfileRefetchRequest::LocationRepair { user_id }
+            | FriendProfileRefetchRequest::OfflineConfirm { user_id, .. } => user_id.clone(),
+        };
         {
             let state = match self.state.lock() {
                 Ok(state) => state,
@@ -918,7 +959,8 @@ impl RealtimeHostRuntime {
                 return;
             }
         }
-        let (_, request) = match remote_users::user_get_input(
+        let refetch_request = request.clone();
+        let (_, api_request) = match remote_users::user_get_input(
             active.session.endpoint.clone(),
             user_id.clone(),
         ) {
@@ -931,7 +973,7 @@ impl RealtimeHostRuntime {
         let response = match self
             .deps
             .web
-            .execute_api(request, ApiScope::Vrchat, &self.deps.db)
+            .execute_api(api_request, ApiScope::Vrchat, &self.deps.db)
             .await
         {
             Ok(response) => response,
@@ -981,12 +1023,22 @@ impl RealtimeHostRuntime {
                 return;
             }
         }
-        match self.friends.apply_refetched_user_profile(
-            active.generation,
-            &user_id,
-            profile,
-            &chrono::Utc::now().to_rfc3339(),
-        ) {
+        let received_at = chrono::Utc::now().to_rfc3339();
+        let result = match refetch_request {
+            FriendProfileRefetchRequest::LocationRepair { .. } => self
+                .friends
+                .apply_refetched_user_profile(active.generation, &user_id, profile, &received_at),
+            FriendProfileRefetchRequest::OfflineConfirm { token, .. } => {
+                self.friends.apply_offline_confirm_user_profile(
+                    active.generation,
+                    &user_id,
+                    token,
+                    profile,
+                    &received_at,
+                )
+            }
+        };
+        match result {
             RealtimeFriendApplyResult::Output(output) => {
                 self.apply_friend_output(*output)
             }
@@ -1265,8 +1317,8 @@ impl RealtimeHostRuntime {
         });
     }
 
-    fn fire_pending_offline(self: &Arc<Self>, user_id: &str, token: u64, now: String) {
-        if let Some(output) = self.friends.fire_pending_offline(user_id, token, now) {
+    fn fire_delayed_offline_feed(self: &Arc<Self>, user_id: &str, token: u64, now: String) {
+        if let Some(output) = self.friends.fire_delayed_offline_feed(user_id, token, now) {
             self.apply_friend_output(output);
         }
     }
