@@ -26,7 +26,7 @@ pub fn app__xs_notification(
 
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
-pub fn app__ovrt_notification(
+pub async fn app__ovrt_notification(
     state: State<'_, AppState>,
     hud_notification: bool,
     wrist_notification: bool,
