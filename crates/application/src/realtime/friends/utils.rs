@@ -1894,6 +1894,58 @@ mod tests {
     }
 
     #[test]
+    fn friend_active_with_dirty_offline_state_fires_active_not_offline() {
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "online".into(),
+                        state_bucket: "online".into(),
+                        location: "wrld_1:123".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+        // Real VRChat friend-active carries dirty content.user.state="offline" but means ACTIVE.
+        let RealtimeFriendApplyResult::Output(output) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-active",
+                    "content": {
+                        "userId": "usr_friend",
+                        "user": { "id": "usr_friend", "displayName": "Friend", "state": "offline" }
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:00Z".into(),
+            })
+        else {
+            panic!("friend-active should produce an output");
+        };
+        // stays online with marker during the pending delay
+        assert_eq!(output.projection.patches[0].state_bucket, "online");
+        let PendingOfflineTimerAction::Schedule { token, .. } = output.timer_action else {
+            panic!("online->active should schedule pending timer");
+        };
+        let fired = runtime
+            .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
+            .unwrap();
+        // must resolve to active, NOT offline (dirty user.state ignored)
+        assert_eq!(fired.projection.patches[0].state_bucket, "active");
+    }
+
+    #[test]
     fn repeated_pending_offline_event_does_not_reschedule_timer() {
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(

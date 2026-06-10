@@ -235,7 +235,13 @@ fn apply_friend_event_with_options(
             let user_patch =
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
             let resolved_state = if message_type == "friend-active" {
-                resolve_state_bucket(content, &user_patch, None, next_state)
+                let resolved = resolve_state_bucket(content, &user_patch, None, next_state);
+                // friend-active is never truly offline; dirty content.user.state="offline" falls back to active.
+                if resolved == "offline" {
+                    next_state.to_string()
+                } else {
+                    resolved
+                }
             } else {
                 next_state.to_string()
             };
