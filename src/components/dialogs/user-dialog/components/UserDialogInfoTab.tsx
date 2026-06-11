@@ -411,7 +411,9 @@ function UserDialogProfileLinksPanel({
         <InfoPanel title={t('dialog.user.info.profile_details')}>
             <InfoStat label={avatarInfoTitle}>
                 <AvatarInfoLine
-                    avatarName={currentAvatarDisplayName}
+                    avatarName={
+                        isCurrentUser ? currentAvatarDisplayName : undefined
+                    }
                     avatarTags={profile?.currentAvatarTags}
                     compact
                     imageUrl={currentAvatarImageUrl}
