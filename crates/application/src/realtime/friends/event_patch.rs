@@ -3,7 +3,7 @@ use super::persistence::{
     friend_relationship_feed_entry, gps_feed_entry, is_online_state, online_offline_feed_entry,
     FriendChangedProps,
 };
-use super::projection::{has_event_state_bucket, resolve_state_bucket};
+use super::projection::resolve_state_bucket;
 use super::state::{PendingOffline, RealtimeFriendState, PENDING_OFFLINE_DELAY_MS};
 use super::utils::*;
 use super::*;
@@ -36,6 +36,7 @@ pub(super) fn apply_friend_event(
         now,
         FriendEventOptions {
             emit_profile_diff_feed: true,
+            trust_event_state: false,
         },
     )
 }
@@ -52,6 +53,7 @@ pub(super) fn apply_refetched_friend_profile_event(
         now,
         FriendEventOptions {
             emit_profile_diff_feed: false,
+            trust_event_state: true,
         },
     )
 }
@@ -59,6 +61,8 @@ pub(super) fn apply_refetched_friend_profile_event(
 #[derive(Clone, Copy)]
 struct FriendEventOptions {
     emit_profile_diff_feed: bool,
+    // A profile refetch (getUser) carries an authoritative state; a ws friend-update does not.
+    trust_event_state: bool,
 }
 
 fn apply_friend_event_with_options(
@@ -143,16 +147,32 @@ fn apply_friend_event_with_options(
             let user_id = event_user_id(content)?;
             let mut patch =
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
-            if patch.as_object().map(|object| object.len()).unwrap_or(0) <= 1
-                && !has_event_state_bucket(content)
+            // A ws friend-update with no profile change beyond the id is a no-op; a refetch always applies.
+            if !options.trust_event_state
+                && patch.as_object().map(|object| object.len()).unwrap_or(0) <= 1
             {
                 return None;
             }
             let previous = get_friend_value(state, &user_id);
             let changes = FriendChangedProps::from_patch(&patch, previous.as_ref());
-            let state_bucket = resolve_state_bucket(content, &patch, previous.as_ref(), "offline");
-            let has_state_bucket = has_event_state_bucket(content);
-            if has_state_bucket && state.pending_offline.remove(&user_id).is_some() {
+            let state_bucket = if options.trust_event_state {
+                resolve_state_bucket(content, &patch, previous.as_ref(), "offline")
+            } else {
+                // content.user.state is unreliable here (often a stale "offline"); keep ws-driven presence.
+                previous
+                    .as_ref()
+                    .and_then(|previous| {
+                        previous
+                            .get("stateBucket")
+                            .or_else(|| previous.get("state"))
+                    })
+                    .and_then(Value::as_str)
+                    .filter(|value| !value.is_empty())
+                    .unwrap_or("offline")
+                    .to_string()
+            };
+            // Only the authoritative refetch state finalizes/cancels a pending-offline timer.
+            if options.trust_event_state && state.pending_offline.remove(&user_id).is_some() {
                 if let Some(patch_object) = patch.as_object_mut() {
                     patch_object.insert("pendingOffline".into(), Value::Bool(false));
                 }

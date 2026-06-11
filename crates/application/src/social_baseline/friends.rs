@@ -375,10 +375,23 @@ fn normalize_friend_entry(
         .map(value_as_string)
         .unwrap_or_default();
     object.insert("displayName".into(), Value::String(display_name));
-    object.insert("state".into(), Value::String(state_bucket.to_string()));
+    // Mirror upstream userStatusClass: an "online" with offline/empty location is really offline.
+    // "active" is untouched; a ws-confirmed active is restored in set_baseline.
+    let location = object.get("location").and_then(Value::as_str).unwrap_or("");
+    let location_is_offline =
+        location.trim().is_empty() || location.eq_ignore_ascii_case("offline");
+    let effective_state_bucket = if state_bucket == "online" && location_is_offline {
+        "offline"
+    } else {
+        state_bucket
+    };
+    object.insert(
+        "state".into(),
+        Value::String(effective_state_bucket.to_string()),
+    );
     object.insert(
         "stateBucket".into(),
-        Value::String(state_bucket.to_string()),
+        Value::String(effective_state_bucket.to_string()),
     );
     object.insert("friendNumber".into(), number_value(friend_number));
     object.insert("trustLevel".into(), Value::String(trust_level.clone()));
@@ -764,6 +777,106 @@ mod tests {
                 .cloned()
                 .unwrap_or_default(),
             vec![json!("usr_online"), json!("usr_missing")]
+        );
+    }
+
+    #[test]
+    fn placeholder_friend_from_stale_online_list_is_offline() {
+        // Placeholder (live fetch returned nothing) with a stale-list "online" and no real location:
+        // build demotes it to offline, matching userStatusClass.
+        let expected_ids = vec!["usr_stale".to_string()];
+        let state_by_id = HashMap::from([("usr_stale".to_string(), "online".to_string())]);
+        let fetched_friends_by_id = HashMap::new();
+
+        let snapshot = build_fast_roster_snapshot(
+            "usr_self",
+            &expected_ids,
+            &state_by_id,
+            &fetched_friends_by_id,
+        );
+
+        let friends_by_id = snapshot
+            .get("friendsById")
+            .and_then(Value::as_object)
+            .expect("friendsById object");
+        let stale = friends_by_id.get("usr_stale").expect("usr_stale present");
+        assert_eq!(
+            object_field(stale, "stateBucket").and_then(Value::as_str),
+            Some("offline")
+        );
+        assert_eq!(
+            object_field(stale, "$profileSource").and_then(Value::as_str),
+            Some("placeholder")
+        );
+    }
+
+    #[test]
+    fn placeholder_active_friend_is_kept_active() {
+        // Active friends can legitimately be absent from the world fetch; keep them active.
+        let expected_ids = vec!["usr_active".to_string()];
+        let state_by_id = HashMap::from([("usr_active".to_string(), "active".to_string())]);
+        let fetched_friends_by_id = HashMap::new();
+
+        let snapshot = build_fast_roster_snapshot(
+            "usr_self",
+            &expected_ids,
+            &state_by_id,
+            &fetched_friends_by_id,
+        );
+
+        let friends_by_id = snapshot
+            .get("friendsById")
+            .and_then(Value::as_object)
+            .expect("friendsById object");
+        let active = friends_by_id.get("usr_active").expect("usr_active present");
+        assert_eq!(
+            object_field(active, "stateBucket").and_then(Value::as_str),
+            Some("active")
+        );
+        assert_eq!(
+            snapshot
+                .get("activeIds")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default(),
+            vec![json!("usr_active")]
+        );
+    }
+
+    #[test]
+    fn online_friend_in_private_world_stays_online() {
+        // location=private is a hidden world, still online — must NOT be demoted to offline.
+        let expected_ids = vec!["usr_priv".to_string()];
+        let state_by_id = HashMap::from([("usr_priv".to_string(), "online".to_string())]);
+        let fetched_friends_by_id = HashMap::from([(
+            "usr_priv".to_string(),
+            RemoteFriendProfile::from_raw(
+                json!({
+                    "id": "usr_priv",
+                    "displayName": "Priv",
+                    "location": "private",
+                    "status": "ask me"
+                }),
+                Some("online"),
+            )
+            .expect("valid profile"),
+        )]);
+
+        let snapshot = build_fast_roster_snapshot(
+            "usr_self",
+            &expected_ids,
+            &state_by_id,
+            &fetched_friends_by_id,
+        );
+
+        let friends_by_id = snapshot
+            .get("friendsById")
+            .and_then(Value::as_object)
+            .expect("friendsById object");
+        let priv_friend = friends_by_id.get("usr_priv").expect("usr_priv present");
+        assert_eq!(
+            object_field(priv_friend, "stateBucket").and_then(Value::as_str),
+            Some("online")
         );
     }
 }

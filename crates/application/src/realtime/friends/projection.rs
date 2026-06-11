@@ -26,22 +26,6 @@ pub(super) fn resolve_state_bucket(
     fallback.to_string()
 }
 
-pub(super) fn has_event_state_bucket(content: &Value) -> bool {
-    [
-        content.get("stateBucket"),
-        content.get("state"),
-        content.get("user").and_then(|user| user.get("stateBucket")),
-        content.get("user").and_then(|user| user.get("state")),
-    ]
-    .into_iter()
-    .any(|value| {
-        value
-            .and_then(Value::as_str)
-            .and_then(normalize_state_bucket)
-            .is_some()
-    })
-}
-
 pub(super) fn state_bucket_from_patch(patch: &Value, fallback: &str) -> String {
     patch
         .get("state")

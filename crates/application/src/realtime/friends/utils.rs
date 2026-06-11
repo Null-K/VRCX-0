@@ -747,6 +747,230 @@ mod tests {
     }
 
     #[test]
+    fn placeholder_baseline_refresh_keeps_ws_active_presence() {
+        // ws set "active"; a later refresh placeholder (stale-list "online") must not demote it.
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "active".into(),
+                        state_bucket: "active".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "online".into(),
+                        state_bucket: "online".into(),
+                        extra: [("$profileSource".to_string(), json!("placeholder"))]
+                            .into_iter()
+                            .collect(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            1,
+        );
+
+        let snapshot = runtime.snapshot().expect("baseline present");
+        let friend = snapshot
+            .friends_by_id
+            .get("usr_friend")
+            .expect("friend present");
+        assert_eq!(friend.state_bucket, "active");
+        assert_eq!(friend.state, "active");
+    }
+
+    #[test]
+    fn placeholder_baseline_refresh_does_not_resurrect_offline_friend() {
+        // ws set offline; a later refresh placeholder (stale "online") must not resurrect it.
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "offline".into(),
+                        state_bucket: "offline".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "online".into(),
+                        state_bucket: "online".into(),
+                        extra: [("$profileSource".to_string(), json!("placeholder"))]
+                            .into_iter()
+                            .collect(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            1,
+        );
+
+        let snapshot = runtime.snapshot().expect("baseline present");
+        let friend = snapshot
+            .friends_by_id
+            .get("usr_friend")
+            .expect("friend present");
+        assert_eq!(friend.state_bucket, "offline");
+    }
+
+    #[test]
+    fn remote_baseline_refresh_still_updates_presence() {
+        // A remote row (live fetch returned the friend) is authoritative and must still override presence.
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "online".into(),
+                        state_bucket: "online".into(),
+                        location: "wrld_x:1".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "offline".into(),
+                        state_bucket: "offline".into(),
+                        extra: [("$profileSource".to_string(), json!("remote"))]
+                            .into_iter()
+                            .collect(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            1,
+        );
+
+        let snapshot = runtime.snapshot().expect("baseline present");
+        let friend = snapshot
+            .friends_by_id
+            .get("usr_friend")
+            .expect("friend present");
+        assert_eq!(friend.state_bucket, "offline");
+    }
+
+    #[test]
+    fn active_friend_survives_reconnect_with_stale_list() {
+        // Across a reconnect: a new-generation baseline carries a non-placeholder demoted-offline
+        // row; the ws-confirmed "active" must still win.
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "active".into(),
+                        state_bucket: "active".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "offline".into(),
+                        state_bucket: "offline".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            2,
+            0,
+        );
+
+        let snapshot = runtime.snapshot().expect("baseline present");
+        let friend = snapshot
+            .friends_by_id
+            .get("usr_friend")
+            .expect("friend present");
+        assert_eq!(friend.state_bucket, "active");
+    }
+
+    #[test]
     fn websocket_friend_update_still_emits_status_feed() {
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(
@@ -855,6 +1079,62 @@ mod tests {
             output.projection.patches[0].patch["statusDescription"],
             "Fresh offline status"
         );
+    }
+
+    #[test]
+    fn websocket_friend_update_does_not_demote_online_friend_to_offline() {
+        // VRChat's friend-update frequently carries content.user.state="offline" for a friend that
+        // is actually online/active. Presence must stay whatever the presence events established.
+        let runtime = RealtimeFriendsRuntime::new();
+        runtime.set_baseline(
+            FriendRosterBaseline {
+                current_user_id: "usr_self".into(),
+                friends_by_id: [(
+                    "usr_friend".to_string(),
+                    FriendRecord {
+                        id: "usr_friend".into(),
+                        display_name: "Friend".into(),
+                        state: "online".into(),
+                        state_bucket: "online".into(),
+                        location: "wrld_old:123".into(),
+                        status: "join me".into(),
+                        status_description: "Old status".into(),
+                        ..FriendRecord::default()
+                    },
+                )]
+                .into_iter()
+                .collect(),
+                ..FriendRosterBaseline::default()
+            },
+            1,
+            0,
+        );
+
+        let RealtimeFriendApplyResult::Output(output) =
+            runtime.apply_ws_message(&RealtimeWsMessagePayload {
+                json: json!({
+                    "type": "friend-update",
+                    "content": {
+                        "userId": "usr_friend",
+                        "user": {
+                            "id": "usr_friend",
+                            "displayName": "Friend",
+                            "state": "offline",
+                            "status": "active",
+                            "statusDescription": "Fresh WS status"
+                        }
+                    }
+                }),
+                raw: "{}".into(),
+                received_at: "2026-05-15T00:00:01Z".into(),
+            })
+        else {
+            panic!("friend-update should produce an output");
+        };
+
+        assert_eq!(output.projection.patches[0].state_bucket, "online");
+        assert_eq!(output.projection.patches[0].patch["stateBucket"], "online");
+        assert_eq!(output.projection.patches[0].patch["state"], "online");
     }
 
     #[test]

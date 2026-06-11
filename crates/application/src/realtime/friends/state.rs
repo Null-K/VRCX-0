@@ -70,21 +70,30 @@ impl RealtimeFriendsRuntime {
             .as_ref()
             .is_some_and(|snapshot| snapshot.generation == generation);
         state.generation = state.generation.max(generation);
-        if same_generation {
-            if let Some(existing_snapshot) = state.baseline.as_ref() {
-                for (user_id, record) in baseline.friends_by_id.iter_mut() {
-                    let Some(updated_ms) = state.friend_presence_updated_ms.get(user_id) else {
-                        continue;
-                    };
-                    if *updated_ms <= baseline_started_ms {
-                        continue;
-                    }
-                    let Some(existing_record) = existing_snapshot.friends_by_id.get(user_id) else {
-                        continue;
-                    };
+        // Carry over ws-confirmed presence before generation housekeeping, so even a reconnect
+        // (new generation) can't let a stale cached friend list clobber it.
+        if let Some(existing_snapshot) = state.baseline.as_ref() {
+            for (user_id, record) in baseline.friends_by_id.iter_mut() {
+                let Some(existing_record) = existing_snapshot.friends_by_id.get(user_id) else {
+                    continue;
+                };
+                // Placeholder (missing from the live fetch) carries a possibly-stale list state.
+                let is_placeholder = record.extra.get("$profileSource").and_then(Value::as_str)
+                    == Some("placeholder");
+                // ws update that raced the fetch.
+                let has_newer_ws = state
+                    .friend_presence_updated_ms
+                    .get(user_id)
+                    .is_some_and(|updated_ms| *updated_ms > baseline_started_ms);
+                // ws "active" is authoritative until a friend-offline; the lagging cached list
+                // must not demote it.
+                let existing_is_active = existing_record.state_bucket == "active";
+                if is_placeholder || has_newer_ws || existing_is_active {
                     preserve_newer_presence_fields(record, existing_record);
                 }
             }
+        }
+        if same_generation {
             state.pending_offline.retain(|user_id, _pending| {
                 let Some(record) = baseline.friends_by_id.get_mut(user_id) else {
                     return false;
