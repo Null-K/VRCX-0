@@ -70,27 +70,34 @@ impl RealtimeFriendsRuntime {
             .as_ref()
             .is_some_and(|snapshot| snapshot.generation == generation);
         state.generation = state.generation.max(generation);
-        // Carry over ws-confirmed presence before generation housekeeping, so even a reconnect
-        // (new generation) can't let a stale cached friend list clobber it.
+        // The baseline now comes from a real-time /auth/user refresh, so its online/active/offline
+        // bucket is authoritative. Keep the ws-confirmed state only when a ws event raced this
+        // refresh (arrived after it started) or the friend is a placeholder (live fetch missed them,
+        // so the row is a guess). Otherwise trust the real-time baseline bucket — matching upstream,
+        // where the lists drive presence and location never re-buckets.
         if let Some(existing_snapshot) = state.baseline.as_ref() {
             for (user_id, record) in baseline.friends_by_id.iter_mut() {
                 let Some(existing_record) = existing_snapshot.friends_by_id.get(user_id) else {
                     continue;
                 };
-                // Placeholder (missing from the live fetch) carries a possibly-stale list state.
+                // Placeholder: live fetch missed the friend, so the row is inferred from the list.
                 let is_placeholder = record.extra.get("$profileSource").and_then(Value::as_str)
                     == Some("placeholder");
-                // ws update that raced the fetch.
+                // ws event that arrived after this refresh started (raced the fetch).
                 let has_newer_ws = state
                     .friend_presence_updated_ms
                     .get(user_id)
                     .is_some_and(|updated_ms| *updated_ms > baseline_started_ms);
-                // ws "active" outranks a stale list that would demote it — unless the fresh baseline
-                // carries a real world location (online), which proves the friend is now in-world.
-                let keep_active =
-                    existing_record.state_bucket == "active" && record.state_bucket != "online";
-                if is_placeholder || has_newer_ws || keep_active {
+                if has_newer_ws || is_placeholder {
                     preserve_newer_presence_fields(record, existing_record);
+                }
+                // displayName: a placeholder falls back to the id; keep the existing real name
+                // instead of rendering a raw id.
+                if (record.display_name.is_empty() || record.display_name == record.id)
+                    && !existing_record.display_name.is_empty()
+                    && existing_record.display_name != existing_record.id
+                {
+                    record.display_name = existing_record.display_name.clone();
                 }
             }
         }

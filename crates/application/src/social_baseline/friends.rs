@@ -1,4 +1,5 @@
 use super::*;
+use vrcx_0_vrchat_client::auth::current_user_get_input;
 
 fn add_state_bucket_ids(
     snapshot: &Value,
@@ -375,27 +376,13 @@ fn normalize_friend_entry(
         .map(value_as_string)
         .unwrap_or_default();
     object.insert("displayName".into(), Value::String(display_name));
-    // Clean dirty list state the way upstream does: a real world location is the source of truth,
-    // so it always means online (upstream's friend-active forces location "offline", so active and
-    // a world location never coexist). With no/offline location, "active" stays active and anything
-    // else is offline. A ws-confirmed active is still restored in set_baseline.
-    let location = object.get("location").and_then(Value::as_str).unwrap_or("");
-    let location_is_offline =
-        location.trim().is_empty() || location.eq_ignore_ascii_case("offline");
-    let effective_state_bucket = if !location_is_offline {
-        "online"
-    } else if state_bucket == "active" {
-        "active"
-    } else {
-        "offline"
-    };
-    object.insert(
-        "state".into(),
-        Value::String(effective_state_bucket.to_string()),
-    );
+    // Presence is the real-time list bucket (state_by_id, from /auth/user's online/active/offline),
+    // not location — matching upstream, where location never participates in bucketing (it only
+    // colors the status dot). location is kept on the record for the dot/sidebar.
+    object.insert("state".into(), Value::String(state_bucket.to_string()));
     object.insert(
         "stateBucket".into(),
-        Value::String(effective_state_bucket.to_string()),
+        Value::String(state_bucket.to_string()),
     );
     object.insert("friendNumber".into(), number_value(friend_number));
     object.insert("trustLevel".into(), Value::String(trust_level.clone()));
@@ -591,9 +578,10 @@ pub async fn build_friend_roster_baseline(
     deps: SocialBaselineDeps,
     input: SocialFriendRosterBaselineInput,
 ) -> Result<SocialFriendRosterBaselineOutput> {
-    let current_user = CurrentUserSnapshotView::from_raw(input.current_user_snapshot.as_value());
+    let cached_current_user =
+        CurrentUserSnapshotView::from_raw(input.current_user_snapshot.as_value());
     let user_id = normalize_text(if input.user_id.is_empty() {
-        current_user.user_id.clone()
+        cached_current_user.user_id.clone()
     } else {
         input.user_id.clone()
     });
@@ -605,6 +593,17 @@ pub async fn build_friend_roster_baseline(
     if !auth_scope_matches(&deps, &user_id, &input.endpoint) {
         return Ok(stale_friend_output(user_id, String::new()));
     }
+
+    // Refresh /auth/user so the online/active/offline lists are real-time (scope already verified);
+    // the cached snapshot lags and is the root cause of stale-list misclassification. Fall back to
+    // the cached snapshot on failure so a transient API error never blanks the roster.
+    let current_user =
+        execute_vrchat_json_request(&deps, current_user_get_input(input.endpoint.clone()))
+            .await
+            .ok()
+            .filter(|value| !object_field_string(value, &["id"]).is_empty())
+            .map(|value| CurrentUserSnapshotView::from_raw(&value))
+            .unwrap_or(cached_current_user);
 
     let CurrentUserSnapshotView {
         state_by_id,
@@ -786,9 +785,10 @@ mod tests {
     }
 
     #[test]
-    fn placeholder_friend_from_stale_online_list_is_offline() {
-        // Placeholder (live fetch returned nothing) with a stale-list "online" and no real location:
-        // build demotes it to offline, matching userStatusClass.
+    fn placeholder_friend_uses_realtime_list_bucket() {
+        // build no longer re-buckets by location; it trusts the (now real-time) list bucket. A
+        // placeholder (live fetch returned nothing) keeps its list bucket and is tagged placeholder;
+        // realtime::set_baseline reconciles it against ws history.
         let expected_ids = vec!["usr_stale".to_string()];
         let state_by_id = HashMap::from([("usr_stale".to_string(), "online".to_string())]);
         let fetched_friends_by_id = HashMap::new();
@@ -807,7 +807,7 @@ mod tests {
         let stale = friends_by_id.get("usr_stale").expect("usr_stale present");
         assert_eq!(
             object_field(stale, "stateBucket").and_then(Value::as_str),
-            Some("offline")
+            Some("online")
         );
         assert_eq!(
             object_field(stale, "$profileSource").and_then(Value::as_str),
@@ -886,9 +886,10 @@ mod tests {
     }
 
     #[test]
-    fn friend_with_real_location_is_online_even_if_list_says_offline() {
-        // Dirty list/fetch marks a friend offline while they are in a world; the real location
-        // proves they are online (matches upstream userStatusClass).
+    fn list_bucket_decides_state_not_location() {
+        // location never participates in bucketing (matches upstream). An offline list bucket stays
+        // offline even with a real world location — the real-time /auth/user lists are the source of
+        // truth, so a genuinely in-world friend would already be in the online list.
         let expected_ids = vec!["usr_inworld".to_string()];
         let state_by_id = HashMap::from([("usr_inworld".to_string(), "offline".to_string())]);
         let fetched_friends_by_id = HashMap::from([(
@@ -921,14 +922,14 @@ mod tests {
             .expect("usr_inworld present");
         assert_eq!(
             object_field(friend, "stateBucket").and_then(Value::as_str),
-            Some("online")
+            Some("offline")
         );
     }
 
     #[test]
-    fn active_list_friend_with_world_location_is_online() {
-        // The activeFriends list can be stale and tag a friend "active" while they are in a world.
-        // Upstream's friend-active forces location offline, so a real location proves online.
+    fn active_list_bucket_ignores_location() {
+        // An "active" list bucket stays active regardless of any location on the fetched profile —
+        // location does not re-bucket.
         let expected_ids = vec!["usr_active_inworld".to_string()];
         let state_by_id = HashMap::from([("usr_active_inworld".to_string(), "active".to_string())]);
         let fetched_friends_by_id = HashMap::from([(
@@ -961,7 +962,7 @@ mod tests {
             .expect("usr_active_inworld present");
         assert_eq!(
             object_field(friend, "stateBucket").and_then(Value::as_str),
-            Some("online")
+            Some("active")
         );
     }
 }
