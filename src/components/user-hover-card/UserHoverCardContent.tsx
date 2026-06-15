@@ -14,7 +14,9 @@ import { Location } from '@/components/Location';
 import { FriendInstanceTimer } from '@/components/sidebar/friends-sidebar/FriendsSidebarLocation';
 import { timeToText } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
+import { openUserDialog, openWorldDialog } from '@/services/dialogService';
 import { getTrustColor, TRUST_COLOR_ENTRIES } from '@/shared/utils/trustColors';
+import { useModalStore } from '@/state/modalStore';
 
 import { useUserHoverCardData } from './useUserHoverCardData';
 
@@ -52,6 +54,10 @@ export function UserHoverCardContent({ userId, seed }: any) {
     const { t } = useTranslation();
     const { model, worldThumb, population, memo, trustColor, instanceEpoch } =
         useUserHoverCardData({ userId, seed });
+    const openImagePreview = useModalStore(
+        (state: any) => state.openImagePreview
+    );
+    const worldDialogTarget = model.location.tag || model.location.worldId;
 
     const trustEntry = TRUST_COLOR_ENTRIES.find(
         (entry: any) => entry.key === model.trustKey
@@ -69,7 +75,15 @@ export function UserHoverCardContent({ userId, seed }: any) {
     return (
         <div className="w-full">
             {showThumbnailBanner ? (
-                <div className="bg-muted flex h-28 w-full items-center justify-center overflow-hidden">
+                <button
+                    type="button"
+                    className="bg-muted flex h-28 w-full items-center justify-center overflow-hidden enabled:cursor-pointer"
+                    disabled={!worldDialogTarget}
+                    onClick={() =>
+                        worldDialogTarget &&
+                        openWorldDialog({ worldId: worldDialogTarget })
+                    }
+                >
                     {worldThumb ? (
                         <img
                             src={worldThumb}
@@ -79,12 +93,23 @@ export function UserHoverCardContent({ userId, seed }: any) {
                     ) : (
                         <ImageIcon className="text-muted-foreground/50 size-7" />
                     )}
-                </div>
+                </button>
             ) : null}
 
             <div className="space-y-2.5 p-3">
                 <div className="flex items-center gap-2.5">
-                    <span className="relative flex size-10 shrink-0">
+                    <button
+                        type="button"
+                        className="relative flex size-10 shrink-0 rounded-full enabled:cursor-pointer"
+                        disabled={!model.avatarPreviewUrl}
+                        onClick={() =>
+                            model.avatarPreviewUrl &&
+                            openImagePreview({
+                                url: model.avatarPreviewUrl,
+                                title: model.displayName
+                            })
+                        }
+                    >
                         <span className="bg-muted flex size-full items-center justify-center overflow-hidden rounded-full border">
                             {model.avatarUrl ? (
                                 <img
@@ -105,14 +130,16 @@ export function UserHoverCardContent({ userId, seed }: any) {
                                 )
                             )}
                         />
-                    </span>
+                    </button>
                     <span className="min-w-0 flex-1">
-                        <span
-                            className="block truncate text-sm font-medium"
+                        <button
+                            type="button"
+                            className="block w-full cursor-pointer truncate text-left text-sm font-medium"
                             style={{ color: nameColour }}
+                            onClick={() => openUserDialog({ userId })}
                         >
                             {model.displayName}
-                        </span>
+                        </button>
                         {trustLabel ? (
                             <span className="text-muted-foreground block truncate text-xs">
                                 {trustLabel}

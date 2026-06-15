@@ -121,7 +121,8 @@ export function buildUserHoverCardModel({ seed, profile, nowMs }: any) {
             ref?.displayName ||
             normalizeId(identity?.id) ||
             'Unknown',
-        avatarUrl: userImage(identity, true, '256'),
+        avatarUrl: userImage(identity, true, '128'),
+        avatarPreviewUrl: userImage(identity, false),
         userColour: identity?.$userColour || '',
         trustSource,
         trustKey,
