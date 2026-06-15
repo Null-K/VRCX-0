@@ -49,8 +49,22 @@ use crate::web_client::WebClient;
 use crate::RuntimeAuthScope;
 use crate::{Error, Result};
 
-#[path = "lifecycle.rs"]
-mod lifecycle;
+#[path = "lifecycle_current_user.rs"]
+mod lifecycle_current_user;
+#[path = "lifecycle_enrichment.rs"]
+mod lifecycle_enrichment;
+#[path = "lifecycle_friend_baseline.rs"]
+mod lifecycle_friend_baseline;
+#[path = "lifecycle_friend_messages.rs"]
+mod lifecycle_friend_messages;
+#[path = "lifecycle_friend_profile.rs"]
+mod lifecycle_friend_profile;
+#[path = "lifecycle_output.rs"]
+mod lifecycle_output;
+#[path = "lifecycle_session.rs"]
+mod lifecycle_session;
+#[path = "lifecycle_tests.rs"]
+mod lifecycle_tests;
 #[path = "message_dispatch.rs"]
 mod message_dispatch;
 #[path = "persistence.rs"]
