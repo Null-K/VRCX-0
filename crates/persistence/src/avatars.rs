@@ -441,7 +441,6 @@ pub fn avatar_tags_patch(
     Ok(())
 }
 
-// Avatar cache row projection helper.
 pub(crate) fn cache_entity_from_row(row: &[Value]) -> AvatarCacheOutput {
     AvatarCacheOutput {
         id: row_string(row, 0),
@@ -458,7 +457,6 @@ pub(crate) fn cache_entity_from_row(row: &[Value]) -> AvatarCacheOutput {
     }
 }
 
-// Avatar tag normalization helpers.
 pub(crate) fn normalize_avatar_tag_entry(entry: AvatarTagInput) -> Option<(String, Value)> {
     let tag = normalize_text(entry.tag);
     if tag.is_empty() {

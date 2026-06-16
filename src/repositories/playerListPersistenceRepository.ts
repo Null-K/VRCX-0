@@ -358,7 +358,8 @@ async function getCurrentInstanceSnapshot({
     currentLocation = '',
     currentLocationStartedAt = ''
 }: CurrentInstanceSnapshotInput = {}) {
-    const locationContext = await resolveCurrentLocationContext(currentLocation);
+    const locationContext =
+        await resolveCurrentLocationContext(currentLocation);
     const context = resolveSnapshotContext(
         locationContext,
         currentLocationStartedAt
@@ -379,11 +380,6 @@ async function getCurrentInstanceSnapshot({
     );
     let effectiveContext = context;
 
-    // The runtime-reported start time can come from the WS user-location fallback, which
-    // is set to the event's "now" while the game isn't detected as running. That value is
-    // later than every join row and filters the whole current roster out. When that
-    // happens but the DB holds an earlier real enter time for this exact location, rebuild
-    // from the DB enter time so the current session's players survive.
     const dbStartedAtMs = parseDateMs(locationContext.createdAt);
     if (
         roster.players.length === 0 &&

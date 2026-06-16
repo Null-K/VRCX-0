@@ -36,11 +36,6 @@ pub struct ParsedLocation {
 }
 
 impl ParsedLocation {
-    /// Minimal `{tag, worldId, instanceId, groupId}` projection consumed by the
-    /// realtime presence patches (`$location` / `$travelingToLocation`).
-    ///
-    /// `tag` is taken verbatim from the caller (not `self.tag`) so the emitted
-    /// value matches the exact location string the caller threaded through.
     pub fn to_minimal_value(&self, tag: &str) -> Value {
         json!({
             "tag": tag,
@@ -247,7 +242,6 @@ mod tests {
         assert!(parsed.strict);
         assert!(parsed.age_gate);
         assert_eq!(parsed.short_name, "ab12");
-        // shortName qualifier is stripped from the instance id.
         assert_eq!(parsed.instance_id, "1~region(eu)~strict~ageGate");
     }
 
@@ -258,8 +252,6 @@ mod tests {
         assert_eq!(parsed.instance_id, "");
     }
 
-    /// Pins the `{tag, worldId, instanceId, groupId}` contract that realtime
-    /// presence patches emit as `$location` — the frontend depends on this shape.
     #[test]
     fn minimal_value_matches_presence_contract() {
         let parsed = parse_location("wrld_a:1~group(grp_a)~groupAccessType(plus)");
@@ -273,14 +265,12 @@ mod tests {
             })
         );
 
-        // No group → empty groupId, never null.
         let public = parse_location("wrld_a:1~region(use)");
         assert_eq!(
             public.to_minimal_value("wrld_a:1~region(use)")["groupId"],
             json!("")
         );
 
-        // tag arg is verbatim (untrimmed), independent of the parsed self.tag.
         let offline = parse_location("offline");
         assert_eq!(
             offline.to_minimal_value("  offline  "),

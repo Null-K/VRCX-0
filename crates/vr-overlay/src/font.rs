@@ -1,8 +1,5 @@
 use cosmic_text::FontSystem;
 
-/// Sans-serif families, in preference order, that carry both Latin and CJK
-/// glyphs. The text measurer and the renderer must agree on this selection so
-/// that the widths computed during layout match the glyphs actually drawn.
 const PREFERRED_SANS_FAMILIES: &[&str] = &[
     "Microsoft YaHei UI",
     "Microsoft YaHei",
@@ -18,7 +15,6 @@ const PREFERRED_SANS_FAMILIES: &[&str] = &[
     "WenQuanYi Micro Hei",
 ];
 
-/// Pick the first installed preferred sans-serif family, if any.
 pub(crate) fn preferred_sans_family(font_system: &FontSystem) -> Option<String> {
     PREFERRED_SANS_FAMILIES
         .iter()
@@ -32,8 +28,6 @@ pub(crate) fn preferred_sans_family(font_system: &FontSystem) -> Option<String> 
         .map(|family| (*family).to_string())
 }
 
-/// Configure a freshly created [`FontSystem`] with the preferred sans-serif
-/// family so Latin and CJK text share a single, consistent metric source.
 pub(crate) fn configure_font_system(font_system: &mut FontSystem) {
     if let Some(family) = preferred_sans_family(font_system) {
         font_system.db_mut().set_sans_serif_family(family);

@@ -18,12 +18,6 @@ interface CachedAvatarImage {
     fileCreatedAt?: string;
 }
 
-/**
- *
- * @param {object} args
- * @param {Map} cachedAvatarNames
- * @returns
- */
 function storeAvatarImage(
     args: AvatarImageArgs,
     cachedAvatarNames: Map<string, CachedAvatarImage>
@@ -49,10 +43,6 @@ function storeAvatarImage(
 
 const DEFAULT_AVATAR_FILE_ID = 'file_0e8c4e32-7444-44ea-ade4-313c010d4bae';
 
-/**
- * @param {object} record - User/profile record (mutated in place)
- * @returns {object} The same record
- */
 function stripDefaultAvatarImage<T extends Record<string, any>>(record: T): T {
     const imageUrl = record['currentAvatarImageUrl'];
     if (
@@ -66,11 +56,6 @@ function stripDefaultAvatarImage<T extends Record<string, any>>(record: T): T {
     return record;
 }
 
-/**
- *
- * @param {string} avatar
- * @returns {string|null}
- */
 function parseAvatarUrl(avatar: string): string | null {
     const url = new URL(avatar);
     const urlPath = url.pathname;
@@ -81,12 +66,6 @@ function parseAvatarUrl(avatar: string): string | null {
     return null;
 }
 
-/**
- *
- * @param {string} unitySortNumber
- * @param sdkUnityVersion
- * @returns {boolean}
- */
 function compareUnityVersion(
     unitySortNumber: string,
     sdkUnityVersion: string
@@ -96,10 +75,6 @@ function compareUnityVersion(
         return false;
     }
 
-    // 2022.3.6f1  2022 03 06 000
-    // 2019.4.31f1 2019 04 31 000
-    // 5.3.4p1     5    03 04 010
-    // 2019.4.31f1c1 is a thing
     const array = sdkUnityVersion.split('.');
     if (array.length < 3) {
         console.error('Invalid sdkUnityVersion');
@@ -117,15 +92,12 @@ function compareUnityVersion(
         if (letter === 'p') {
             currentUnityVersion += '1';
         } else {
-            // f
             currentUnityVersion += '0';
         }
         currentUnityVersion += '0';
     } else {
-        // just in case
         currentUnityVersion += '000';
     }
-    // just in case
     currentUnityVersion = currentUnityVersion.replace(/\D/g, '');
 
     if (parseInt(unitySortNumber, 10) <= parseInt(currentUnityVersion, 10)) {

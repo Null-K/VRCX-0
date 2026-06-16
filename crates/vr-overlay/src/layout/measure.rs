@@ -13,10 +13,6 @@ thread_local! {
     static MEASURER: RefCell<TextMeasurer> = RefCell::new(TextMeasurer::new());
 }
 
-/// One whole-line shaping result. `total_width` is the natural single-line
-/// width; `cluster_ends` holds, per glyph cluster in logical order, the byte
-/// offset just past that cluster and the cumulative width up to it — enough to
-/// truncate to a pixel width without ever shaping a single character on its own.
 struct ShapedLine {
     total_width: f32,
     cluster_ends: Vec<(usize, f32)>,
@@ -61,9 +57,6 @@ impl TextMeasurer {
     fn shape(&mut self, text: &str, font_size: f32) -> ShapedLine {
         let metrics = Metrics::new(font_size, font_size);
         let mut buffer = Buffer::new(&mut self.font_system, metrics);
-        // No width bound → never wrap; we want the natural single-line width.
-        // This mirrors the whole-string shaping the renderer already performs,
-        // instead of shaping each character in isolation.
         buffer.set_size(None, Some(font_size));
         buffer.set_text(text, &Attrs::new(), Shaping::Advanced, None);
         buffer.shape_until_scroll(&mut self.font_system, false);
@@ -74,10 +67,6 @@ impl TextMeasurer {
             total_width = total_width.max(run.line_w);
             let glyphs = run.glyphs;
             for (index, glyph) in glyphs.iter().enumerate() {
-                // Cumulative width up to and including this cluster: the next
-                // glyph's left edge (a logical advance, so spaces still count
-                // even when their hitbox width is zero), or the full line width
-                // for the last glyph.
                 let cumulative = glyphs
                     .get(index + 1)
                     .map(|next| next.x)
@@ -92,16 +81,10 @@ impl TextMeasurer {
     }
 }
 
-/// Natural single-line rendered width of `text` at `font_size`, consistent with
-/// the glyphs [`crate::TinySkiaRenderer`] draws. Cached per `(text, size)` so a
-/// stable overlay layout re-measures without re-shaping each frame.
 pub fn text_width(text: &str, font_size: f32) -> f32 {
     MEASURER.with(|measurer| measurer.borrow_mut().shaped(text, font_size).total_width)
 }
 
-/// Byte length of the longest prefix of `text` whose rendered width is within
-/// `max_width` at `font_size`. The returned offset is always a glyph-cluster
-/// (and therefore `char`) boundary, so slicing `text[..len]` is safe.
 pub fn prefix_byte_len_within(text: &str, max_width: f32, font_size: f32) -> usize {
     MEASURER.with(|measurer| {
         let mut measurer = measurer.borrow_mut();

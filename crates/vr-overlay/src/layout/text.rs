@@ -3,9 +3,6 @@ use super::measure::{prefix_byte_len_within, text_width};
 const ELLIPSIS: char = '…';
 const ELLIPSIS_STR: &str = "…";
 
-/// Truncate `text` to fit `max_width` at `font_size`, appending an ellipsis when
-/// it does not fit. Widths come from a single cached whole-line shaping pass, so
-/// no character is ever shaped in isolation.
 pub fn ellipsize_to_width(text: &str, max_width: f32, font_size: f32) -> String {
     let max_width = max_width.max(1.0);
     if text_width(text, font_size) <= max_width {
@@ -36,7 +33,6 @@ mod tests {
 
     #[test]
     fn fitting_text_is_returned_verbatim() {
-        // A very large budget can never truncate.
         assert_eq!(ellipsize_to_width("Hello", 100_000.0, 14.0), "Hello");
     }
 

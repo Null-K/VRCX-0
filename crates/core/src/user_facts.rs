@@ -1,5 +1,3 @@
-//! Port of TS `domain/users/userFacts.ts`; keep in lockstep.
-
 use std::collections::HashMap;
 
 use serde_json::{Map, Number, Value};

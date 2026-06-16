@@ -125,8 +125,6 @@ mod tests {
         let RealtimeFriendApplyResult::Output(second) = runtime.apply_ws_message(&event) else {
             panic!("repeated friend-add should still produce an output");
         };
-        // Already a friend after the first event, so no duplicate Friend log/feed — mirrors upstream's
-        // `if (friendLog.has(id)) return`.
         assert!(second.persistence.friend_log_upserts.is_empty());
         assert!(second
             .persistence
@@ -164,7 +162,6 @@ mod tests {
 
         let upsert = &output.persistence.friend_log_upserts[0];
         assert_eq!(upsert.target_user_id, "usr_added");
-        // Never surface the raw user id as a display name; fall back to "Unknown".
         assert_eq!(upsert.display_name, "Unknown");
     }
 
@@ -217,8 +214,6 @@ mod tests {
 
     #[test]
     fn websocket_friend_update_does_not_demote_online_friend_to_offline() {
-        // VRChat's friend-update frequently carries content.user.state="offline" for a friend that
-        // is actually online/active. Presence must stay whatever the presence events established.
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(
             FriendRosterBaseline {
@@ -399,7 +394,6 @@ mod tests {
             1,
             0,
         );
-        // Real VRChat friend-active carries dirty content.user.state="offline" but means ACTIVE.
         let RealtimeFriendApplyResult::Output(output) =
             runtime.apply_ws_message(&RealtimeWsMessagePayload {
                 json: json!({
@@ -415,7 +409,6 @@ mod tests {
         else {
             panic!("friend-active should produce an output");
         };
-        // stays online with marker during the pending delay
         assert_eq!(output.projection.patches[0].state_bucket, "online");
         let PendingOfflineTimerAction::Schedule { token, .. } = output.timer_action else {
             panic!("online->active should schedule pending timer");
@@ -423,7 +416,6 @@ mod tests {
         let fired = runtime
             .fire_pending_offline("usr_friend", token, "2026-05-15T00:03:00Z".into())
             .unwrap();
-        // must resolve to active, NOT offline (dirty user.state ignored)
         assert_eq!(fired.projection.patches[0].state_bucket, "active");
     }
 

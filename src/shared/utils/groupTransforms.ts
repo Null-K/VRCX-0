@@ -1,8 +1,3 @@
-/**
- * Create a default group ref object.
- * @param {object} json - API response to merge
- * @returns {object}
- */
 export function createDefaultGroupRef(
     json: Record<string, unknown> = {}
 ): Record<string, any> {
@@ -30,7 +25,6 @@ export function createDefaultGroupRef(
         privacy: '',
         rules: null,
         tags: [],
-        // in group
         initialRoleIds: [],
         myMember: {
             bannedAt: null,
@@ -51,15 +45,12 @@ export function createDefaultGroupRef(
             _updated_at: ''
         },
         updatedAt: '',
-        // includeRoles: true
         roles: [],
-        // group list
         $memberId: '',
         groupId: '',
         isRepresenting: false,
         memberVisibility: false,
         mutualGroup: false,
-        // VRCX
         $languages: [],
         ...json
     };

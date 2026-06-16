@@ -571,9 +571,6 @@ mod tests {
             GameLogIngestOptions::default(),
         );
 
-        // Rust keeps a narrow compatibility fallback for log rows where join
-        // lacks a user_id but leave later includes one. Legacy Vue only keyed
-        // this path by userId.
         assert_eq!(output.batch.join_leave.len(), 2);
         assert_eq!(output.batch.join_leave[1].event_type, "OnPlayerLeft");
         assert_eq!(output.batch.join_leave[1].time, 30000);
@@ -634,7 +631,6 @@ mod tests {
             )],
             GameLogIngestOptions::default(),
         );
-        // Seeding after a real "Joining" line was observed must be ignored.
         engine.seed_current_location("wrld_seed:1".into(), "Seed".into());
         let output = engine.ingest_events(
             &[event(

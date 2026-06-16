@@ -99,7 +99,6 @@ impl FriendRosterBaseline {
     }
 }
 
-/// domain or version suffix. A `currentAvatarImageUrl` pointing at it means "no real avatar".
 pub const DEFAULT_AVATAR_FILE_ID: &str = "file_0e8c4e32-7444-44ea-ade4-313c010d4bae";
 
 pub fn strip_default_avatar_image(object: &mut Map<String, Value>) {

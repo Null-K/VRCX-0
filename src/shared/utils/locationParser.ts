@@ -109,11 +109,6 @@ function normalizeLaunchUrlTag(tag: string): string {
     return tag;
 }
 
-/**
- *
- * @param {string} tag
- * @returns
- */
 function normalizeLocationTag(tag: unknown): string {
     if (typeof tag === 'string') {
         return normalizeLaunchUrlTag(tag);
@@ -183,7 +178,6 @@ function parseLocation(tag: unknown): ParsedLocation {
     } else if (tag && !_tag.startsWith('local')) {
         ctx.isRealInstance = true;
         const sep = _tag.indexOf(':');
-        // technically not part of instance id, but might be there when coping id from url so why not support it
         const shortNameQualifier = '&shortName=';
         const shortNameIndex = _tag.indexOf(shortNameQualifier);
         if (shortNameIndex >= 0) {
@@ -227,23 +221,18 @@ function parseLocation(tag: unknown): ParsedLocation {
             ctx.accessType = 'public';
             if (ctx.privateId !== null) {
                 if (ctx.canRequestInvite) {
-                    // InvitePlus
                     ctx.accessType = 'invite+';
                 } else {
-                    // InviteOnly
                     ctx.accessType = 'invite';
                 }
                 ctx.userId = ctx.privateId;
             } else if (ctx.friendsId !== null) {
-                // FriendsOnly
                 ctx.accessType = 'friends';
                 ctx.userId = ctx.friendsId;
             } else if (ctx.hiddenId !== null) {
-                // FriendsOfGuests
                 ctx.accessType = 'friends+';
                 ctx.userId = ctx.hiddenId;
             } else if (ctx.groupId !== null) {
-                // Group
                 ctx.accessType = 'group';
             }
             ctx.accessTypeName = ctx.accessType;
@@ -261,10 +250,6 @@ function parseLocation(tag: unknown): ParsedLocation {
     return ctx;
 }
 
-/**
- * @param {object} L - A parsed location object from parseLocation()
- * @returns {string} region code (e.g. 'us', 'eu', 'jp') or empty string
- */
 function resolveRegion(L: ParsedLocation): string {
     if (L.isOffline || L.isPrivate || L.isTraveling) {
         return '';
@@ -278,12 +263,6 @@ function resolveRegion(L: ParsedLocation): string {
     return '';
 }
 
-/**
- * @param {string} accessTypeName - Raw access type name from parseLocation
- * @param {function} t - Translation function (e.g. i18n.global.t)
- * @param {object} keyMap - Mapping of access type names to locale keys
- * @returns {string} Translated access type label
- */
 function translateAccessType(
     accessTypeName: string,
     t: (key: string) => string,

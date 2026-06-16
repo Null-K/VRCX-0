@@ -8,19 +8,19 @@ import {
 import { isValidElement } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { userImage } from '@/services/entityMediaService';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
+import { userImage } from '@/services/entityMediaService';
 import { Button } from '@/ui/shadcn/button';
 import { CardTitle } from '@/ui/shadcn/card';
 import { Separator } from '@/ui/shadcn/separator';
 
 import { EntityOverviewCard } from '../../EntityDialogScaffold';
+import { formatStatsDuration } from '../userDialogRows';
 import {
     PreviousDisplayNamesBadge,
     UserTitleLanguages
 } from '../UserDialogViewParts';
-import { formatStatsDuration } from '../userDialogRows';
 import { UserDialogHeaderActions } from './UserDialogHeaderActions';
 import {
     hasRenderableUserProfileBadges,
@@ -372,9 +372,7 @@ export function UserDialogHeaderSection(props: any) {
                         <Button
                             type="button"
                             variant="ghost"
-                            aria-label={t(
-                                'dialog.user.action.open_user_icon'
-                            )}
+                            aria-label={t('dialog.user.action.open_user_icon')}
                             title={t('dialog.user.action.open_user_icon')}
                             className="bg-background/90 absolute right-3 bottom-3 size-16 overflow-hidden rounded-full border-2 border-white p-0 shadow-md"
                             onClick={onOpenUserIcon}
@@ -399,11 +397,9 @@ export function UserDialogHeaderSection(props: any) {
                                 title={statusStateText || undefined}
                                 className={cn(
                                     'inline-block size-2.5 shrink-0 rounded-full align-middle',
-                                    // Active-on-website statuses render as a hollow
-                                    // ring (border = status color, transparent center),
-                                    // matching the friends sidebar status dots.
-                                    statusDotClassName.includes('bg-background') &&
-                                        'border-2',
+                                    statusDotClassName.includes(
+                                        'bg-background'
+                                    ) && 'border-2',
                                     statusDotClassName
                                 )}
                             />

@@ -156,8 +156,6 @@ describe('gameLog utilities', () => {
                     userId: 'usr_old',
                     displayName: 'Old'
                 },
-                // Joined during the NEW session but stamped with an empty location
-                // (watcher resumed mid-instance) — must still land in the new session.
                 {
                     type: 'OnPlayerJoined',
                     created_at: '2024-01-01T11:05:00.000Z',
@@ -165,8 +163,6 @@ describe('gameLog utilities', () => {
                     userId: 'usr_empty',
                     displayName: 'Empty'
                 },
-                // Joined during the NEW session but stamped with a stale old location —
-                // stream order must win over the location field.
                 {
                     type: 'OnPlayerJoined',
                     created_at: '2024-01-01T11:06:00.000Z',

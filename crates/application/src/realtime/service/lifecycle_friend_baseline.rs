@@ -170,11 +170,6 @@ impl RealtimeHostRuntime {
             };
             active
         };
-        // A passive reconnect only resumes the event stream: replay the frames that queued during
-        // the handshake, then unpause. It must NOT re-pull /auth/user to overwrite the roster — a
-        // lagging onlineFriends list (eventual consistency) would otherwise revive a friend that a
-        // ws friend-offline already took offline. Mirrors upstream, where onclose just re-opens the
-        // socket; roster gap recovery is left to a manual refresh.
         self.drain_queued_friend_messages(active);
     }
 }

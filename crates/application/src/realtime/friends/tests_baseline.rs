@@ -57,7 +57,6 @@ mod tests {
 
     #[test]
     fn placeholder_baseline_refresh_keeps_ws_active_presence() {
-        // ws set "active"; a later refresh placeholder (stale-list "online") must not demote it.
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(
             FriendRosterBaseline {
@@ -114,7 +113,6 @@ mod tests {
 
     #[test]
     fn placeholder_baseline_refresh_does_not_resurrect_offline_friend() {
-        // ws set offline; a later refresh placeholder (stale "online") must not resurrect it.
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(
             FriendRosterBaseline {
@@ -170,7 +168,6 @@ mod tests {
 
     #[test]
     fn remote_baseline_refresh_still_updates_presence() {
-        // A remote row (live fetch returned the friend) is authoritative and must still override presence.
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(
             FriendRosterBaseline {
@@ -227,8 +224,6 @@ mod tests {
 
     #[test]
     fn ws_event_racing_refresh_is_preserved_over_baseline() {
-        // The baseline is now real-time, but a ws event that lands after a refresh started (raced
-        // the fetch) still outranks the baseline snapshot.
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(
             FriendRosterBaseline {
@@ -250,7 +245,6 @@ mod tests {
             1,
             0,
         );
-        // ws friend-online stamps friend_presence_updated_ms = now (> 0).
         let RealtimeFriendApplyResult::Output(_) =
             runtime.apply_ws_message(&RealtimeWsMessagePayload {
                 json: json!({
@@ -267,8 +261,6 @@ mod tests {
         else {
             panic!("friend-online should produce an output");
         };
-        // baseline_started_ms = 0 (before the ws event) → has_newer_ws → preserve ws online over the
-        // stale offline baseline row.
         runtime.set_baseline_with_started_at(
             FriendRosterBaseline {
                 current_user_id: "usr_self".into(),
@@ -301,8 +293,6 @@ mod tests {
 
     #[test]
     fn in_world_baseline_overrides_stale_active() {
-        // existing ws "active", but the fresh baseline now shows a real world location (online):
-        // the friend is genuinely in-world, so online wins over the stale active.
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(
             FriendRosterBaseline {
@@ -356,8 +346,6 @@ mod tests {
 
     #[test]
     fn placeholder_keeps_existing_display_name_not_id() {
-        // A placeholder (live fetch missed the profile) falls back to the id as displayName; the
-        // existing real name must be kept so the sidebar never shows a raw id.
         let runtime = RealtimeFriendsRuntime::new();
         runtime.set_baseline(
             FriendRosterBaseline {

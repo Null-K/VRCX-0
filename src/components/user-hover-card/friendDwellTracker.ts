@@ -92,7 +92,4 @@ export function getEstimatedDwellSince(userId: any, location: any) {
     return 0;
 }
 
-// Start tracking as soon as this module is loaded (the friend row statically
-// imports the hover card chain at app start) so dwell estimates accumulate from
-// launch rather than from the first hover.
 ensureStarted();

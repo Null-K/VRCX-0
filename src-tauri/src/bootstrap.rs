@@ -729,7 +729,6 @@ fn disable_windows_default_context_menu(app: &tauri::AppHandle) {
     #[cfg(target_os = "windows")]
     if let Some(webview) = app.get_webview_window("main") {
         if let Err(error) = webview.with_webview(|platform_webview| {
-            // Disable WebView2's browser-provided menu while preserving DOM contextmenu events.
             let result = unsafe {
                 platform_webview
                     .controller()

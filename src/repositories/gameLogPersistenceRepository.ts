@@ -65,7 +65,10 @@ function normalizeGameLogIdentifier(value: unknown) {
         : String(value ?? '').trim();
 }
 
-function addGameLogEntries(kind: GameLogKind, entries: GameLogEntry | GameLogEntry[]) {
+function addGameLogEntries(
+    kind: GameLogKind,
+    entries: GameLogEntry | GameLogEntry[]
+) {
     return tauriClient.app.GameLogEntriesAdd({
         kind,
         entries: Array.isArray(entries) ? entries : [entries]
@@ -131,7 +134,7 @@ function rememberGameLogWorldName(worldId: unknown, worldName: unknown) {
 const gameLog = {
     async getGamelogDatabase(maxTableSize: number = DEFAULT_MAX_TABLE_SIZE) {
         var date = new Date();
-        date.setDate(date.getDate() - 1); // 24 hour limit
+        date.setDate(date.getDate() - 1);
         var dateOffset = date.toJSON();
         const rows = await queryGameLog('recentDatabase', {
             dateOffset,
@@ -235,7 +238,9 @@ const gameLog = {
             displayName: input.displayName,
             inCurrentWorld
         })) as GameLogRow;
-        const ref: GameLogRow & { previousDisplayNames: Map<unknown, unknown> } = {
+        const ref: GameLogRow & {
+            previousDisplayNames: Map<unknown, unknown>;
+        } = {
             ...(result || {}),
             previousDisplayNames: new Map()
         };
@@ -289,14 +294,6 @@ const gameLog = {
         return Array.isArray(rows) ? rows : [];
     },
 
-    /**
-     * Lookup the game log database for a specific search term
-     * @param {string} search The search term
-     * @param {Array} filters The filters to apply
-     * @param {Array} [vipList] The list of VIP users
-     * @returns game log rows
-     */
-
     async searchGameLogDatabase(
         search: string,
         filters: string[],
@@ -323,7 +320,7 @@ const gameLog = {
 
     async getLastDateGameLogDatabase() {
         var date = new Date().toJSON();
-        var dateOffset = new Date(Date.now() - 86400000).toJSON(); // 24 hours
+        var dateOffset = new Date(Date.now() - 86400000).toJSON();
         const newDate = await queryGameLog('lastDate');
         if (
             typeof newDate === 'string' &&
@@ -372,7 +369,7 @@ const gameLog = {
 
     async getPreviousInstancesByUserId(input: GameLogUserIdentity) {
         const normalizedUserId = normalizeGameLogIdentifier(input?.id);
-        var groupingTimeTolerance = 1 * 60 * 60 * 1000; // 1 hour
+        var groupingTimeTolerance = 1 * 60 * 60 * 1000;
         var data = new Set<PreviousInstanceGroup>();
         var currentGroup: PreviousInstanceGroup | undefined;
         var prevEvent: unknown;
@@ -440,35 +437,34 @@ const gameLog = {
             location
         });
         for (const rowData of Array.isArray(rows) ? rows : []) {
-                var time = 0;
-                var count = 0;
-                var rowId = rowData.rowId;
-                var created_at = rowData.created_at;
-                var displayName = normalizeGameLogIdentifier(rowData.displayName);
-                var userId = normalizeGameLogIdentifier(rowData.userId);
-                var playerKey =
-                    userId || `${displayName || 'anonymous'}:${rowId}`;
-                if (rowData.time) {
-                    time = rowData.time;
-                }
-                var ref = players.get(playerKey);
-                if (typeof ref !== 'undefined') {
-                    time += ref.time;
-                    count = ref.count;
-                    created_at = ref.created_at;
-                }
-                if (rowData.type === 'OnPlayerJoined') {
-                    count++;
-                }
-                var row: InstancePlayerAggregate = {
-                    rowId,
-                    created_at,
-                    displayName: ref?.displayName || displayName,
-                    userId,
-                    time,
-                    count
-                };
-                players.set(playerKey, row);
+            var time = 0;
+            var count = 0;
+            var rowId = rowData.rowId;
+            var created_at = rowData.created_at;
+            var displayName = normalizeGameLogIdentifier(rowData.displayName);
+            var userId = normalizeGameLogIdentifier(rowData.userId);
+            var playerKey = userId || `${displayName || 'anonymous'}:${rowId}`;
+            if (rowData.time) {
+                time = rowData.time;
+            }
+            var ref = players.get(playerKey);
+            if (typeof ref !== 'undefined') {
+                time += ref.time;
+                count = ref.count;
+                created_at = ref.created_at;
+            }
+            if (rowData.type === 'OnPlayerJoined') {
+                count++;
+            }
+            var row: InstancePlayerAggregate = {
+                rowId,
+                created_at,
+                displayName: ref?.displayName || displayName,
+                userId,
+                time,
+                count
+            };
+            players.set(playerKey, row);
         }
         return players;
     },
@@ -490,10 +486,6 @@ const gameLog = {
         return Array.isArray(rows) ? rows : [];
     },
 
-    /**
-     * @param {string} location
-     * @returns {Promise<Array<{created_at: string, display_name: string, user_id: string, time: number}>>}
-     */
     async getPlayerDetailFromInstance(location: unknown) {
         const rows = await queryGameLog('playerDetailFromInstance', {
             location
@@ -532,14 +524,6 @@ const gameLog = {
         return instances;
     },
 
-    /**
-     * Get current user's online sessions from gamelog_location
-     * Each row has created_at (leave time) and time (duration in ms)
-     * Session start = created_at - time, Session end = created_at
-     * @param {number} [fromDays=0] - How many days back to start (0 = all time)
-     * @param {number} [toDays=0] - How many days back to stop (0 = now)
-     * @returns {Promise<Array<{created_at: string, time: number}>>}
-     */
     async getCurrentUserOnlineSessions(
         fromDays: number = 0,
         toDays: number = 0
@@ -562,12 +546,6 @@ const gameLog = {
         return Array.isArray(rows) ? rows : [];
     },
 
-    /**
-     * Get current user's online sessions after a given timestamp (incremental).
-     * @param {string} afterCreatedAt - Only return rows created after this timestamp
-     * @param {boolean} [inclusive=false] - If true, use >= instead of > to re-read the last record
-     * @returns {Promise<Array<{created_at: string, time: number}>>}
-     */
     async getCurrentUserOnlineSessionsAfter(
         afterCreatedAt: unknown,
         inclusive: boolean = false
@@ -579,15 +557,6 @@ const gameLog = {
         return Array.isArray(rows) ? rows : [];
     },
 
-    /**
-     * Get current user's top visited worlds from gamelog_location.
-     * Groups by world_id and aggregates visit count and total time.
-     * @param {number} [days] - Number of days to look back. Omit or 0 for all time.
-     * @param {number} [limit=5] - Maximum number of worlds to return.
-     * @param {'time'|'count'} [sortBy='time'] - Sort by total time or visit count.
-     * @param {string} [excludeWorldId=''] - Optional world ID to exclude from results.
-     * @returns {Promise<Array<{worldId: string, worldName: string, visitCount: number, totalTime: number}>>}
-     */
     async getMyTopWorlds(
         days: number = 0,
         limit: number = 5,
@@ -607,14 +576,6 @@ const gameLog = {
         return queryGameLog('userIdFromDisplayName', { displayName });
     },
 
-    /**
-     *
-     * @param {string} startDate: utc string of startOfDay
-     * @param {string} endDate: utc string endOfDay
-     * @param startDate
-     * @param endDate
-     * @returns
-     */
     async getInstanceActivity(
         startDate: unknown,
         endDate: unknown,
@@ -628,7 +589,6 @@ const gameLog = {
             endDate
         });
         for (const rowData of Array.isArray(rows) ? rows : []) {
-            // skip dirty data
             if (!rowData.location || rowData.location === 'traveling') {
                 continue;
             }
@@ -647,10 +607,6 @@ const gameLog = {
         return { currentUserData, detailData };
     },
 
-    /**
-     * Get the All Date of Instance Activity for the current user
-     * @returns {Promise<string[]>}
-     */
     async getDateOfInstanceActivity(currentUserId: unknown = '') {
         const result = await queryGameLog('dateOfInstanceActivity', {
             userId: normalizeCurrentUserId(currentUserId)
@@ -741,14 +697,6 @@ const gameLog = {
         });
     },
 
-    // ── Sessions view queries (read-only, no existing behavior changed) ──
-
-    /**
-     * Get Location segments paginated by cursor (id DESC).
-     * @param {number|null} beforeId - cursor: only return rows with id < beforeId. null = latest.
-     * @param {number} limit - how many segments to fetch.
-     * @returns {Promise<Array<{id: number, created_at: string, location: string, worldId: string, worldName: string, time: number, groupName: string}>>}
-     */
     async getSessionsLocationSegments(beforeId: unknown, limit: number) {
         const rows = await queryGameLog('sessionsLocationSegments', {
             beforeId,
@@ -770,13 +718,6 @@ const gameLog = {
         return Array.isArray(rows) ? rows : [];
     },
 
-    /**
-     * Get join/leave and video_play events for a set of location tags within a date range.
-     * @param {string[]} locationTags - location values to match
-     * @param {string} afterDate - ISO date (inclusive lower bound)
-     * @param {string} beforeDate - ISO date (inclusive upper bound, with padding)
-     * @returns {Promise<Array<object>>}
-     */
     async getSessionsEventsForSegments(
         locationTags: string[],
         afterDate: unknown,
@@ -792,14 +733,10 @@ const gameLog = {
         return Array.isArray(rows) ? rows : [];
     },
 
-    /**
-     * Get Location segments from a given date onwards (for anchor jumps).
-     * Returns segments with created_at >= sinceDate, capped by limit, ordered id DESC.
-     * @param {string} sinceDate - ISO date string
-     * @param {number} limit - max segments to return
-     * @returns {Promise<Array<object>>}
-     */
-    async getSessionsLocationSegmentsByAnchor(sinceDate: unknown, limit: number) {
+    async getSessionsLocationSegmentsByAnchor(
+        sinceDate: unknown,
+        limit: number
+    ) {
         const rows = await queryGameLog('sessionsLocationSegmentsByAnchor', {
             sinceDate,
             limit

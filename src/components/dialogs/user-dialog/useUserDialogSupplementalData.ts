@@ -231,9 +231,7 @@ export function useUserDialogSupplementalData({
                     rows: nextInstances
                 });
             })
-            .catch(() => {
-                // Keep the last visible rows while a refresh fails.
-            });
+            .catch(() => {});
 
         return () => {
             active = false;
@@ -311,9 +309,7 @@ export function useUserDialogSupplementalData({
                     return mergedStats;
                 });
             })
-            .catch(() => {
-                // Keep the last visible stats while a refresh fails.
-            });
+            .catch(() => {});
 
         return () => {
             active = false;
@@ -364,9 +360,7 @@ export function useUserDialogSupplementalData({
                     return nextStats;
                 });
             })
-            .catch(() => {
-                // Keep cached stats while mutual count refresh fails.
-            });
+            .catch(() => {});
 
         return () => {
             active = false;
@@ -416,9 +410,7 @@ export function useUserDialogSupplementalData({
                     friendedAt
                 }));
             })
-            .catch(() => {
-                // Keep the visible activity summary while friend history is unavailable.
-            });
+            .catch(() => {});
 
         return () => {
             active = false;

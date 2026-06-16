@@ -460,9 +460,6 @@ mod tests {
         let sink = RealtimeHostRuntimeMessageSink {
             runtime: Arc::clone(&runtime),
         };
-        // A passive reconnect (reconnecting -> connected) must only resume the event stream; it must
-        // not re-pull /auth/user to overwrite the roster the ws established, so the friend keeps the
-        // state/location the ws set.
         sink.handle_realtime_transport_status(
             active.generation,
             active.session_generation,

@@ -1,12 +1,3 @@
-/**
- * Centralized config key registry.
- *
- * Every config key lives here. Adding a new setting =
- * add one line to this file + use it anywhere via configRepository.
- *
- * DB storage format: "config:vrcx_{key_lowercase}"
- */
-
 export type ConfigValueType = 'string' | 'int' | 'bool' | 'float';
 export type ConfigDefaultValue = string | number | boolean | null;
 
@@ -266,13 +257,8 @@ export const ConfigKeys = {
 
 export type ConfigKeyName = keyof typeof ConfigKeys;
 
-/** DB key prefix */
 export const DB_KEY_PREFIX = 'config:vrcx_';
 
-/**
- * Schema name → DB key
- * e.g. "appLanguage" → "config:vrcx_applanguage"
- */
 export function toDbKey(name: string): string {
     return `${DB_KEY_PREFIX}${name.toLowerCase()}`;
 }

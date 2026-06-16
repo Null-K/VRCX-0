@@ -32,8 +32,6 @@ export function useFriendLogResolvedNames(
     const [namesById, setNamesById] = useState<Record<string, string>>({});
     const attemptedRef = useRef<Set<string>>(new Set());
 
-    // Names available without a network call: the row's own valid name, the live roster
-    // (still-friends), or a profile already cached this session (e.g. an opened user dialog).
     const resolveSyncName = useCallback(
         (userId: string, rowDisplayName: any) => {
             const own = resolveDisplayNameCandidate(rowDisplayName, userId);
@@ -53,8 +51,6 @@ export function useFriendLogResolvedNames(
         [friendsById, endpoint]
     );
 
-    // friend_log_current holds the maintained name per friend; reload it with the roster so a
-    // freshly-corrected name appears without a manual refresh.
     useEffect(() => {
         const normalizedCurrentUserId = normalizeUserId(currentUserId);
         if (!normalizedCurrentUserId) {
@@ -96,9 +92,6 @@ export function useFriendLogResolvedNames(
         };
     }, [currentUserId, friendRosterLastLoadedAt]);
 
-    // For rows still showing a user id, resolve locally via game log first, then fall back to the
-    // VRChat API. attemptedRef bounds each id to a single lookup pass so unresolved strangers never
-    // re-hit the API on every re-render.
     useEffect(() => {
         const missing: string[] = [];
         const seen = new Set<string>();
@@ -147,9 +140,7 @@ export function useFriendLogResolvedNames(
                         resolved[userId] = displayName;
                     }
                 }
-            } catch {
-                // Local stats are best-effort; fall through to the API lookup.
-            }
+            } catch {}
 
             const apiTargets = missing
                 .filter((userId) => !resolved[userId])
@@ -170,9 +161,7 @@ export function useFriendLogResolvedNames(
                     if (displayName) {
                         resolved[userId] = displayName;
                     }
-                } catch {
-                    // Deleted/unknown users 404 here; leave them unresolved.
-                }
+                } catch {}
             }
 
             if (!active || Object.keys(resolved).length === 0) {

@@ -844,8 +844,6 @@ mod tests {
             "SELECT user_id FROM usrself_friend_log_history WHERE user_id = @user_id",
             &ParamsBuilder::new().set("user_id", "usr_friend").build(),
         )?;
-        // New friend writes one Friend history row; the repeated upsert takes the UPDATE branch and,
-        // with force_history=false, must not append a duplicate.
         assert_eq!(history.len(), 1);
         Ok(())
     }
@@ -875,7 +873,6 @@ mod tests {
             "SELECT display_name FROM usrself_friend_log_current WHERE user_id = @user_id",
             &ParamsBuilder::new().set("user_id", "usr_friend").build(),
         )?;
-        // A blank event name must never persist the raw user id; it lands as "Unknown".
         assert_eq!(current[0][0], json!("Unknown"));
         Ok(())
     }

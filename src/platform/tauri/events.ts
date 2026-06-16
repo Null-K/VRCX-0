@@ -54,17 +54,18 @@ async function ensureTauriSubscription(name: string): Promise<UnlistenFn> {
     bucket.promise = (async () => {
         try {
             const listen = await loadListen();
-            const unlisten = await listen<unknown>(name, (event: Event<unknown>) => {
-                dispatch(name, event.payload);
-            });
+            const unlisten = await listen<unknown>(
+                name,
+                (event: Event<unknown>) => {
+                    dispatch(name, event.payload);
+                }
+            );
             bucket.unlisten = unlisten;
 
             if (!listeners.has(name) || listeners.get(name)?.size === 0) {
                 try {
                     unlisten();
-                } catch {
-                    // ignore cleanup errors
-                }
+                } catch {}
                 tauriRegistrations.delete(name);
             }
 
@@ -91,10 +92,7 @@ export async function onTauriEvent(
     return () => offTauriEvent(name, handler);
 }
 
-export function offTauriEvent(
-    name: string,
-    handler: TauriEventHandler
-): void {
+export function offTauriEvent(name: string, handler: TauriEventHandler): void {
     const bucket = listeners.get(name);
     if (!bucket) {
         return;
@@ -107,9 +105,7 @@ export function offTauriEvent(
         if (registration?.unlisten) {
             try {
                 registration.unlisten();
-            } catch {
-                // ignore cleanup errors
-            }
+            } catch {}
             tauriRegistrations.delete(name);
         }
     }
@@ -125,9 +121,7 @@ export function clearTauriEventListeners(name: string | null = null): void {
             if (registration?.unlisten) {
                 try {
                     registration.unlisten();
-                } catch {
-                    // ignore cleanup errors
-                }
+                } catch {}
             }
         }
         listeners.clear();
@@ -140,9 +134,7 @@ export function clearTauriEventListeners(name: string | null = null): void {
     if (registration?.unlisten) {
         try {
             registration.unlisten();
-        } catch {
-            // ignore cleanup errors
-        }
+        } catch {}
     }
     tauriRegistrations.delete(name);
 }

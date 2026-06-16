@@ -21,8 +21,6 @@ pub use windows::IpcServer;
 use crate::error::AppError;
 
 pub trait IpcEventSink: Send + Sync {
-    // Windows pipes dispatch inbound local IPC through this sink. Linux/macOS
-    // keep the same constructor shape but do not currently run a local server.
     #[cfg_attr(not(target_os = "windows"), allow(dead_code))]
     fn on_ipc_event(&self, packet: &str) -> Result<IpcEventDisposition, AppError>;
 }

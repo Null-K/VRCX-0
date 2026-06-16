@@ -20,10 +20,6 @@ interface StatusInfo {
     hidePrivate: boolean;
 }
 
-/**
- * RPC world configuration table.
- * Maps worldId → { activityType, statusDisplayType, appId, bigIcon }.
- */
 const RPC_WORLD_CONFIGS = new Map<string, RpcWorldConfig>([
     // PyPyDance
     [
@@ -149,17 +145,11 @@ const RPC_WORLD_CONFIGS = new Map<string, RpcWorldConfig>([
     ]
 ]);
 
-/** Set of Popcorn Palace world IDs (big icon can be overridden by thumbnail) */
 const POPCORN_PALACE_WORLD_IDS = new Set([
     'wrld_266523e8-9161-40da-acd0-6bd82e075833',
     'wrld_27c7e6b2-d938-447e-a270-3d1a873e2cf3'
 ]);
 
-/**
- * Get custom world rpc configuration for a specific world ID.
- * @param {string} worldId
- * @returns {{ activityType: number, statusDisplayType: number, appId: string, bigIcon: string } | null}
- */
 export function getRpcWorldConfig(worldId: string): RpcWorldConfig | null {
     const config = RPC_WORLD_CONFIGS.get(worldId);
     if (!config) {
@@ -168,23 +158,10 @@ export function getRpcWorldConfig(worldId: string): RpcWorldConfig | null {
     return { ...config };
 }
 
-/**
- * Check if a world ID is a Popcorn Palace world.
- * @param {string} worldId
- * @returns {boolean}
- */
 export function isPopcornPalaceWorld(worldId: string): boolean {
     return POPCORN_PALACE_WORLD_IDS.has(worldId);
 }
 
-/**
- * Get the platform display label for Discord RPC.
- * @param {string} platform - VRC platform string (e.g. 'standalonewindows', 'android')
- * @param {boolean} isGameRunning
- * @param {boolean} isGameNoVR
- * @param {Function} t - i18n translate function
- * @returns {string} Platform label string (e.g. ' (VR)', ' (PC)'), or empty string
- */
 export function getPlatformLabel(
     platform: string,
     isGameRunning: boolean,
@@ -210,13 +187,6 @@ export function getPlatformLabel(
     }
 }
 
-/**
- * Get Discord status info from VRC user status.
- * @param {string} status - VRC user status ('active', 'join me', 'ask me', 'busy')
- * @param {boolean} discordHideInvite - Whether invite-hiding is enabled
- * @param {Function} t - i18n translate function
- * @returns {{ statusName: string, statusImage: string, hidePrivate: boolean }}
- */
 export function getStatusInfo(
     status: string,
     discordHideInvite: boolean,

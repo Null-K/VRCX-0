@@ -61,7 +61,6 @@ pub(super) fn apply_refetched_friend_profile_event(
 #[derive(Clone, Copy)]
 struct FriendEventOptions {
     emit_profile_diff_feed: bool,
-    // A profile refetch (getUser) carries an authoritative state; a ws friend-update does not.
     trust_event_state: bool,
 }
 
@@ -150,7 +149,6 @@ fn apply_friend_event_with_options(
             let user_id = event_user_id(content)?;
             let mut patch =
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
-            // A ws friend-update with no profile change beyond the id is a no-op; a refetch always applies.
             if !options.trust_event_state
                 && patch.as_object().map(|object| object.len()).unwrap_or(0) <= 1
             {
@@ -161,7 +159,6 @@ fn apply_friend_event_with_options(
             let state_bucket = if options.trust_event_state {
                 resolve_state_bucket(content, &patch, previous.as_ref(), "offline")
             } else {
-                // content.user.state is unreliable here (often a stale "offline"); keep ws-driven presence.
                 previous
                     .as_ref()
                     .and_then(|previous| {
@@ -174,7 +171,6 @@ fn apply_friend_event_with_options(
                     .unwrap_or("offline")
                     .to_string()
             };
-            // Only the authoritative refetch state finalizes/cancels a pending-offline timer.
             if options.trust_event_state && state.pending_offline.remove(&user_id).is_some() {
                 if let Some(patch_object) = patch.as_object_mut() {
                     patch_object.insert("pendingOffline".into(), Value::Bool(false));
@@ -259,7 +255,6 @@ fn apply_friend_event_with_options(
                 event_user_patch(content, &user_id).unwrap_or_else(|| json!({ "id": user_id }));
             let resolved_state = if message_type == "friend-active" {
                 let resolved = resolve_state_bucket(content, &user_patch, None, next_state);
-                // friend-active is never truly offline; dirty content.user.state="offline" falls back to active.
                 if resolved == "offline" {
                     next_state.to_string()
                 } else {
@@ -580,7 +575,6 @@ pub(super) fn apply_patch_to_state_with_authority(
     state_bucket: &str,
     state_bucket_authority: &str,
 ) {
-    // Merge onto the typed record directly; avoids camelCase/snake_case alias key collisions from a record->Map->record round-trip.
     let mut record = state
         .baseline
         .as_ref()
@@ -876,7 +870,6 @@ fn is_named_field_key(key: &str) -> bool {
     FRIEND_NAMED_FIELD_KEYS.contains(&key)
 }
 
-// Tolerant read: accept only string values, first matching alias wins; null/missing keep the old value, unexpected types surface to log.
 fn patch_str(patch: &Map<String, Value>, keys: &[&str]) -> Option<String> {
     for key in keys {
         match patch.get(*key) {
@@ -937,7 +930,6 @@ fn apply_value_patch_to_record(record: &mut FriendRecord, patch: &Map<String, Va
     if let Some(value) = patch_str(patch, &["currentAvatarName"]) {
         record.current_avatar_name = value;
     }
-    // Unknown keys go to extra; exclude named-field aliases so re-serialization never produces duplicate synonym keys.
     for (key, value) in patch {
         if is_named_field_key(key) {
             continue;

@@ -18,8 +18,6 @@ export const NOTIFICATION_LIFECYCLE_ORDER: NotificationLifecycleBucket[] = [
     'system'
 ];
 
-// Exact-match sets: group.invite/joinRequest/transfer/queueReady need action while
-// group.announcement/informative fall to system, so a `group.` prefix won't do.
 const ACTION_TYPES = new Set<string>([
     'friendRequest',
     'invite',
@@ -67,8 +65,6 @@ export function groupDrawerEntries(
     }
     for (const bucket of NOTIFICATION_LIFECYCLE_ORDER) {
         groups[bucket].sort((left: any, right: any) => {
-            // queueReady expires fast — pin it to the top of the action bucket,
-            // falling back to newest-first within the same priority.
             if (bucket === 'action') {
                 const leftQueue =
                     left.notification?.type === 'group.queueReady' ? 0 : 1;

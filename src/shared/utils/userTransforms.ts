@@ -17,15 +17,6 @@ export interface ObjectDiffResult {
     changedProps: Record<string, true | [unknown, unknown]>;
 }
 
-/**
- * Sanitize user JSON fields before applying to cache.
- * Applies replaceBioSymbols to statusDescription, bio, note;
- * removeEmojis to statusDescription;
- * strips robot avatar URL.
- * @param {object} json - Raw user API response
- * @param {string} robotUrl - The robot/default avatar URL to strip
- * @returns {object} The mutated json (same reference)
- */
 export function sanitizeUserJson(
     json: UserRecord,
     robotUrl: string
@@ -48,21 +39,6 @@ export function sanitizeUserJson(
     return json;
 }
 
-/**
- * Compute trust level, moderator status, and troll status from user tags.
- * Pure function — no store dependencies.
- * @param {string[]} tags - User tags array
- * @param {string} developerType - User's developerType field
- * @returns {{
- *   trustLevel: string,
- *   trustClass: string,
- *   trustSortNum: number,
- *   isModerator: boolean,
- *   isTroll: boolean,
- *   isProbableTroll: boolean,
- *   trustColorKey: string
- * }}
- */
 export function computeTrustLevel(
     tags: string[],
     developerType: string
@@ -127,12 +103,6 @@ export function computeTrustLevel(
     };
 }
 
-/**
- * Determine the effective user platform.
- * @param {string} platform - Current platform
- * @param {string} lastPlatform - Last known platform
- * @returns {string} Resolved platform
- */
 export function computeUserPlatform(
     platform?: string,
     lastPlatform?: string
@@ -143,14 +113,6 @@ export function computeUserPlatform(
     return lastPlatform || '';
 }
 
-/**
- * Detect which properties changed between an existing ref and incoming JSON.
- * Compares primitives directly; arrays via arraysMatchFn.
- * @param {object} ref - The existing cached object
- * @param {object} json - The incoming update
- * @param {(a: any[], b: any[]) => boolean} arraysMatchFn - Function to compare arrays
- * @returns {{ hasPropChanged: boolean, changedProps: object }}
- */
 export function diffObjectProps(
     ref: UserRecord,
     json: UserRecord,
@@ -159,7 +121,6 @@ export function diffObjectProps(
     const changedProps: Record<string, true | [unknown, unknown]> = {};
     let hasPropChanged = false;
 
-    // Only compare primitive values
     for (const prop in ref) {
         if (typeof json[prop] === 'undefined') {
             continue;
@@ -169,7 +130,6 @@ export function diffObjectProps(
         }
     }
 
-    // Check json props against ref (including array comparison)
     for (const prop in json) {
         if (typeof ref[prop] === 'undefined') {
             continue;
@@ -183,7 +143,6 @@ export function diffObjectProps(
         }
     }
 
-    // Resolve actual changes
     for (const prop in changedProps) {
         const asIs = ref[prop];
         const toBe = json[prop];
@@ -198,12 +157,6 @@ export function diffObjectProps(
     return { hasPropChanged, changedProps };
 }
 
-/**
- * Create a default user ref object with all expected fields.
- * Returns a plain object (caller wraps in reactive() if needed).
- * @param {object} json - API response to merge
- * @returns {object} Default user object with json spread on top
- */
 export function createDefaultUserRef<TUser extends UserRecord>(
     json: TUser
 ): TUser & UserRecord {
@@ -245,9 +198,7 @@ export function createDefaultUserRef<TUser extends UserRecord>(
         travelingToWorld: '',
         userIcon: '',
         worldId: '',
-        // only in bulk request
         fallbackAvatar: '',
-        // VRCX
         $location: {},
         $location_at: Date.now(),
         $online_for: Date.now(),
@@ -275,7 +226,6 @@ export function createDefaultUserRef<TUser extends UserRecord>(
         $friendNumber: 0,
         $platform: '',
         $moderations: {},
-        //
         ...json
     };
 }

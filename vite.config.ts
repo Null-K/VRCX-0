@@ -8,29 +8,19 @@ import browserslist from 'browserslist';
 import { browserslistToTargets } from 'lightningcss';
 import { defineConfig } from 'vite';
 
-/**
- *
- * @param assetId
- */
 function getAssetLanguage(assetId) {
     if (!assetId) return null;
 
-    const language =
-        // Font assets, e.g., noto-sans-jp-regular.woff2 mapped to language code.
-        {
-            jp: 'ja',
-            sc: 'zh-CN',
-            tc: 'zh-TW',
-            kr: 'ko'
-        }[assetId.split('noto-sans-')[1]?.split('-')[0]];
+    const language = {
+        jp: 'ja',
+        sc: 'zh-CN',
+        tc: 'zh-TW',
+        kr: 'ko'
+    }[assetId.split('noto-sans-')[1]?.split('-')[0]];
 
     return language || null;
 }
 
-/**
- *
- * @param moduleId
- */
 function getManualChunk(moduleId) {
     const basename = moduleId.split('/').pop();
     const language = getAssetLanguage(basename);
@@ -62,17 +52,10 @@ function getPlatformBuildTarget() {
     }
 }
 
-/**
- * @param {string} name
- */
 function isFont(name) {
     return /\.(woff2?|ttf|otf|eot)$/.test(name);
 }
 
-/**
- *
- * @param {import('rolldown').PreRenderedAsset} assetInfo
- */
 function getAssetFilename({ name }) {
     const language = getAssetLanguage(name);
     if (!language) return `assets/${defaultAssetName}`;

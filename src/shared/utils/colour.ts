@@ -1,11 +1,3 @@
-/**
- * Minimal MD5 implementation for user ID → hue colour mapping.
- * Only used for deterministic colour generation, not for security.
- *
- * Matches the C# implementation:
- *   MD5(userId) → (hash[3] << 8) | hash[4]
- */
-
 /* eslint-disable no-bitwise */
 
 const S = [
@@ -34,15 +26,13 @@ function md5(input: string): Uint8Array {
     const msg = encoder.encode(input);
     const bitLen = msg.length * 8;
 
-    // Pre-processing: padding
     const padLen = (56 - ((msg.length + 1) % 64) + 64) % 64;
     const buf = new Uint8Array(msg.length + 1 + padLen + 8);
     buf.set(msg);
     buf[msg.length] = 0x80;
-    // Append original length in bits as 64-bit LE
     const view = new DataView(buf.buffer);
     view.setUint32(buf.length - 8, bitLen >>> 0, true);
-    view.setUint32(buf.length - 4, 0, true); // high 32 bits (always 0 for short strings)
+    view.setUint32(buf.length - 4, 0, true);
 
     let a0 = 0x67452301;
     let b0 = 0xefcdab89;
@@ -89,7 +79,6 @@ function md5(input: string): Uint8Array {
         d0 = (d0 + D) >>> 0;
     }
 
-    // Build hash bytes (little-endian)
     const hash = new Uint8Array(16);
     const hv = new DataView(hash.buffer);
     hv.setUint32(0, a0, true);
@@ -99,21 +88,11 @@ function md5(input: string): Uint8Array {
     return hash;
 }
 
-/**
- * Compute a deterministic 16-bit hue value from a VRChat user ID.
- * Matches the C# implementation: MD5(userId) → (byte[3] << 8) | byte[4]
- *
- * @returns 0-65535
- */
 export function getColourFromUserID(userId: string): number {
     const hash = md5(userId);
     return (hash[3] << 8) | hash[4];
 }
 
-/**
- * Batch version: returns a map of userId → hue for each given ID.
- *
- */
 export function getColourBulk(
     userIds: Iterable<string>
 ): Record<string, number> {
