@@ -22,6 +22,7 @@ interface FriendsPageInput {
 interface FriendEndpointInput {
     userId?: unknown;
     endpoint?: string;
+    isFriend?: boolean | null;
 }
 
 interface CancelFriendRequestInput extends FriendEndpointInput {
@@ -111,7 +112,11 @@ async function getAllFriends({
     return friends;
 }
 
-async function getUser({ userId, endpoint = '' }: FriendEndpointInput) {
+async function getUser({
+    userId,
+    endpoint = '',
+    isFriend = null
+}: FriendEndpointInput) {
     const normalizedUserId =
         typeof userId === 'string'
             ? userId.trim()
@@ -122,7 +127,8 @@ async function getUser({ userId, endpoint = '' }: FriendEndpointInput) {
 
     const response = await tauriClient.app.VrchatUserGet({
         userId: normalizedUserId,
-        endpoint
+        endpoint,
+        isFriend
     });
     return unwrapVrchatFriendResponse<FriendRecord>(
         response,

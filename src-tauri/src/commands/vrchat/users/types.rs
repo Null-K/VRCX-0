@@ -10,6 +10,10 @@ pub struct VrchatUserInput {
     pub(crate) user_id: String,
     #[serde(default)]
     pub(crate) force: bool,
+    #[serde(default)]
+    pub(crate) dialog: bool,
+    #[serde(default)]
+    pub(crate) is_friend: Option<bool>,
 }
 
 #[derive(Debug, Deserialize)]

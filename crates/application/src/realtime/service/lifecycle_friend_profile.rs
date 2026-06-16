@@ -1,6 +1,7 @@
 use super::message_dispatch::json_string_field;
 use super::types::ActiveRealtimeContext;
 use super::*;
+use crate::realtime::user_query_cache::UserQueryKind;
 use crate::vrchat_api::VrchatApiResponse;
 use vrcx_0_core::user_facts::UserFactMergeOptions;
 
@@ -59,6 +60,15 @@ impl RealtimeHostRuntime {
         ) {
             RealtimeFriendApplyResult::Output(output) => {
                 self.apply_friend_output(*output);
+                let runtime = Arc::clone(self);
+                let endpoint = requested_endpoint.clone();
+                let user_id = normalized_user_id.clone();
+                self.deps.tasks.spawn(async move {
+                    runtime
+                        .user_query_cache
+                        .invalidate_user(&endpoint, &user_id)
+                        .await;
+                });
                 Ok(true)
             }
             RealtimeFriendApplyResult::MissingBaseline | RealtimeFriendApplyResult::Ignored => {
@@ -199,16 +209,20 @@ impl RealtimeHostRuntime {
         endpoint: String,
         user_id_input: String,
         force: bool,
+        dialog: bool,
+        is_friend: Option<bool>,
     ) -> Result<VrchatApiResponse> {
         let (user_id, request) = remote_users::user_get_input(endpoint.clone(), user_id_input)?;
-        let key = format!("{endpoint}::{user_id}");
+        let kind = UserQueryKind::from_request(dialog, is_friend);
         if force {
-            self.user_query_cache.invalidate(&key).await;
+            self.user_query_cache
+                .invalidate_user(&endpoint, &user_id)
+                .await;
         }
         let runtime = Arc::clone(self);
         let response = self
             .user_query_cache
-            .get_or_fetch(key.clone(), async move {
+            .get_or_fetch(kind, &endpoint, &user_id, async move {
                 let resp = runtime
                     .deps
                     .web
@@ -218,8 +232,13 @@ impl RealtimeHostRuntime {
             })
             .await
             .map_err(|error| Error::Custom(format!("getUser query cache: {error}")))?;
-        if !(200..300).contains(&response.status) {
-            self.user_query_cache.invalidate(&key).await;
+        let status = response.status;
+        if !(200..300).contains(&status)
+            && !crate::realtime::user_query_cache::is_negative_cacheable_status(status)
+        {
+            self.user_query_cache
+                .invalidate(kind, &endpoint, &user_id)
+                .await;
         }
         self.ingest_user_get_response(&endpoint, &user_id, &response);
         let mut value = (*response).clone();
@@ -232,6 +251,15 @@ impl RealtimeHostRuntime {
             }
         }
         Ok(value)
+    }
+
+    pub async fn invalidate_user_query_cache(&self, endpoint: &str, user_id: &str) {
+        if user_id.trim().is_empty() {
+            return;
+        }
+        self.user_query_cache
+            .invalidate_user(endpoint, user_id)
+            .await;
     }
 
     fn ingest_user_get_response(
@@ -423,7 +451,12 @@ impl RealtimeHostRuntime {
             profile,
             &chrono::Utc::now().to_rfc3339(),
         ) {
-            RealtimeFriendApplyResult::Output(output) => self.apply_friend_output(*output),
+            RealtimeFriendApplyResult::Output(output) => {
+                self.apply_friend_output(*output);
+                self.user_query_cache
+                    .invalidate_user(&active.session.endpoint, &user_id)
+                    .await;
+            }
             RealtimeFriendApplyResult::MissingBaseline | RealtimeFriendApplyResult::Ignored => {}
         }
     }

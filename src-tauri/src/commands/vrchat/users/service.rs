@@ -52,6 +52,26 @@ async fn execute_current_user_api(
     result
 }
 
+async fn execute_current_user_api_then_invalidate(
+    state: State<'_, AppState>,
+    command: &str,
+    detail: impl Into<String>,
+    endpoint: String,
+    user_id: String,
+    input: VrchatApiRequest,
+) -> Result<VrchatApiResponse, AppError> {
+    let realtime_runtime = state.realtime_runtime.clone();
+    let result = execute_current_user_api(state, command, detail, input).await;
+    if let Ok(response) = &result {
+        if (200..300).contains(&response.status) {
+            realtime_runtime
+                .invalidate_user_query_cache(&endpoint, &user_id)
+                .await;
+        }
+    }
+    result
+}
+
 #[tauri::command]
 pub async fn app__vrchat_user_get(
     state: State<'_, AppState>,
@@ -65,7 +85,13 @@ pub async fn app__vrchat_user_get(
     );
     let result = state
         .realtime_runtime
-        .get_user_via_cache(input.endpoint, input.user_id, input.force)
+        .get_user_via_cache(
+            input.endpoint,
+            input.user_id,
+            input.force,
+            input.dialog,
+            input.is_friend,
+        )
         .await;
     match &result {
         Ok(response) => diagnostics.record_command(
@@ -154,12 +180,15 @@ pub async fn app__vrchat_current_user_update(
     state: State<'_, AppState>,
     input: VrchatCurrentUserUpdateInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let endpoint = input.endpoint.clone();
     let (user_id, request) =
         current_user_update_input(input.endpoint, input.user_id, input.params)?;
-    execute_current_user_api(
+    execute_current_user_api_then_invalidate(
         state,
         "app__vrchat_current_user_update",
         format!("Updating current user {user_id}."),
+        endpoint,
+        user_id,
         request,
     )
     .await
@@ -191,12 +220,15 @@ pub async fn app__vrchat_current_user_tags_add(
     state: State<'_, AppState>,
     input: VrchatCurrentUserTagsInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let endpoint = input.endpoint.clone();
     let (user_id, request) =
         current_user_tags_add_input(input.endpoint, input.user_id, input.tags)?;
-    execute_current_user_api(
+    execute_current_user_api_then_invalidate(
         state,
         "app__vrchat_current_user_tags_add",
         format!("Adding tags to current user {user_id}."),
+        endpoint,
+        user_id,
         request,
     )
     .await
@@ -207,12 +239,15 @@ pub async fn app__vrchat_current_user_tags_remove(
     state: State<'_, AppState>,
     input: VrchatCurrentUserTagsInput,
 ) -> Result<VrchatApiResponse, AppError> {
+    let endpoint = input.endpoint.clone();
     let (user_id, request) =
         current_user_tags_remove_input(input.endpoint, input.user_id, input.tags)?;
-    execute_current_user_api(
+    execute_current_user_api_then_invalidate(
         state,
         "app__vrchat_current_user_tags_remove",
         format!("Removing tags from current user {user_id}."),
+        endpoint,
+        user_id,
         request,
     )
     .await

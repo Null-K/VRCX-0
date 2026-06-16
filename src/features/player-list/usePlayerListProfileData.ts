@@ -98,7 +98,8 @@ export function usePlayerListProfileData({
                 queryFn: async () => {
                     const response = await vrchatFriendRepository.getUser({
                         endpoint: currentUserEndpoint,
-                        userId
+                        userId,
+                        isFriend: Boolean(knownUsersById[userId]?.isFriend)
                     });
                     const profile = userProfileRepository.normalize(
                         response.json

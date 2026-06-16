@@ -23,30 +23,6 @@ type FetchWithEntityPolicyOptions = {
 };
 
 export const entityQueryPolicies = Object.freeze({
-    user: Object.freeze({
-        staleTime: 20 * SECOND,
-        gcTime: 90 * SECOND,
-        retry: 1,
-        refetchOnWindowFocus: false
-    }),
-    userDialog: Object.freeze({
-        staleTime: 60 * SECOND,
-        gcTime: 90 * SECOND,
-        retry: 1,
-        refetchOnWindowFocus: false
-    }),
-    userNonFriend: Object.freeze({
-        staleTime: 10 * MINUTE,
-        gcTime: 20 * MINUTE,
-        retry: 1,
-        refetchOnWindowFocus: false
-    }),
-    userDialogNonFriend: Object.freeze({
-        staleTime: 10 * MINUTE,
-        gcTime: 20 * MINUTE,
-        retry: 1,
-        refetchOnWindowFocus: false
-    }),
     instance: Object.freeze({
         staleTime: 20 * SECOND,
         gcTime: 90 * SECOND,
@@ -201,7 +177,8 @@ function stableParams(params: unknown = {}): Record<string, unknown> {
 }
 
 export const queryKeys = Object.freeze({
-    user: (userId: any, endpoint: any = '') => withEndpoint(['user', userId], endpoint),
+    user: (userId: any, endpoint: any = '') =>
+        withEndpoint(['user', userId], endpoint),
     mutualCounts: (userId: any, endpoint: any = '') =>
         withEndpoint(['user', userId, 'mutualCounts'], endpoint),
     userGroups: (userId: any, endpoint: any = '') =>
@@ -241,10 +218,11 @@ export const queryKeys = Object.freeze({
         kind: any = 'all',
         params: EntityQueryParams = {},
         endpoint: any = ''
-    ) =>
-        withEndpoint(['calendar', kind, stableParams(params)], endpoint),
-    groupCalendarEvent: ({ groupId = '', eventId = '' }: any = {}, endpoint: any = '') =>
-        withEndpoint(['calendar', groupId, eventId], endpoint),
+    ) => withEndpoint(['calendar', kind, stableParams(params)], endpoint),
+    groupCalendarEvent: (
+        { groupId = '', eventId = '' }: any = {},
+        endpoint: any = ''
+    ) => withEndpoint(['calendar', groupId, eventId], endpoint),
     avatarGallery: (avatarId: any, endpoint: any = '') =>
         withEndpoint(['avatar', avatarId, 'gallery'], endpoint),
     favoriteLimits: (endpoint: any = '') =>
@@ -261,7 +239,8 @@ export const queryKeys = Object.freeze({
             ['analysis', fileId, Number(version), String(variant || '')],
             endpoint
         ),
-    file: (fileId: any, endpoint: any = '') => withEndpoint(['file', fileId], endpoint),
+    file: (fileId: any, endpoint: any = '') =>
+        withEndpoint(['file', fileId], endpoint),
     avatarStyles: (endpoint: any = '') =>
         withEndpoint(['avatar', 'styles'], endpoint),
     representedGroup: (userId: any, endpoint: any = '') =>
@@ -271,8 +250,10 @@ export const queryKeys = Object.freeze({
             ['user', params.userId, 'dialogTabCounts', stableParams(params)],
             endpoint
         ),
-    worldPersistData: ({ userId = '', worldId = '' }: any = {}, endpoint: any = '') =>
-        withEndpoint(['world', worldId, 'persistData', userId], endpoint)
+    worldPersistData: (
+        { userId = '', worldId = '' }: any = {},
+        endpoint: any = ''
+    ) => withEndpoint(['world', worldId, 'persistData', userId], endpoint)
 });
 
 export function toQueryOptions(
@@ -286,23 +267,6 @@ export function toQueryOptions(
         refetchOnWindowFocus: policy.refetchOnWindowFocus,
         ...overrides
     };
-}
-
-export function userProfileQueryPolicy({
-    dialog = false,
-    isFriend = false
-}: {
-    dialog?: boolean;
-    isFriend?: boolean;
-} = {}): EntityQueryPolicy {
-    if (dialog) {
-        return isFriend
-            ? entityQueryPolicies.userDialog
-            : entityQueryPolicies.userDialogNonFriend;
-    }
-    return isFriend
-        ? entityQueryPolicies.user
-        : entityQueryPolicies.userNonFriend;
 }
 
 export async function fetchWithEntityPolicy<TData = any>({

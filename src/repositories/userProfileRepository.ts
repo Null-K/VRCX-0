@@ -228,7 +228,9 @@ function mergeCurrentUserUpdateResponse(
 async function getUserProfile({
     userId,
     endpoint = '',
-    force = false
+    force = false,
+    dialog = false,
+    isFriend = null
 }: UserProfileInput) {
     const normalizedUserId =
         typeof userId === 'string'
@@ -243,7 +245,9 @@ async function getUserProfile({
     const response = await tauriClient.app.VrchatUserGet({
         userId: normalizedUserId,
         endpoint,
-        force
+        force,
+        dialog,
+        isFriend
     });
     const json = unwrapVrchatUserResponse(
         response,
@@ -478,7 +482,6 @@ async function addCurrentUserTags({
         `users/${encodeURIComponent(normalizedUserId)}/addTags`
     ).json;
     const nextUser = normalize(json);
-    setCachedQueryData(queryKeys.user(normalizedUserId, endpoint), json);
     recordUserProfile(nextUser, {
         endpoint,
         source: 'currentUser',
@@ -512,7 +515,6 @@ async function removeCurrentUserTags({
         `users/${encodeURIComponent(normalizedUserId)}/removeTags`
     ).json;
     const nextUser = normalize(json);
-    setCachedQueryData(queryKeys.user(normalizedUserId, endpoint), json);
     recordUserProfile(nextUser, {
         endpoint,
         source: 'currentUser',

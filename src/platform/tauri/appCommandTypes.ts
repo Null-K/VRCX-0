@@ -1261,6 +1261,8 @@ export interface AppTauriCommandNamespace extends TauriCommandNamespace {
         endpoint?: string;
         userId: string;
         force?: boolean;
+        dialog?: boolean;
+        isFriend?: boolean | null;
     }): Promise<VrchatHttpApiResult>;
     VrchatUserMutualCountsGet(input: {
         endpoint?: string;
