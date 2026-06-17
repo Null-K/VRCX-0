@@ -10,6 +10,11 @@ import {
 
 import { UserHoverCardContent } from './UserHoverCardContent';
 
+const MODAL_OVERLAY_SELECTOR =
+    '[data-slot="dialog-overlay"][data-state="open"],[data-slot="alert-dialog-overlay"][data-state="open"],[data-slot="sheet-overlay"][data-state="open"]';
+const MODAL_CONTENT_SELECTOR =
+    '[data-slot="dialog-content"],[data-slot="alert-dialog-content"],[data-slot="sheet-content"]';
+
 export function UserHoverCard({
     userId,
     seed = null,
@@ -77,6 +82,15 @@ export function UserHoverCard({
         >
             <HoverCardTrigger
                 asChild
+                onPointerOverCapture={(event) => {
+                    if (
+                        !event.currentTarget.closest(MODAL_CONTENT_SELECTOR) &&
+                        document.querySelector(MODAL_OVERLAY_SELECTOR)
+                    ) {
+                        suppressUntilRef.current =
+                            Date.now() + openDelay + 100;
+                    }
+                }}
                 onPointerDownCapture={() => {
                     suppressUntilRef.current = Date.now() + 400;
                     setOpen(false);
