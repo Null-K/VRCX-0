@@ -2,7 +2,10 @@ import { commands } from '@/platform/tauri/bindings';
 import { toast } from 'sonner';
 
 import { clearEntityQueryCache } from '@/lib/entityQueryCache';
-import authRepository from '@/repositories/authRepository';
+import authRepository, {
+    type SavedAuthSnapshot,
+    type SavedCredentialRecord
+} from '@/repositories/authRepository';
 import avatarProfileRepository from '@/repositories/avatarProfileRepository';
 import { isVrchatSessionRecoveryError } from '@/repositories/vrchatRequest';
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
@@ -41,6 +44,19 @@ type AuthExecutionError = Error & {
     authSnapshot?: unknown;
 };
 
+type AuthUserRecord = Record<string, unknown> & {
+    id?: unknown;
+    displayName?: unknown;
+    username?: unknown;
+};
+type LoginParams = {
+    username: string;
+    password: string;
+    endpoint: string;
+    websocket: string;
+};
+type TwoFactorMode = 'emailOtp' | 'otp' | 'totp';
+type TwoFactorRestartChallenge = () => Promise<{ json: unknown }>;
 type AuthResponse =
     | {
           type: 'twoFactor';
@@ -48,10 +64,22 @@ type AuthResponse =
       }
     | {
           type: 'authenticated';
-          user: Record<string, any>;
+          user: AuthUserRecord;
       };
 
-function normalizeLoginParams(loginParams: Record<string, any> = {}) {
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function normalizeText(value: unknown): string {
+    return typeof value === 'string'
+        ? value.trim()
+        : String(value ?? '').trim();
+}
+
+function normalizeLoginParams(
+    loginParams: Record<string, unknown> = {}
+): LoginParams {
     return {
         username:
             typeof loginParams.username === 'string'
@@ -75,8 +103,8 @@ function createAuthExecutionError(
     return error;
 }
 
-function parseAuthResponse(json: any): AuthResponse {
-    if (!json || typeof json !== 'object') {
+function parseAuthResponse(json: unknown): AuthResponse {
+    if (!isRecord(json)) {
         throw createAuthExecutionError(
             'The auth request returned an invalid response.',
             'AUTH_INVALID_RESPONSE'
@@ -89,7 +117,9 @@ function parseAuthResponse(json: any): AuthResponse {
     ) {
         return {
             type: 'twoFactor',
-            methods: json.requiresTwoFactorAuth
+            methods: json.requiresTwoFactorAuth.filter(
+                (method): method is string => typeof method === 'string'
+            )
         };
     }
 
@@ -102,28 +132,34 @@ function parseAuthResponse(json: any): AuthResponse {
 
     return {
         type: 'authenticated',
-        user: json
+        user: json as AuthUserRecord
     };
 }
 
-function isMissingCredentialsError(error: any) {
+function isMissingCredentialsError(error: unknown) {
     return Boolean(
-        error?.status === 401 &&
-        typeof error?.message === 'string' &&
-        error.message.includes('Missing Credentials')
+        isRecord(error) &&
+            error.status === 401 &&
+            typeof error.message === 'string' &&
+            error.message.includes('Missing Credentials')
     );
 }
 
-function getCurrentUserDisplayName(user: Record<string, any> | null) {
-    return user?.displayName || user?.username || user?.id || '';
+function getCurrentUserDisplayName(user: AuthUserRecord | null) {
+    return (
+        normalizeText(user?.displayName) ||
+        normalizeText(user?.username) ||
+        normalizeText(user?.id)
+    );
 }
 
-function setRuntimeAuthScope(userId: any = '', endpoint: any = '') {
+function setRuntimeAuthScope(userId: unknown = '', endpoint: unknown = '') {
     return commands.appRuntimeAuthScopeSet({
-            userId,
-            endpoint
+            userId: typeof userId === 'string' ? userId : String(userId ?? ''),
+            endpoint:
+                typeof endpoint === 'string' ? endpoint : String(endpoint ?? '')
         })
-        .catch((error: any) => {
+        .catch((error: unknown) => {
             console.warn('Failed to sync runtime auth scope:', error);
             return null;
         });
@@ -168,7 +204,7 @@ export function resetCurrentUserRuntimeAuth() {
 }
 
 function setCurrentUserRuntimeAuth(
-    user: Record<string, any> | null,
+    user: AuthUserRecord | null,
     { endpoint = '', websocket = '' }: Record<string, string> = {}
 ) {
     stopRealtimeTransport({ updateStatus: false });
@@ -180,24 +216,34 @@ function setCurrentUserRuntimeAuth(
     resetDomainFacts();
     const runtimeStore = useRuntimeStore.getState();
     runtimeStore.setGroupInstancesState(createGroupInstancesState());
-    const { snapshot: nextSnapshot } = buildAvatarWearSnapshotUpdate({
+    const { snapshot } = buildAvatarWearSnapshotUpdate({
         previousSnapshot: runtimeStore.auth.currentUserSnapshot,
         nextSnapshot: user,
         isGameRunning: runtimeStore.gameState.isGameRunning
-    }) as any;
+    });
+    const nextSnapshot = isRecord(snapshot)
+        ? (snapshot as AuthUserRecord)
+        : null;
+    const currentUserId = normalizeText(nextSnapshot?.id);
 
     useRuntimeStore.getState().setAuthBootstrap({
-        currentUserId: nextSnapshot?.id ?? null,
+        currentUserId: currentUserId || null,
         currentUserDisplayName: getCurrentUserDisplayName(nextSnapshot),
         currentUserEndpoint: endpoint,
         currentUserWebsocket: websocket,
         currentUserSnapshot: nextSnapshot ?? null
     });
-    void setRuntimeAuthScope(nextSnapshot?.id ?? '', endpoint);
+    void setRuntimeAuthScope(currentUserId, endpoint);
     recordCurrentUserSnapshot(nextSnapshot ?? null, { endpoint });
 }
 
-async function getLocalizedAuthPrompt(mode: string) {
+async function getLocalizedAuthPrompt(mode: TwoFactorMode): Promise<{
+    mode: TwoFactorMode;
+    title: string;
+    description: string;
+    confirmText: string;
+    cancelText: string;
+}> {
     switch (mode) {
         case 'emailOtp': {
             const [title, description, confirmText, cancelText] =
@@ -253,12 +299,12 @@ async function getLocalizedAuthPrompt(mode: string) {
     }
 }
 
-async function promptForTwoFactorCode(mode: string) {
+async function promptForTwoFactorCode(mode: TwoFactorMode) {
     const prompt = await getLocalizedAuthPrompt(mode);
-    return useModalStore.getState().otpPrompt(prompt as any);
+    return useModalStore.getState().otpPrompt(prompt);
 }
 
-async function getTwoFactorInputErrorMessage(mode: string) {
+async function getTwoFactorInputErrorMessage(mode: TwoFactorMode) {
     switch (mode) {
         case 'emailOtp':
             return i18n.t('prompt.email_otp.input_error');
@@ -276,10 +322,12 @@ async function completeTwoFactorChallenge({
 }: {
     endpoint: string;
     initialMethods: string[];
-    restartChallenge?: () => Promise<{ json: any }>;
+    restartChallenge?: TwoFactorRestartChallenge;
 }) {
     let methods = Array.isArray(initialMethods) ? [...initialMethods] : [];
-    let mode = methods.includes('emailOtp') ? 'emailOtp' : 'totp';
+    let mode: TwoFactorMode = methods.includes('emailOtp')
+        ? 'emailOtp'
+        : 'totp';
 
     while (methods.length > 0) {
         const result = await promptForTwoFactorCode(mode);
@@ -357,12 +405,12 @@ async function completeTwoFactorChallenge({
 }
 
 async function finalizeSuccessfulLogin(
-    snapshot: unknown,
+    snapshot: SavedAuthSnapshot,
     detail: string,
-    user: Record<string, any>,
+    user: AuthUserRecord,
     authContext: Record<string, string> = {}
 ) {
-    applySavedAuthSnapshot(snapshot as any);
+    applySavedAuthSnapshot(snapshot);
     setCurrentUserRuntimeAuth(user, authContext);
     useSessionStore.getState().setSessionState({
         isLoggedIn: false,
@@ -509,8 +557,8 @@ export async function executeCookieSessionRestore({
             : 'Restoring an existing browser session.'
     );
 
-    let currentUser = null;
-    let snapshot = null;
+    let currentUser: AuthUserRecord | null = null;
+    let snapshot: SavedAuthSnapshot | null = null;
 
     try {
         const response = await vrchatAuthRepository.restoreCookieSession({
@@ -528,7 +576,7 @@ export async function executeCookieSessionRestore({
         currentUser = authResponse.user;
         snapshot = await refreshSavedAuthSnapshot();
     } catch (error) {
-        const normalizedError =
+        const normalizedError: AuthExecutionError =
             error instanceof Error ? error : new Error(String(error));
         if (isMissingCredentialsError(normalizedError)) {
             throw normalizedError;
@@ -576,8 +624,8 @@ export async function executeManualLogin({
     );
     setAuthenticatingSessionState();
 
-    let currentUser = null;
-    let snapshot = null;
+    let currentUser: AuthUserRecord | null = null;
+    let snapshot: SavedAuthSnapshot | null = null;
 
     try {
         await webRepository.clearCookies();
@@ -622,17 +670,17 @@ export async function executeManualLogin({
 }
 
 export async function executeSavedCredentialLogin(
-    savedCredential: Record<string, any>
+    savedCredential: SavedCredentialRecord
 ) {
     const runtimeStore = useRuntimeStore.getState();
-    const userId = savedCredential?.user?.id ?? '';
+    const userId = normalizeText(savedCredential?.user?.id);
     const displayName =
-        savedCredential?.user?.displayName ||
-        savedCredential?.user?.username ||
+        normalizeText(savedCredential?.user?.displayName) ||
+        normalizeText(savedCredential?.user?.username) ||
         userId ||
         'saved account';
 
-    const loginParams: any = normalizeLoginParams(savedCredential?.loginParams);
+    const loginParams = normalizeLoginParams(savedCredential?.loginParams ?? {});
     if (!userId || !savedCredential?.hasLoginCredentials) {
         throw createAuthExecutionError(
             'The saved account is missing username or password data.',
@@ -647,8 +695,8 @@ export async function executeSavedCredentialLogin(
     );
     setAuthenticatingSessionState();
 
-    let currentUser = null;
-    let snapshot = null;
+    let currentUser: AuthUserRecord | null = null;
+    let snapshot: SavedAuthSnapshot | null = null;
 
     try {
         const response = await vrchatAuthRepository.loginWithSavedCredential({

@@ -29,7 +29,10 @@ import {
     resolveThemeMode
 } from './themeService';
 
-async function runNonCriticalStartupSync(label: any, task: any) {
+async function runNonCriticalStartupSync(
+    label: string,
+    task: Promise<unknown> | unknown
+) {
     try {
         await task;
     } catch (error) {
@@ -123,14 +126,14 @@ export async function initializeReactRuntime() {
 
         await refreshSavedAuthSnapshot();
         if (isHostCapabilityAvailable('registryPrefs')) {
-            checkVRChatDebugLogging().catch((error: any) => {
+            checkVRChatDebugLogging().catch((error: unknown) => {
                 console.warn(
                     'Startup VRChat debug logging check failed:',
                     error
                 );
             });
         }
-        runStartupMaintenance().catch((error: any) => {
+        runStartupMaintenance().catch((error: unknown) => {
             console.warn('Startup maintenance failed:', error);
         });
         runtimeStore.setStartupTask(

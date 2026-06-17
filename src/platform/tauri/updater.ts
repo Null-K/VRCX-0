@@ -1,22 +1,37 @@
 import { Channel } from '@tauri-apps/api/core';
 
-import { invokeTauri } from './invoke';
+import { commands } from './bindings';
+import type { TauriDownloadEvent, TauriUpdateMetadata } from './bindings';
 
-type TauriUpdateRequest = Record<string, unknown>;
-type TauriUpdateEventHandler = (event: unknown) => void;
+export type TauriUpdateRequest = {
+    manifestUrl: string;
+    target: string;
+    allowDowngrades: boolean;
+    proxy?: string | null;
+};
+
+type TauriUpdateEventHandler = (event: TauriDownloadEvent) => void;
 
 export async function checkTauriUpdate(
     request: TauriUpdateRequest
-): Promise<unknown> {
-    return invokeTauri('app__check_tauri_update', request);
+): Promise<TauriUpdateMetadata | null> {
+    return commands.appCheckTauriUpdate(
+        request.manifestUrl,
+        request.target,
+        request.allowDowngrades,
+        request.proxy ?? null
+    );
 }
 
 export async function downloadAndInstallTauriUpdate(
     request: TauriUpdateRequest,
     onEvent: TauriUpdateEventHandler
-): Promise<unknown> {
-    return invokeTauri('app__download_and_install_tauri_update', {
-        ...request,
-        onEvent: new Channel(onEvent)
-    });
+): Promise<TauriUpdateMetadata | null> {
+    return commands.appDownloadAndInstallTauriUpdate(
+        request.manifestUrl,
+        request.target,
+        request.allowDowngrades,
+        request.proxy ?? null,
+        new Channel<TauriDownloadEvent>(onEvent)
+    );
 }

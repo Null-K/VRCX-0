@@ -1,6 +1,15 @@
-import { commands } from '@/platform/tauri/bindings';
+import {
+    commands,
+    type SocialFriendRosterBaselineOutput
+} from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
-import friendLogRepository from '@/repositories/friendLogRepository';
+import friendLogRepository, {
+    type FriendLogCurrentEntry,
+    type FriendLogCurrentRow
+} from '@/repositories/friendLogRepository';
+import type {
+    FriendLogHistoryEntry
+} from '@/repositories/friendLogHistoryRepository';
 import {
     computeTrustLevel,
     computeUserPlatform
@@ -13,7 +22,88 @@ import { recordFriendPatch } from './domainIngestionService';
 import { syncStartupServicesTask } from './startupServicesStatus';
 import { notifyRuntimeVrchatAuthFailure } from './vrchatAuthErrorService';
 
-const activeBootstraps = new Map<string, Promise<unknown>>();
+type FriendBootstrapSnapshot = Record<string, unknown> & {
+    friendsById?: unknown;
+    orderedFriendIds?: unknown;
+    onlineIds?: unknown;
+    activeIds?: unknown;
+    offlineIds?: unknown;
+    detail?: unknown;
+};
+type FriendStateBucket = 'online' | 'active' | 'offline';
+type FriendRecord = Record<string, unknown> & {
+    id?: unknown;
+    userId?: unknown;
+    user_id?: unknown;
+    displayName?: unknown;
+    username?: unknown;
+    tags?: unknown;
+    developerType?: unknown;
+    platform?: unknown;
+    last_platform?: unknown;
+    location?: unknown;
+    state?: unknown;
+    stateBucket?: unknown;
+    trustLevel?: unknown;
+    $trustLevel?: unknown;
+    friendNumber?: unknown;
+    $friendNumber?: unknown;
+    $profileSource?: unknown;
+};
+type FriendLogRow = FriendLogCurrentRow &
+    {
+        user_id?: unknown;
+        $friendNumber?: unknown;
+        $trustLevel?: unknown;
+    };
+type FriendLogSeedRow = Partial<FriendLogRow>;
+type CurrentUserFriendSnapshot = Record<string, unknown> & {
+    id?: unknown;
+    friends?: unknown;
+    offlineFriends?: unknown;
+    activeFriends?: unknown;
+    onlineFriends?: unknown;
+};
+type RecordFriendLogFriendOptions = {
+    currentUserId?: unknown;
+    targetUserId?: unknown;
+    targetUser?: unknown;
+    stateBucket?: unknown;
+    nowIso?: () => string;
+};
+type RecordFriendLogFriendResult = {
+    userId: string;
+    targetUserId?: string;
+    count: number;
+    inserted?: boolean;
+    historyCount: number;
+};
+type RecordFriendLogUnfriendOptions = {
+    currentUserId?: unknown;
+    targetUserId?: unknown;
+    nowIso?: () => string;
+};
+type RecordFriendLogUnfriendResult = {
+    userId: string;
+    targetUserId: string;
+    removedCount: number;
+    historyCount: number;
+};
+type FriendBootstrapOptions = {
+    userId?: unknown;
+    endpoint?: unknown;
+    websocket?: unknown;
+    currentUserSnapshot?: unknown;
+    preserveLoadedState?: boolean;
+};
+type FriendBootstrapResult = {
+    userId: string;
+    count: number;
+    detail: string;
+    stale: boolean;
+};
+
+const activeBootstraps = new Map<string, Promise<FriendBootstrapResult>>();
 const friendLogMutationQueues = new Map<string, Promise<unknown>>();
 const explicitFriendLogAddIntents = new Map<string, symbol>();
 const explicitFriendLogAddIntentsHandledByBootstrap = new Set<string>();
@@ -36,13 +126,43 @@ function normalizeStateBucket(value: unknown) {
     return '';
 }
 
-function getDisplayName(user: Record<string, any> | null | undefined) {
-    return user?.displayName || user?.username || user?.id || '';
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function asFriendRecord(value: unknown): FriendRecord | null {
+    return isRecord(value) ? (value as FriendRecord) : null;
+}
+
+function normalizeStringArray(value: unknown): string[] {
+    return Array.isArray(value)
+        ? value.map((entry) => normalizeUserId(entry)).filter(Boolean)
+        : [];
+}
+
+function normalizeFriendsById(
+    value: unknown
+): Record<string, Record<string, unknown>> {
+    if (!isRecord(value)) {
+        return {};
+    }
+
+    return Object.fromEntries(
+        Object.entries(value).filter(([, friend]) => isRecord(friend))
+    ) as Record<string, Record<string, unknown>>;
+}
+
+function getDisplayName(user: Record<string, unknown> | null | undefined) {
+    return (
+        normalizeUserId(user?.displayName) ||
+        normalizeUserId(user?.username) ||
+        normalizeUserId(user?.id)
+    );
 }
 
 function getMeaningfulDisplayName(
-    user: Record<string, any> | null | undefined,
-    userId: any = ''
+    user: FriendRecord | null | undefined,
+    userId: unknown = ''
 ) {
     const normalizedUserId = normalizeUserId(userId || user?.id);
     for (const candidate of [user?.displayName, user?.username]) {
@@ -54,7 +174,10 @@ function getMeaningfulDisplayName(
     return '';
 }
 
-function enqueueFriendLogMutation(userId: unknown, mutation: () => unknown) {
+function enqueueFriendLogMutation<T>(
+    userId: unknown,
+    mutation: () => T | Promise<T>
+): Promise<T> {
     const normalizedUserId = normalizeUserId(userId);
     if (!normalizedUserId) {
         return Promise.reject(
@@ -65,7 +188,7 @@ function enqueueFriendLogMutation(userId: unknown, mutation: () => unknown) {
     const previous =
         friendLogMutationQueues.get(normalizedUserId) ?? Promise.resolve();
     const run = previous.catch(() => {}).then(mutation);
-    let queued;
+    let queued: Promise<unknown>;
     queued = run
         .catch(() => {})
         .finally(() => {
@@ -78,8 +201,8 @@ function enqueueFriendLogMutation(userId: unknown, mutation: () => unknown) {
 }
 
 function getExplicitFriendLogAddIntentKey(
-    currentUserId: any,
-    targetUserId: any
+    currentUserId: unknown,
+    targetUserId: unknown
 ) {
     const normalizedCurrentUserId = normalizeUserId(currentUserId);
     const normalizedTargetUserId = normalizeUserId(targetUserId);
@@ -96,7 +219,10 @@ function getExplicitFriendLogAddIntentKey(
 export function registerFriendLogExplicitAddIntent({
     currentUserId,
     targetUserId
-}: any) {
+}: {
+    currentUserId?: unknown;
+    targetUserId?: unknown;
+}) {
     const key = getExplicitFriendLogAddIntentKey(currentUserId, targetUserId);
     if (!key) {
         return () => {};
@@ -112,7 +238,7 @@ export function registerFriendLogExplicitAddIntent({
     };
 }
 
-function getExplicitFriendLogAddIntentUserIds(currentUserId: any) {
+function getExplicitFriendLogAddIntentUserIds(currentUserId: unknown) {
     const normalizedCurrentUserId = normalizeUserId(currentUserId);
     if (!normalizedCurrentUserId) {
         return [];
@@ -120,14 +246,14 @@ function getExplicitFriendLogAddIntentUserIds(currentUserId: any) {
 
     const prefix = `${normalizedCurrentUserId}\u0000`;
     return Array.from(explicitFriendLogAddIntents.keys())
-        .filter((key: any) => key.startsWith(prefix))
-        .map((key: any) => normalizeUserId(key.slice(prefix.length)))
+        .filter((key) => key.startsWith(prefix))
+        .map((key) => normalizeUserId(key.slice(prefix.length)))
         .filter(Boolean);
 }
 
 function markExplicitFriendLogAddIntentsHandledByBootstrap(
-    currentUserId: any,
-    targetUserIds: any
+    currentUserId: unknown,
+    targetUserIds: unknown
 ) {
     const normalizedCurrentUserId = normalizeUserId(currentUserId);
     if (!normalizedCurrentUserId || !Array.isArray(targetUserIds)) {
@@ -146,8 +272,8 @@ function markExplicitFriendLogAddIntentsHandledByBootstrap(
 }
 
 function consumeExplicitFriendLogAddIntentHandledByBootstrap(
-    currentUserId: any,
-    targetUserId: any
+    currentUserId: unknown,
+    targetUserId: unknown
 ) {
     const key = getExplicitFriendLogAddIntentKey(currentUserId, targetUserId);
     if (!key || !explicitFriendLogAddIntentsHandledByBootstrap.has(key)) {
@@ -158,7 +284,11 @@ function consumeExplicitFriendLogAddIntentHandledByBootstrap(
     return true;
 }
 
-function addStateBucketIds(stateById: any, ids: any, state: any) {
+function addStateBucketIds(
+    stateById: Map<string, FriendStateBucket>,
+    ids: unknown,
+    state: FriendStateBucket
+) {
     if (!Array.isArray(ids)) {
         return;
     }
@@ -172,8 +302,8 @@ function addStateBucketIds(stateById: any, ids: any, state: any) {
     }
 }
 
-function buildFriendStateMap(currentUserSnapshot: any) {
-    const stateById = new Map();
+function buildFriendStateMap(currentUserSnapshot: CurrentUserFriendSnapshot) {
+    const stateById = new Map<string, FriendStateBucket>();
     addStateBucketIds(stateById, currentUserSnapshot?.friends, 'offline');
     addStateBucketIds(
         stateById,
@@ -186,23 +316,37 @@ function buildFriendStateMap(currentUserSnapshot: any) {
     return stateById;
 }
 
-function hasCompleteFriendStateSnapshot(currentUserSnapshot: any) {
+function hasCompleteFriendStateSnapshot(
+    currentUserSnapshot: unknown
+): currentUserSnapshot is CurrentUserFriendSnapshot {
+    if (!isRecord(currentUserSnapshot)) {
+        return false;
+    }
     return (
-        Array.isArray(currentUserSnapshot?.friends) &&
-        Array.isArray(currentUserSnapshot?.offlineFriends) &&
-        Array.isArray(currentUserSnapshot?.activeFriends) &&
-        Array.isArray(currentUserSnapshot?.onlineFriends)
+        Array.isArray(currentUserSnapshot.friends) &&
+        Array.isArray(currentUserSnapshot.offlineFriends) &&
+        Array.isArray(currentUserSnapshot.activeFriends) &&
+        Array.isArray(currentUserSnapshot.onlineFriends)
     );
 }
 
-function resolveSnapshotStateBucket(stateBucket: any) {
+function hasFriendListSnapshot(
+    currentUserSnapshot: unknown
+): currentUserSnapshot is CurrentUserFriendSnapshot & { friends: unknown[] } {
+    return (
+        isRecord(currentUserSnapshot) &&
+        Array.isArray(currentUserSnapshot.friends)
+    );
+}
+
+function resolveSnapshotStateBucket(stateBucket: unknown): FriendStateBucket {
     return normalizeStateBucket(stateBucket) || 'offline';
 }
 
 function buildUnfriendHistoryEntry(
-    row: Record<string, any>,
+    row: FriendLogRow,
     createdAt: string
-) {
+): FriendLogHistoryEntry | null {
     const userId = normalizeUserId(row?.userId);
     if (!userId) {
         return null;
@@ -212,13 +356,16 @@ function buildUnfriendHistoryEntry(
         created_at: createdAt,
         type: 'Unfriend',
         userId,
-        displayName: row?.displayName || userId,
-        friendNumber: row?.friendNumber ?? row?.$friendNumber ?? null
+        displayName: normalizeUserId(row?.displayName) || userId,
+        friendNumber: Number(row?.friendNumber ?? row?.$friendNumber) || null
     };
 }
 
-function buildFriendHistoryEntry(row: Record<string, any>, createdAt: string) {
-    const userId = normalizeUserId(row?.userId || row?.id);
+function buildFriendHistoryEntry(
+    row: FriendLogCurrentEntry,
+    createdAt: string
+): FriendLogHistoryEntry | null {
+    const userId = normalizeUserId(row?.userId);
     if (!userId) {
         return null;
     }
@@ -227,9 +374,9 @@ function buildFriendHistoryEntry(row: Record<string, any>, createdAt: string) {
         created_at: createdAt,
         type: 'Friend',
         userId,
-        displayName: row?.displayName || row?.username || userId,
-        trustLevel: row?.trustLevel ?? row?.$trustLevel ?? '',
-        friendNumber: row?.friendNumber ?? row?.$friendNumber ?? null
+        displayName: normalizeUserId(row?.displayName) || userId,
+        trustLevel: normalizeUserId(row?.trustLevel),
+        friendNumber: Number(row?.friendNumber) || null
     };
 }
 
@@ -237,27 +384,26 @@ function getFriendLogInitKey(userId: string) {
     return `friendLogInit_${userId}`;
 }
 
-function parseVrchatResponseData(response: any) {
-    const data = response?.data;
+function parseVrchatResponseData(response: unknown) {
+    const data = isRecord(response) ? response.data : null;
     if (typeof data !== 'string') {
-        return data && typeof data === 'object' ? data : null;
+        return isRecord(data) ? data : null;
     }
 
     try {
         const parsed = JSON.parse(data);
-        return parsed && typeof parsed === 'object' ? parsed : null;
+        return isRecord(parsed) ? parsed : null;
     } catch {
         return null;
     }
 }
 
-function isValidUserProfile(value: any) {
-    return Boolean(
-        value && typeof value === 'object' && normalizeUserId(value.id)
-    );
+function isValidUserProfile(value: unknown): value is FriendRecord {
+    const record = asFriendRecord(value);
+    return Boolean(record && normalizeUserId(record.id));
 }
 
-function bulkFriendStateInput(friend: Record<string, any> | null | undefined) {
+function bulkFriendStateInput(friend: FriendRecord | null | undefined) {
     const platform = normalizeUserId(friend?.platform);
     if (platform === 'web') {
         return 'active';
@@ -269,7 +415,7 @@ function bulkFriendStateInput(friend: Record<string, any> | null | undefined) {
 }
 
 function friendNeedsSupplementalFetch(
-    friend: Record<string, any> | null | undefined,
+    friend: FriendRecord | null | undefined,
     snapshotStateBucket: string
 ) {
     if (!friend || typeof friend !== 'object') {
@@ -291,9 +437,9 @@ function buildCurrentEntryFromFriend({
     friendNumber
 }: {
     userId: string;
-    friend: Record<string, any> | null | undefined;
+    friend: FriendRecord | null | undefined;
     friendNumber: number;
-}) {
+}): FriendLogCurrentEntry {
     const trustLevel =
         normalizeUserId(friend?.$trustLevel || friend?.trustLevel) || 'Visitor';
     return {
@@ -310,10 +456,11 @@ export async function recordFriendLogFriendByUserId({
     targetUser,
     stateBucket,
     nowIso = () => new Date().toJSON()
-}: any): Promise<any> {
+}: RecordFriendLogFriendOptions): Promise<RecordFriendLogFriendResult> {
+    const targetUserRecord = asFriendRecord(targetUser);
     const normalizedCurrentUserId = normalizeUserId(currentUserId);
     const normalizedTargetUserId = normalizeUserId(
-        targetUserId || targetUser?.id
+        targetUserId || targetUserRecord?.id
     );
     if (
         !normalizedCurrentUserId ||
@@ -342,40 +489,39 @@ export async function recordFriendLogFriendByUserId({
                 normalizedCurrentUserId,
                 normalizedTargetUserId
             );
-        const existingRows = (await friendLogRepository.getFriendLogCurrent(
-            normalizedCurrentUserId
-        )) as Record<string, any>[];
+        const existingRows: FriendLogRow[] =
+            await friendLogRepository.getFriendLogCurrent(
+                normalizedCurrentUserId
+            );
         const existingRow = existingRows.find(
-            (entry: any) =>
+            (entry) =>
                 normalizeUserId(entry?.userId) === normalizedTargetUserId
         );
         const maxFriendNumber = existingRows.reduce(
-            (maxValue: any, row: any) => {
+            (maxValue, row) => {
                 const friendNumber =
-                    Number.parseInt(
-                        row?.friendNumber ?? row?.$friendNumber ?? 0,
-                        10
-                    ) || 0;
+                    Number.parseInt(String(row?.friendNumber ?? 0), 10) || 0;
                 return Math.max(maxValue, friendNumber);
             },
             0
         );
         const nextFriendNumber =
             Number.parseInt(
-                targetUser?.friendNumber ??
-                    targetUser?.$friendNumber ??
-                    existingRow?.friendNumber ??
-                    existingRow?.$friendNumber ??
-                    0,
+                String(
+                        targetUserRecord?.friendNumber ??
+                        targetUserRecord?.$friendNumber ??
+                        existingRow?.friendNumber ??
+                        0
+                ),
                 10
             ) ||
             (maxFriendNumber > 0
                 ? maxFriendNumber + 1
                 : existingRows.length + 1);
         const source =
-            targetUser && typeof targetUser === 'object'
+            targetUserRecord
                 ? {
-                      ...targetUser,
+                      ...targetUserRecord,
                       id: normalizedTargetUserId,
                       friendNumber: nextFriendNumber,
                       $friendNumber: nextFriendNumber
@@ -400,11 +546,11 @@ export async function recordFriendLogFriendByUserId({
                 friendNumber: nextFriendNumber
             }
         );
-        const currentEntry: any = {
+        const currentEntry: FriendLogCurrentEntry = {
             userId: normalizedTargetUserId,
-            displayName: normalizedFriend.displayName,
-            trustLevel: normalizedFriend.$trustLevel,
-            friendNumber: normalizedFriend.$friendNumber
+            displayName: normalizeUserId(normalizedFriend.displayName),
+            trustLevel: normalizeUserId(normalizedFriend.$trustLevel),
+            friendNumber: Number(normalizedFriend.$friendNumber) || 0
         };
         const historyEntry = buildFriendHistoryEntry(currentEntry, nowIso());
 
@@ -427,7 +573,7 @@ export async function recordFriendLogUnfriendByUserId({
     currentUserId,
     targetUserId,
     nowIso = () => new Date().toJSON()
-}: any) {
+}: RecordFriendLogUnfriendOptions): Promise<RecordFriendLogUnfriendResult> {
     const normalizedCurrentUserId = normalizeUserId(currentUserId);
     const normalizedTargetUserId = normalizeUserId(targetUserId);
     if (!normalizedCurrentUserId || !normalizedTargetUserId) {
@@ -440,11 +586,12 @@ export async function recordFriendLogUnfriendByUserId({
     }
 
     return enqueueFriendLogMutation(normalizedCurrentUserId, async () => {
-        const existingRows = (await friendLogRepository.getFriendLogCurrent(
-            normalizedCurrentUserId
-        )) as Record<string, any>[];
+        const existingRows: FriendLogRow[] =
+            await friendLogRepository.getFriendLogCurrent(
+                normalizedCurrentUserId
+            );
         const row = existingRows.find(
-            (entry: any) =>
+            (entry) =>
                 normalizeUserId(entry?.userId) === normalizedTargetUserId
         );
         const historyEntry = row
@@ -476,11 +623,12 @@ export async function recordFriendLogUnfriendByUserId({
 
 function createFallbackFriendUser(
     userId: unknown,
-    existingRow: Record<string, any>
-) {
+    existingRow: FriendLogRow
+): FriendRecord {
+    const normalizedUserId = normalizeUserId(userId);
     return {
-        id: userId,
-        displayName: existingRow?.displayName || userId,
+        id: normalizedUserId,
+        displayName: existingRow?.displayName || normalizedUserId,
         username: '',
         tags: [],
         developerType: '',
@@ -492,17 +640,24 @@ function createFallbackFriendUser(
 }
 
 function normalizeFriendEntry(
-    friend: Record<string, any> | null | undefined,
+    friend: FriendRecord | null | undefined,
     stateBucket: string,
-    existingRow: Record<string, any>
+    existingRow: FriendLogRow
 ) {
     const source =
         friend ?? createFallbackFriendUser(existingRow?.userId, existingRow);
-    const sourceRecord = source as Record<string, any>;
-    const tags = Array.isArray(sourceRecord.tags) ? sourceRecord.tags : [];
-    const trust = computeTrustLevel(tags, sourceRecord.developerType || '');
+    const sourceRecord = source;
+    const tags = Array.isArray(sourceRecord.tags)
+        ? sourceRecord.tags.filter(
+              (entry): entry is string => typeof entry === 'string'
+          )
+        : [];
+    const trust = computeTrustLevel(
+        tags,
+        normalizeUserId(sourceRecord.developerType)
+    );
     const explicitTrustLevel =
-        sourceRecord.$trustLevel || sourceRecord.trustLevel || '';
+        normalizeUserId(sourceRecord.$trustLevel || sourceRecord.trustLevel);
     const hasTrustMetadata =
         Boolean(friend) &&
         (tags.length > 0 ||
@@ -516,11 +671,13 @@ function normalizeFriendEntry(
         trust.trustLevel;
     const friendNumber =
         Number.parseInt(
-            sourceRecord?.friendNumber ??
-                sourceRecord?.$friendNumber ??
-                existingRow?.friendNumber ??
-                existingRow?.$friendNumber ??
-                0,
+            String(
+                sourceRecord?.friendNumber ??
+                    sourceRecord?.$friendNumber ??
+                    existingRow?.friendNumber ??
+                    existingRow?.$friendNumber ??
+                    0
+            ),
             10
         ) || 0;
     const displayName =
@@ -530,7 +687,7 @@ function normalizeFriendEntry(
         ) ||
         existingRow?.displayName ||
         getDisplayName(sourceRecord) ||
-        sourceRecord.id;
+        normalizeUserId(sourceRecord.id);
 
     return {
         ...sourceRecord,
@@ -547,14 +704,14 @@ function normalizeFriendEntry(
         $isTroll: trust.isTroll,
         $isProbableTroll: trust.isProbableTroll,
         $platform: computeUserPlatform(
-            sourceRecord.platform,
-            sourceRecord.last_platform
+            normalizeUserId(sourceRecord.platform),
+            normalizeUserId(sourceRecord.last_platform)
         )
     };
 }
 
-function buildFriendLogRowsById(rows: any[] = []) {
-    const rowsById = new Map<string, Record<string, any>>();
+function buildFriendLogRowsById(rows: FriendLogRow[] = []) {
+    const rowsById = new Map<string, FriendLogRow>();
     if (!Array.isArray(rows)) {
         return rowsById;
     }
@@ -570,18 +727,20 @@ function buildFriendLogRowsById(rows: any[] = []) {
 }
 
 function buildSeedRosterFriendsById(
-    stateById: Map<string, string>,
-    friendLogRows: any[] = []
+    stateById: Map<string, FriendStateBucket>,
+    friendLogRows: FriendLogRow[] = []
 ) {
     const rowsById = buildFriendLogRowsById(friendLogRows);
-    const friendsById: Record<string, any> = {};
+    const friendsById: Record<string, FriendRecord> = {};
 
     for (const [userId, stateBucket] of stateById.entries()) {
-        const row = rowsById.get(userId) ?? {};
+        const row: FriendLogSeedRow = rowsById.get(userId) ?? {};
         const trustLevel = normalizeUserId(row?.trustLevel) || 'Visitor';
         const friendNumber =
-            Number.parseInt(row?.friendNumber ?? row?.$friendNumber ?? 0, 10) ||
-            0;
+            Number.parseInt(
+                String(row?.friendNumber ?? row?.$friendNumber ?? 0),
+                10
+            ) || 0;
         const displayName = normalizeUserId(row?.displayName) || userId;
         friendsById[userId] = {
             id: userId,
@@ -614,7 +773,7 @@ async function seedFriendRosterFromCurrentUserSnapshot({
     normalizedUserId: string;
     endpoint: string;
     websocket: string;
-    currentUserSnapshot: any;
+    currentUserSnapshot: unknown;
     detail: string;
 }) {
     if (!hasCompleteFriendStateSnapshot(currentUserSnapshot)) {
@@ -622,11 +781,11 @@ async function seedFriendRosterFromCurrentUserSnapshot({
     }
 
     const stateById = buildFriendStateMap(currentUserSnapshot);
-    let friendLogRows: any[] = [];
+    let friendLogRows: FriendLogRow[] = [];
     try {
-        friendLogRows = (await friendLogRepository.getFriendLogCurrent(
+        friendLogRows = await friendLogRepository.getFriendLogCurrent(
             normalizedUserId
-        )) as any[];
+        );
     } catch (error) {
         console.warn('Failed to seed friend roster from friend log:', error);
     }
@@ -703,8 +862,8 @@ async function runFriendRosterBackgroundSupplements({
     normalizedUserId: string;
     endpoint: string;
     websocket: string;
-    currentUserSnapshot: any;
-    fastFriendsById: Record<string, any>;
+    currentUserSnapshot: unknown;
+    fastFriendsById: Record<string, FriendRecord>;
     detail: string;
 }) {
     if (!hasCompleteFriendStateSnapshot(currentUserSnapshot)) {
@@ -764,11 +923,11 @@ async function runFriendLogStartupReconciliation({
     normalizedUserId: string;
     endpoint: string;
     websocket: string;
-    currentUserSnapshot: any;
-    fastFriendsById: Record<string, any>;
+    currentUserSnapshot: unknown;
+    fastFriendsById: Record<string, FriendRecord>;
     nowIso?: () => string;
 }) {
-    if (!Array.isArray(currentUserSnapshot?.friends)) {
+    if (!hasFriendListSnapshot(currentUserSnapshot)) {
         return;
     }
 
@@ -777,9 +936,8 @@ async function runFriendLogStartupReconciliation({
             getFriendLogInitKey(normalizedUserId),
             false
         );
-        const existingRows = (await friendLogRepository.getFriendLogCurrent(
-            normalizedUserId
-        )) as Record<string, any>[];
+        const existingRows: FriendLogRow[] =
+            await friendLogRepository.getFriendLogCurrent(normalizedUserId);
         if (!isCurrentBootstrapTarget(normalizedUserId, endpoint, websocket)) {
             return;
         }
@@ -792,7 +950,7 @@ async function runFriendLogStartupReconciliation({
         const maxFriendNumber = existingRows.reduce((maxValue, row) => {
             const friendNumber =
                 Number.parseInt(
-                    row?.friendNumber ?? row?.$friendNumber ?? 0,
+                    String(row?.friendNumber ?? row?.$friendNumber ?? 0),
                     10
                 ) || 0;
             return Math.max(maxValue, friendNumber);
@@ -950,8 +1108,8 @@ function startFriendRosterBackgroundTasks({
     normalizedUserId: string;
     endpoint: string;
     websocket: string;
-    currentUserSnapshot: any;
-    fastFriendsById: Record<string, any>;
+    currentUserSnapshot: unknown;
+    fastFriendsById: Record<string, FriendRecord>;
     detail: string;
 }) {
     void runFriendRosterBackgroundSupplements({
@@ -976,9 +1134,9 @@ function startFriendRosterBackgroundTasks({
 }
 
 function bootstrapTargetKey(
-    userId: any,
-    endpoint: any = '',
-    websocket: any = ''
+    userId: unknown,
+    endpoint: unknown = '',
+    websocket: unknown = ''
 ) {
     const normalizedUserId = normalizeUserId(userId);
     const normalizedEndpoint = String(endpoint || '');
@@ -987,9 +1145,9 @@ function bootstrapTargetKey(
 }
 
 function isCurrentBootstrapTarget(
-    userId: any,
-    endpoint: any = '',
-    websocket: any = null
+    userId: unknown,
+    endpoint: unknown = '',
+    websocket: unknown = null
 ) {
     const runtimeState = useRuntimeStore.getState();
     const sessionState = useSessionStore.getState();
@@ -1012,16 +1170,20 @@ async function runFriendBootstrap({
     websocket = null,
     currentUserSnapshot,
     preserveLoadedState = false
-}: any) {
-    const normalizedUserId = normalizeUserId(userId || currentUserSnapshot?.id);
+}: FriendBootstrapOptions): Promise<FriendBootstrapResult> {
+    const currentSnapshot = isRecord(currentUserSnapshot)
+        ? currentUserSnapshot
+        : null;
+    const normalizedUserId = normalizeUserId(userId || currentSnapshot?.id);
     if (!normalizedUserId) {
         throw new Error('Friend bootstrap requires an authenticated user id.');
     }
+    const normalizedEndpoint = String(endpoint || '');
     const realtimeWebsocket = String(
         websocket ?? useRuntimeStore.getState().auth.currentUserWebsocket ?? ''
     );
 
-    const displayName = getDisplayName(currentUserSnapshot) || normalizedUserId;
+    const displayName = getDisplayName(currentSnapshot) || normalizedUserId;
 
     useFriendRosterStore
         .getState()
@@ -1040,37 +1202,38 @@ async function runFriendBootstrap({
         useSessionStore.getState().setFriendsLoaded(false);
         await seedFriendRosterFromCurrentUserSnapshot({
             normalizedUserId,
-            endpoint,
+            endpoint: normalizedEndpoint,
             websocket: realtimeWebsocket,
-            currentUserSnapshot,
+            currentUserSnapshot: currentSnapshot,
             detail: `Loading the full friend roster baseline for ${displayName}.`
         });
     }
 
-    const bootstrapResult = await commands.appSocialFriendRosterBaselineGet({
+    const result: SocialFriendRosterBaselineOutput = await commands.appSocialFriendRosterBaselineGet({
             userId: normalizedUserId,
-            endpoint,
+            endpoint: normalizedEndpoint,
             websocket: realtimeWebsocket,
-            currentUserSnapshot
+            currentUserSnapshot: currentSnapshot
         })
-        .catch((error: any) => {
+        .catch((error: unknown) => {
             notifyRuntimeVrchatAuthFailure(
                 error,
-                endpoint,
+                normalizedEndpoint,
                 'friend roster baseline'
             );
             throw error;
         });
 
-    const result = bootstrapResult as Record<string, any>;
-    const snapshot = result.snapshot as Record<string, any> | null | undefined;
+    const snapshot: FriendBootstrapSnapshot | null = isRecord(result.snapshot)
+        ? result.snapshot
+        : null;
     const detail = String(result.detail || snapshot?.detail || '');
 
     if (result.stale || !snapshot) {
         if (
             isCurrentBootstrapTarget(
                 normalizedUserId,
-                endpoint,
+                normalizedEndpoint,
                 realtimeWebsocket
             )
         ) {
@@ -1088,7 +1251,11 @@ async function runFriendBootstrap({
     }
 
     if (
-        !isCurrentBootstrapTarget(normalizedUserId, endpoint, realtimeWebsocket)
+        !isCurrentBootstrapTarget(
+            normalizedUserId,
+            normalizedEndpoint,
+            realtimeWebsocket
+        )
     ) {
         return {
             userId: normalizedUserId,
@@ -1098,23 +1265,25 @@ async function runFriendBootstrap({
         };
     }
 
+    const friendsById = normalizeFriendsById(snapshot.friendsById);
+
     useFriendRosterStore.getState().setRosterSnapshot({
         currentUserId: normalizedUserId,
-        friendsById: snapshot.friendsById || {},
-        orderedFriendIds: snapshot.orderedFriendIds || [],
-        onlineIds: snapshot.onlineIds || [],
-        activeIds: snapshot.activeIds || [],
-        offlineIds: snapshot.offlineIds || [],
+        friendsById,
+        orderedFriendIds: normalizeStringArray(snapshot.orderedFriendIds),
+        onlineIds: normalizeStringArray(snapshot.onlineIds),
+        activeIds: normalizeStringArray(snapshot.activeIds),
+        offlineIds: normalizeStringArray(snapshot.offlineIds),
         detail
     });
     useSessionStore.getState().setFriendsLoaded(true);
     syncStartupServicesTask([detail]);
     startFriendRosterBackgroundTasks({
         normalizedUserId,
-        endpoint,
+        endpoint: normalizedEndpoint,
         websocket: realtimeWebsocket,
-        currentUserSnapshot,
-        fastFriendsById: snapshot.friendsById || {},
+        currentUserSnapshot: currentSnapshot,
+        fastFriendsById: friendsById,
         detail
     });
 
@@ -1126,13 +1295,17 @@ async function runFriendBootstrap({
     };
 }
 
-export function bootstrapFriendRoster(options: any) {
+export function bootstrapFriendRoster(
+    options: FriendBootstrapOptions
+): Promise<FriendBootstrapResult> {
     const normalizedUserId = normalizeUserId(
-        options?.userId || options?.currentUserSnapshot?.id
+        options?.userId ||
+            (isRecord(options?.currentUserSnapshot)
+                ? options.currentUserSnapshot.id
+                : '')
     );
     const currentUserSnapshot =
-        options?.currentUserSnapshot &&
-        typeof options.currentUserSnapshot === 'object'
+        isRecord(options?.currentUserSnapshot)
             ? options.currentUserSnapshot
             : null;
     const preserveLoadedState = Boolean(options?.preserveLoadedState);
@@ -1149,11 +1322,16 @@ export function bootstrapFriendRoster(options: any) {
             useRuntimeStore.getState().auth.currentUserWebsocket
     );
     if (activeBootstraps.has(activeKey)) {
-        return activeBootstraps.get(activeKey);
+        return activeBootstraps.get(activeKey)!;
     }
 
-    const promise = runFriendBootstrap(options)
-        .catch((error: any) => {
+    const promise = runFriendBootstrap({
+        ...options,
+        userId: normalizedUserId,
+        currentUserSnapshot,
+        preserveLoadedState
+    })
+        .catch((error: unknown) => {
             if (
                 isCurrentBootstrapTarget(
                     normalizedUserId,

@@ -1,5 +1,6 @@
 import { toast } from 'sonner';
 
+import type { RealtimeInstanceQueueProjection } from '@/platform/tauri/bindings';
 import i18n from '@/services/i18nService';
 import { displayLocation, parseLocation } from '@/shared/utils/locationParser';
 import {
@@ -8,9 +9,11 @@ import {
 } from '@/state/locationHintStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
-type AnyRecord = Record<string, any>;
+type ProjectionRecord = Record<string, unknown>;
+type RealtimeInstanceQueueProjectionInput =
+    Partial<RealtimeInstanceQueueProjection> & ProjectionRecord;
 
-function isRecord(value: unknown): value is AnyRecord {
+function isRecord(value: unknown): value is ProjectionRecord {
     return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
@@ -25,7 +28,11 @@ function number(value: unknown): number {
     return Number.isFinite(parsed) ? Math.max(0, Math.round(parsed)) : 0;
 }
 
-function translated(key: string, params: AnyRecord, fallback: string): string {
+function translated(
+    key: string,
+    params: ProjectionRecord,
+    fallback: string
+): string {
     const value = i18n.t(key, params);
     return typeof value === 'string' && value !== key ? value : fallback;
 }
@@ -47,8 +54,12 @@ function resolveQueueLocationLabel(instanceLocation: string): string {
     );
 }
 
-export function handleRealtimeInstanceQueueProjection(payload: unknown) {
-    const projection = isRecord(payload) ? payload : {};
+export function handleRealtimeInstanceQueueProjection(
+    payload: unknown
+) {
+    const projection: RealtimeInstanceQueueProjectionInput = isRecord(payload)
+        ? payload
+        : {};
     const kind = text(projection.kind);
     const instanceLocation = text(projection.instanceLocation);
     if (!instanceLocation) {

@@ -1,7 +1,12 @@
 import {
     checkTauriUpdate,
-    downloadAndInstallTauriUpdate
+    downloadAndInstallTauriUpdate,
+    type TauriUpdateRequest
 } from '@/platform/tauri/updater';
+import type {
+    TauriDownloadEvent,
+    TauriUpdateMetadata
+} from '@/platform/tauri/bindings';
 import externalApiRepository from '@/repositories/externalApiRepository';
 import storageRepository from '@/repositories/storageRepository';
 import { branches } from '@/shared/constants/settings';
@@ -13,9 +18,63 @@ import {
 
 const INSTALLABLE_PLATFORMS = new Set(['windows', 'linux', 'macos']);
 const LINUX_UPDATER_PACKAGE_KINDS = new Set(['appimage', 'deb', 'rpm']);
-let updateInstallInFlight = null;
+let updateInstallInFlight: Promise<TauriUpdateMetadata> | null = null;
 
-type UpdateOptions = Record<string, any>;
+export type UpdateOptions = {
+    branch?: unknown;
+    hostPlatform?: string;
+    hostArch?: string;
+    linuxPackageKind?: string;
+    requireInstallerAsset?: boolean;
+    onProgress?: (progress: number) => void;
+};
+
+type GitHubReleaseAsset = {
+    state?: string;
+    name?: string;
+    browser_download_url?: string;
+};
+
+type GitHubRelease = {
+    tag_name?: string;
+    assets?: GitHubReleaseAsset[];
+    html_url?: string;
+    name?: string;
+    prerelease?: boolean;
+    published_at?: string;
+    body?: string;
+};
+
+type TauriReleaseAsset = {
+    manifestUrl: string;
+    target: string;
+    updaterType: 'tauri';
+};
+
+export type NormalizedRelease = {
+    manifestUrl?: string;
+    target?: string;
+    canonicalVersion: string;
+    channel: 'Stable';
+    displayVersion: string;
+    htmlUrl: string;
+    tagName: string;
+    displayName: string;
+    prerelease: boolean;
+    publishedAt: string;
+    body: string;
+    updaterType: 'tauri' | 'manual';
+};
+
+export type InstallableUpdateRelease = NormalizedRelease & TauriUpdateMetadata;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function asGitHubRelease(value: unknown): GitHubRelease {
+    return isRecord(value) ? value : {};
+}
 
 function normalizeHostArch(hostArch: unknown) {
     const normalized = String(hostArch || '').toLowerCase();
@@ -37,8 +96,8 @@ function linuxPackageKindForUpdater(linuxPackageKind: unknown) {
 
 function platformIdForHost(
     hostPlatform: unknown,
-    hostArch: any = '',
-    linuxPackageKind: any = ''
+    hostArch: unknown = '',
+    linuxPackageKind: unknown = ''
 ) {
     const normalizedArch = normalizeHostArch(hostArch);
     if (hostPlatform === 'linux') {
@@ -58,8 +117,8 @@ function platformIdForHost(
 
 function getUpdaterTarget(
     hostPlatform: unknown,
-    hostArch: any = '',
-    linuxPackageKind: any = ''
+    hostArch: unknown = '',
+    linuxPackageKind: unknown = ''
 ) {
     const platformId = platformIdForHost(
         hostPlatform,
@@ -71,8 +130,8 @@ function getUpdaterTarget(
 
 function getUpdaterManifestAssetName(
     hostPlatform: unknown,
-    hostArch: any = '',
-    linuxPackageKind: any = ''
+    hostArch: unknown = '',
+    linuxPackageKind: unknown = ''
 ) {
     const target = getUpdaterTarget(hostPlatform, hostArch, linuxPackageKind);
     if (!target) {
@@ -92,11 +151,11 @@ function canInstallUpdatesOnPlatform(hostPlatform: unknown) {
 }
 
 function getTauriManifestAssetOfInterest(
-    assets: Record<string, any>[] = [],
+    assets: GitHubReleaseAsset[] = [],
     hostPlatform: unknown,
     hostArch: string,
     linuxPackageKind: string
-) {
+): TauriReleaseAsset | null {
     const manifestName = getUpdaterManifestAssetName(
         hostPlatform,
         hostArch,
@@ -107,7 +166,7 @@ function getTauriManifestAssetOfInterest(
     }
 
     const asset = assets.find(
-        (item: any) => item?.state === 'uploaded' && item.name === manifestName
+        (item) => item?.state === 'uploaded' && item.name === manifestName
     );
     if (!asset?.browser_download_url) {
         return null;
@@ -121,14 +180,14 @@ function getTauriManifestAssetOfInterest(
 }
 
 function normalizeGitHubRelease(
-    release: Record<string, any>,
+    release: GitHubRelease,
     {
         hostPlatform = 'unknown',
         hostArch = 'unknown',
         linuxPackageKind = 'unknown',
         requireInstallerAsset = true
     }: UpdateOptions = {}
-) {
+): NormalizedRelease | null {
     const parsedVersion = parseReleaseVersion(String(release?.tag_name || ''));
     if (!parsedVersion) {
         return null;
@@ -164,21 +223,21 @@ function normalizeReleaseList(
     branch: unknown,
     releases: unknown,
     options: UpdateOptions = {}
-) {
+): NormalizedRelease[] {
     const normalizedBranch = sanitizeBranch(branch);
     return (Array.isArray(releases) ? releases : [releases])
-        .map((release: any) =>
-            normalizeGitHubRelease(release, {
+        .map((release) =>
+            normalizeGitHubRelease(asGitHubRelease(release), {
                 ...options
             })
         )
         .filter(
-            (release: any) =>
-                release &&
+            (release): release is NormalizedRelease =>
+                Boolean(release) &&
                 release.channel === normalizedBranch &&
                 release.prerelease === false
         )
-        .sort((left: any, right: any) =>
+        .sort((left, right) =>
             compareReleaseVersions(
                 right.canonicalVersion,
                 left.canonicalVersion
@@ -221,7 +280,7 @@ function hasUpdateForBranch(
 async function fetchBranchReleases(
     branch: unknown,
     options: UpdateOptions = {}
-) {
+): Promise<NormalizedRelease[]> {
     const normalizedBranch = sanitizeBranch(branch);
     const response = await externalApiRepository.fetchGithubReleases({
         url: branches[normalizedBranch].urlReleases,
@@ -247,7 +306,7 @@ async function fetchBranchReleases(
 async function fetchLatestBranchRelease(
     branch: unknown,
     options: UpdateOptions = {}
-) {
+): Promise<NormalizedRelease | null> {
     const releases = await fetchBranchReleases(branch, options);
     return releases[0] || null;
 }
@@ -264,11 +323,11 @@ function shouldAllowDowngradesForBranch() {
 }
 
 async function buildTauriUpdaterRequest(
-    release: Record<string, any>,
+    release: NormalizedRelease,
     hostPlatform: string,
     hostArch: string,
     linuxPackageKind: string
-) {
+): Promise<TauriUpdateRequest> {
     if (!canInstallUpdatesOnPlatform(hostPlatform)) {
         throw new Error(`Updates are not installable on ${hostPlatform}.`);
     }
@@ -279,23 +338,24 @@ async function buildTauriUpdaterRequest(
     if (!target) {
         throw new Error('No Tauri updater target is available.');
     }
-    if (!release?.manifestUrl) {
+    const manifestUrl = release?.manifestUrl;
+    if (!manifestUrl) {
         throw new Error('Selected release has no Tauri updater manifest.');
     }
 
     const proxy = await getUpdaterProxy();
     return {
-        manifestUrl: release.manifestUrl,
+        manifestUrl,
         target,
         allowDowngrades: shouldAllowDowngradesForBranch(),
-        ...(proxy ? { proxy } : {})
+        proxy: proxy || null
     };
 }
 
 async function checkTauriUpdateForRelease(
-    release: Record<string, any>,
+    release: NormalizedRelease,
     options: UpdateOptions = {}
-) {
+): Promise<TauriUpdateMetadata | null> {
     const request = await buildTauriUpdaterRequest(
         release,
         options.hostPlatform || 'unknown',
@@ -306,7 +366,7 @@ async function checkTauriUpdateForRelease(
 }
 
 function handleTauriDownloadEvent(
-    event: any,
+    event: TauriDownloadEvent,
     onProgress?: (progress: number) => void
 ) {
     if (event.event === 'Started') {
@@ -328,7 +388,7 @@ async function checkInstallableUpdate(
         hostArch = 'unknown',
         linuxPackageKind = 'unknown'
     }: UpdateOptions = {}
-) {
+): Promise<InstallableUpdateRelease | null> {
     if (!canInstallUpdatesOnPlatform(hostPlatform)) {
         return null;
     }
@@ -352,10 +412,9 @@ async function checkInstallableUpdate(
     if (!update) {
         return null;
     }
-    const updateRecord = update as Record<string, any>;
     return {
         ...release,
-        ...updateRecord,
+        ...update,
         canonicalVersion: release.canonicalVersion,
         displayVersion: release.displayVersion,
         displayName: release.displayName,
@@ -366,9 +425,9 @@ async function checkInstallableUpdate(
 }
 
 async function downloadAndInstallUpdate(
-    release: Record<string, any>,
+    release: NormalizedRelease,
     options: UpdateOptions = {}
-) {
+): Promise<TauriUpdateMetadata> {
     if (updateInstallInFlight) {
         throw new Error('An update install is already in progress.');
     }
@@ -386,7 +445,7 @@ async function downloadAndInstallUpdate(
             options.hostArch || 'unknown',
             options.linuxPackageKind || 'unknown'
         );
-        const onEvent = (event: any) => {
+        const onEvent = (event: TauriDownloadEvent) => {
             const state = handleTauriDownloadEvent(event, options.onProgress);
             if (state) {
                 downloaded = state.downloaded;

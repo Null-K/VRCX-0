@@ -35,7 +35,7 @@ function isCurrentAuthTarget({ currentUserId, endpoint }: AuthTarget): boolean {
 
 function removeFromArray(values: unknown, userId: string): string[] {
     return Array.isArray(values)
-        ? values.filter((value: any) => normalizeUserId(value) !== userId)
+        ? values.filter((value) => normalizeUserId(value) !== userId)
         : [];
 }
 
@@ -107,9 +107,9 @@ async function deleteFriend({
     };
 }
 
-const friendRelationshipService: any = {
+const friendRelationshipService = Object.freeze({
     deleteFriend
-};
+});
 
 export { deleteFriend };
 export default friendRelationshipService;

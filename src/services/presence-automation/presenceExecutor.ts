@@ -3,16 +3,63 @@ import i18n from '@/services/i18nService';
 import { useNotificationStore } from '@/state/notificationStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
+import type {
+    MatchedPresenceRule,
+    PresenceActionPatch,
+    PresenceEvaluationResult,
+    PresenceFacts
+} from './presenceRuleEngine';
+
 const DEFAULT_MIN_STATUS_WRITE_INTERVAL_MS = 60_000;
 const DEFAULT_MIN_DESCRIPTION_WRITE_INTERVAL_MS = 60_000;
 const DEFAULT_STABLE_LOCATION_MS = 30_000;
 const MAX_AUDIT_LOGS = 50;
 
-const auditLogs: Record<string, any>[] = [];
-const writeStates = new Map<string, Record<string, any>>();
-const timeRestoreSnapshots: Record<string, Record<string, any>> = {};
+type CurrentUserRecord = Record<string, unknown> & {
+    id?: unknown;
+    status?: unknown;
+    statusDescription?: unknown;
+};
+type WriteState = {
+    lastStatusWriteAtMs: number;
+    lastDescriptionWriteAtMs: number;
+    lastStatusValue: string;
+    lastDescriptionValue: string;
+    nextAllowedAtMs: number;
+    retryAfterMs: number;
+    lastError: string;
+};
+type TimeRestoreSnapshot = {
+    scopeKey: string;
+    previousValue: string;
+    automatedValue: string;
+};
+type PresenceThrottle = {
+    minStatusWriteIntervalMs?: unknown;
+    minDescriptionWriteIntervalMs?: unknown;
+    stableLocationMs?: unknown;
+};
+type PresenceAutomationApplyInput = {
+    facts: PresenceFacts;
+    result: PresenceEvaluationResult;
+    throttle?: PresenceThrottle;
+};
+type PresenceAuditLog = Record<string, unknown> & {
+    createdAt: string;
+    action?: string;
+    patch?: PresenceActionPatch;
+    matchedRules?: MatchedPresenceRule[];
+};
 
-function createWriteState() {
+const auditLogs: PresenceAuditLog[] = [];
+const writeStates = new Map<string, WriteState>();
+const timeRestoreSnapshots: Record<string, TimeRestoreSnapshot> = {};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function createWriteState(): WriteState {
     return {
         lastStatusWriteAtMs: 0,
         lastDescriptionWriteAtMs: 0,
@@ -24,18 +71,18 @@ function createWriteState() {
     };
 }
 
-function getWriteState(scopeKey: any) {
+function getWriteState(scopeKey: string): WriteState {
     if (!writeStates.has(scopeKey)) {
         writeStates.set(scopeKey, createWriteState());
     }
-    return writeStates.get(scopeKey);
+    return writeStates.get(scopeKey)!;
 }
 
-function hasOwn(object: any, key: any) {
+function hasOwn(object: object | null | undefined, key: string) {
     return Object.prototype.hasOwnProperty.call(object, key);
 }
 
-function addAuditLog(entry: any) {
+function addAuditLog(entry: Omit<PresenceAuditLog, 'createdAt'>) {
     auditLogs.unshift({
         createdAt: new Date().toISOString(),
         ...entry
@@ -43,8 +90,11 @@ function addAuditLog(entry: any) {
     auditLogs.splice(MAX_AUDIT_LOGS);
 }
 
-function getChangedPatch(currentUser: Record<string, any>, patch: Record<string, any>) {
-    const changed: Record<string, any> = {};
+function getChangedPatch(
+    currentUser: CurrentUserRecord,
+    patch: PresenceActionPatch
+) {
+    const changed: PresenceActionPatch = {};
     if (hasOwn(patch, 'status') && currentUser?.status !== patch.status) {
         changed.status = patch.status;
     }
@@ -57,15 +107,15 @@ function getChangedPatch(currentUser: Record<string, any>, patch: Record<string,
     return changed;
 }
 
-function getCurrentFieldValue(currentUser: Record<string, any>, field: string) {
+function getCurrentFieldValue(currentUser: CurrentUserRecord, field: string) {
     return String(currentUser?.[field] ?? '');
 }
 
-function getAutomationScopeKey(facts: Record<string, any>) {
+function getAutomationScopeKey(facts: PresenceFacts) {
     return `${facts?.endpoint || ''}:${facts?.currentUserId || ''}`;
 }
 
-function isCurrentAuthScope(facts: Record<string, any>) {
+function isCurrentAuthScope(facts: PresenceFacts) {
     const auth = useRuntimeStore.getState().auth;
     const authCurrentUserId =
         auth.currentUserId || auth.currentUserSnapshot?.id || '';
@@ -75,7 +125,7 @@ function isCurrentAuthScope(facts: Record<string, any>) {
     );
 }
 
-function pruneRestoreSnapshotsForScope(scopeKey: any) {
+function pruneRestoreSnapshotsForScope(scopeKey: string) {
     for (const [field, snapshot] of Object.entries(timeRestoreSnapshots)) {
         if (snapshot.scopeKey !== scopeKey) {
             delete timeRestoreSnapshots[field];
@@ -83,8 +133,8 @@ function pruneRestoreSnapshotsForScope(scopeKey: any) {
     }
 }
 
-function getTimeOwnedFieldRestores(result: any) {
-    const fields = new Map();
+function getTimeOwnedFieldRestores(result: PresenceEvaluationResult) {
+    const fields = new Map<string, boolean>();
     for (const rule of result?.matchedRules || []) {
         if (rule?.domain !== 'time') {
             continue;
@@ -98,8 +148,8 @@ function getTimeOwnedFieldRestores(result: any) {
     return fields;
 }
 
-function getLocationScopedFields(result: any) {
-    const fields = new Set();
+function getLocationScopedFields(result: PresenceEvaluationResult) {
+    const fields = new Set<string>();
     for (const rule of result?.matchedRules || []) {
         if (rule?.domain === 'time') {
             continue;
@@ -111,23 +161,26 @@ function getLocationScopedFields(result: any) {
     return fields;
 }
 
-function hasLocationScopedChanges(result: any, changedPatch: any) {
+function hasLocationScopedChanges(
+    result: PresenceEvaluationResult,
+    changedPatch: PresenceActionPatch
+) {
     const locationScopedFields = getLocationScopedFields(result);
-    return Object.keys(changedPatch || {}).some((field: any) =>
+    return Object.keys(changedPatch || {}).some((field) =>
         locationScopedFields.has(field)
     );
 }
 
 function buildPatchWithTimeRestore(
-    currentUser: Record<string, any>,
-    result: Record<string, any>,
+    currentUser: CurrentUserRecord,
+    result: PresenceEvaluationResult,
     scopeKey: string
 ) {
-    const patch: Record<string, any> = { ...(result?.patch || {}) };
+    const patch: PresenceActionPatch = { ...(result?.patch || {}) };
     const timeOwnedFieldRestores = getTimeOwnedFieldRestores(result);
     const timeOwnedFields = new Set(timeOwnedFieldRestores.keys());
-    const pendingRestores = [];
-    const pendingSnapshotClears = [];
+    const pendingRestores: string[] = [];
+    const pendingSnapshotClears: string[] = [];
 
     for (const [field, restorePreviousState] of timeOwnedFieldRestores) {
         if (!restorePreviousState) {
@@ -174,27 +227,39 @@ function buildPatchWithTimeRestore(
     return { patch, pendingRestores, pendingSnapshotClears };
 }
 
-function completeTimeRestores(fields: any) {
+function completeTimeRestores(fields: string[]) {
     for (const field of fields || []) {
         delete timeRestoreSnapshots[field];
     }
 }
 
-function parseDateMs(value: any) {
+function parseDateMs(value: unknown) {
     const timestamp = Date.parse(String(value || ''));
     return Number.isFinite(timestamp) ? timestamp : 0;
 }
 
-function getRetryAfterMs(error: any) {
+function getRetryAfterMs(error: unknown) {
+    const errorRecord = isRecord(error) ? error : {};
+    const headers = isRecord(errorRecord.headers) ? errorRecord.headers : {};
+    const headersGet = headers.get;
+    const response = isRecord(errorRecord.response) ? errorRecord.response : {};
+    const responseHeaders = isRecord(response.headers)
+        ? response.headers
+        : {};
     const retryAfter =
-        error?.headers?.get?.('retry-after') ||
-        error?.response?.headers?.['retry-after'] ||
-        error?.retryAfter;
+        (typeof headersGet === 'function'
+            ? headersGet.call(headers, 'retry-after')
+            : undefined) ||
+        responseHeaders['retry-after'] ||
+        errorRecord.retryAfter;
     const seconds = Number.parseInt(String(retryAfter || ''), 10);
     return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 60000;
 }
 
-function shouldSkipForStableLocation(facts: Record<string, any>, stableLocationMs: unknown) {
+function shouldSkipForStableLocation(
+    facts: PresenceFacts,
+    stableLocationMs: unknown
+) {
     if (facts.isTraveling) {
         return 'traveling';
     }
@@ -210,26 +275,28 @@ function shouldSkipForStableLocation(facts: Record<string, any>, stableLocationM
 }
 
 function shouldSkipForThrottle(
-    changedPatch: Record<string, any>,
-    throttle: Record<string, any>,
+    changedPatch: PresenceActionPatch,
+    throttle: PresenceThrottle,
     nowMs: number,
-    state: Record<string, any>
+    state: WriteState
 ) {
+    const minStatusWriteIntervalMs =
+        Number(throttle.minStatusWriteIntervalMs) ||
+        DEFAULT_MIN_STATUS_WRITE_INTERVAL_MS;
+    const minDescriptionWriteIntervalMs =
+        Number(throttle.minDescriptionWriteIntervalMs) ||
+        DEFAULT_MIN_DESCRIPTION_WRITE_INTERVAL_MS;
     if (
         hasOwn(changedPatch, 'status') &&
         changedPatch.status === state.lastStatusValue &&
-        nowMs - state.lastStatusWriteAtMs <
-            (throttle.minStatusWriteIntervalMs ||
-                DEFAULT_MIN_STATUS_WRITE_INTERVAL_MS)
+        nowMs - state.lastStatusWriteAtMs < minStatusWriteIntervalMs
     ) {
         return 'status-throttled';
     }
     if (
         hasOwn(changedPatch, 'statusDescription') &&
         changedPatch.statusDescription === state.lastDescriptionValue &&
-        nowMs - state.lastDescriptionWriteAtMs <
-            (throttle.minDescriptionWriteIntervalMs ||
-                DEFAULT_MIN_DESCRIPTION_WRITE_INTERVAL_MS)
+        nowMs - state.lastDescriptionWriteAtMs < minDescriptionWriteIntervalMs
     ) {
         return 'description-throttled';
     }
@@ -237,8 +304,8 @@ function shouldSkipForThrottle(
 }
 
 function updateWriteTimestamps(
-    state: Record<string, any>,
-    changedPatch: Record<string, any>,
+    state: WriteState,
+    changedPatch: PresenceActionPatch,
     nowMs: number
 ) {
     if (hasOwn(changedPatch, 'status')) {
@@ -255,10 +322,10 @@ export async function applyPresenceAutomationResult({
     facts,
     result,
     throttle = {}
-}: Record<string, any>) {
+}: PresenceAutomationApplyInput) {
     const currentUser =
         facts.currentUser && typeof facts.currentUser === 'object'
-            ? facts.currentUser
+            ? (facts.currentUser as CurrentUserRecord)
             : null;
     const currentUserId = String(
         currentUser?.id || facts.currentUserId || ''
@@ -271,7 +338,7 @@ export async function applyPresenceAutomationResult({
         });
         return { applied: false, reason: 'missing-current-user' };
     }
-    const currentUserSnapshot = currentUser.id
+    const currentUserSnapshot: CurrentUserRecord = currentUser.id
         ? currentUser
         : {
               ...currentUser,
@@ -370,7 +437,7 @@ export async function applyPresenceAutomationResult({
         useRuntimeStore.getState().setAuthBootstrap({
             currentUserSnapshot: {
                 ...currentUserSnapshot,
-                ...updatedUser
+                ...(isRecord(updatedUser) ? updatedUser : {})
             }
         });
         useNotificationStore.getState().pushNotification({
@@ -379,7 +446,7 @@ export async function applyPresenceAutomationResult({
                 'service.background_maintenance.label.status_automatically_changed'
             ),
             message: [changedPatch.status, changedPatch.statusDescription]
-                .filter((value: any) => value !== undefined && value !== '')
+                .filter((value) => value !== undefined && value !== '')
                 .join(' / ')
         });
         addAuditLog({

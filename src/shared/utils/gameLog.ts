@@ -59,6 +59,11 @@ export interface GameLogSessionsResult {
     segments: GameLogSessionSegment[];
 }
 
+type GameLogSessionSegmentBuild = GameLogSessionSegment & {
+    epoch: number;
+    events: Array<GameLogRow | GameLogSessionGroup>;
+};
+
 function gameLogSearchFilter(row: GameLogRow, searchQuery: string): boolean {
     const value = searchQuery.trim().toUpperCase();
     if (!value) {
@@ -211,7 +216,7 @@ export function createJoinLeaveEntry(
     displayName: string,
     location: string,
     userId: string,
-    time: any = 0
+    time: number = 0
 ): GameLogRow {
     return {
         created_at: dt,
@@ -388,7 +393,7 @@ function aggregateGameLogSessionTailEvents(
     const windowStart =
         toGameLogSessionEpoch(events[lastIndex].created_at) -
         SESSION_AGGREGATE_WINDOW_MS;
-    const indices = [];
+    const indices: number[] = [];
     for (let index = lastIndex; index >= 0; index -= 1) {
         if (toGameLogSessionEpoch(events[index].created_at) < windowStart) {
             break;
@@ -401,7 +406,9 @@ function aggregateGameLogSessionTailEvents(
         return;
     }
 
-    const batch = indices.map((index: any) => events[index]);
+    const batch: GameLogRow[] = indices.map(
+        (index) => events[index] as GameLogRow
+    );
     const group = makeGameLogSessionGroup(groupType, batch);
     for (let index = indices.length - 1; index >= 0; index -= 1) {
         events.splice(indices[index], 1);
@@ -432,7 +439,7 @@ function aggregateGameLogSessionHeadEvents(
     const windowEnd =
         toGameLogSessionEpoch(events[firstIndex].created_at) +
         SESSION_AGGREGATE_WINDOW_MS;
-    const indices = [];
+    const indices: number[] = [];
     for (let index = firstIndex; index < events.length; index += 1) {
         if (toGameLogSessionEpoch(events[index].created_at) > windowEnd) {
             break;
@@ -445,7 +452,9 @@ function aggregateGameLogSessionHeadEvents(
         return;
     }
 
-    const batch = indices.map((index: any) => events[index]);
+    const batch: GameLogRow[] = indices.map(
+        (index) => events[index] as GameLogRow
+    );
     const group = makeGameLogSessionGroup(groupType, batch);
     for (let index = indices.length - 1; index >= 0; index -= 1) {
         events.splice(indices[index], 1);
@@ -521,8 +530,8 @@ export function buildGameLogSessions(
         return { segments: [] };
     }
 
-    const segmentsAsc = locationSegments
-        .map((location: any) => ({
+    const segmentsAsc: GameLogSessionSegmentBuild[] = locationSegments
+        .map((location): GameLogSessionSegmentBuild => ({
             id: location.id,
             created_at: location.created_at,
             epoch: toGameLogSessionEpoch(location.created_at),
@@ -533,12 +542,12 @@ export function buildGameLogSessions(
             duration: location.time || null,
             events: []
         }))
-        .sort((left: any, right: any) => left.epoch - right.epoch);
+        .sort((left, right) => left.epoch - right.epoch);
 
     let dedupedEvents = flatEvents;
     if (flatEvents && flatEvents.length > 0) {
-        const seen = new Set();
-        dedupedEvents = flatEvents.filter((event: any) => {
+        const seen = new Set<string>();
+        dedupedEvents = flatEvents.filter((event) => {
             const key = getGameLogSessionEventDedupeKey(event);
             if (seen.has(key)) {
                 return false;
@@ -563,7 +572,7 @@ export function buildGameLogSessions(
 
     for (const segment of segmentsAsc) {
         segment.events.sort(
-            (left: any, right: any) =>
+            (left, right) =>
                 toGameLogSessionEpoch(left.created_at) -
                 toGameLogSessionEpoch(right.created_at)
         );
@@ -572,13 +581,13 @@ export function buildGameLogSessions(
     for (const segment of segmentsAsc) {
         const cutoff = segment.epoch - SESSION_TOLERANCE_MS;
         segment.events = segment.events.filter(
-            (event: any) => toGameLogSessionEpoch(event.created_at) >= cutoff
+            (event) => toGameLogSessionEpoch(event.created_at) >= cutoff
         );
     }
 
     for (const segment of segmentsAsc) {
         const windowEnd = segment.epoch + SESSION_AGGREGATE_WINDOW_MS;
-        const joinedIds = new Set();
+        const joinedIds = new Set<unknown>();
         for (const event of segment.events) {
             if (toGameLogSessionEpoch(event.created_at) > windowEnd) {
                 break;
@@ -617,8 +626,8 @@ export function buildGameLogSessions(
         segment.events.reverse();
     }
 
-    const segments = segmentsAsc
+    const segments: GameLogSessionSegment[] = segmentsAsc
         .reverse()
-        .map(({ epoch: _epoch, ...rest }: any) => rest);
+        .map(({ epoch: _epoch, ...rest }) => rest);
     return { segments };
 }

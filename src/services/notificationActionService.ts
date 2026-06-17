@@ -7,7 +7,15 @@ import {
 } from './friendBootstrapService';
 import { sendBoopToUser, sendInviteToLocation } from './inviteDeliveryService';
 
-type NotificationRecord = Record<string, any>;
+type NotificationRecord = Record<string, unknown> & {
+    id?: unknown;
+    version?: unknown;
+    type?: unknown;
+    senderUserId?: unknown;
+    senderUsername?: unknown;
+    expired?: unknown;
+    link?: unknown;
+};
 
 interface NotificationActionInput {
     currentUserId?: unknown;
@@ -80,7 +88,7 @@ export async function findIncomingFriendRequestNotification({
     });
     return (
         rows.find(
-            (row: any) =>
+            (row) =>
                 row?.type === 'friendRequest' &&
                 !row.expired &&
                 normalizeText(row.senderUserId) === normalizedTargetUserId
@@ -107,7 +115,7 @@ async function hideRemoteNotification({
     await notificationPersistenceRepository.hideRemoteNotification({
         id: target.id,
         version: target.version,
-        type: target.type,
+        type: normalizeText(target.type),
         senderUserId: target.senderUserId,
         endpoint
     });
@@ -254,26 +262,23 @@ export async function dismissBoopNotifications({
     if (!currentUserId || !normalizedSenderUserId) {
         return;
     }
-    const matchingRows = await notificationPersistenceRepository
-        .queryNotifications({
-            userId: currentUserId,
-            filters: ['boop']
-        })
-        .then((items: any) =>
-            (Array.isArray(items) ? items : []).filter(
-                (item: any) =>
-                    item?.type === 'boop' &&
-                    !item.expired &&
-                    item.link === `user:${normalizedSenderUserId}`
-            )
-        );
+    const items = await notificationPersistenceRepository.queryNotifications({
+        userId: currentUserId,
+        filters: ['boop']
+    });
+    const matchingRows = items.filter(
+        (item) =>
+            item?.type === 'boop' &&
+            !item.expired &&
+            item.link === `user:${normalizedSenderUserId}`
+    );
     await Promise.allSettled(
-        matchingRows.map(async (item: any) => {
+        matchingRows.map(async (item) => {
             try {
                 await notificationPersistenceRepository.hideRemoteNotification({
                     id: item.id,
                     version: item.version,
-                    type: item.type,
+                    type: normalizeText(item.type),
                     senderUserId: item.senderUserId,
                     endpoint
                 });
@@ -333,7 +338,7 @@ export async function sendNotificationButtonResponse({
             notification: target
         });
     } catch (error) {
-        if (target.version >= 2) {
+        if (Number(target.version) >= 2) {
             await expireNotificationLocally({
                 currentUserId,
                 notification: target

@@ -1,27 +1,45 @@
 import configRepository from '@/repositories/configRepository';
 
-function safeArray(value: any) {
+import type {
+    PresenceActions,
+    PresenceCondition,
+    PresenceRule
+} from './presenceRuleEngine';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function safeArray<T = unknown>(value: unknown): T[] {
     if (Array.isArray(value)) {
-        return value;
+        return value as T[];
     }
     if (typeof value !== 'string' || !value.trim()) {
         return [];
     }
     try {
         const parsed = JSON.parse(value);
-        return Array.isArray(parsed) ? parsed : [];
+        return Array.isArray(parsed) ? (parsed as T[]) : [];
     } catch {
         return [];
     }
 }
 
-function buildInstanceConditions(selectedInstanceTypes: any) {
+function buildInstanceConditions(
+    selectedInstanceTypes: unknown
+): PresenceCondition[] {
     return Array.isArray(selectedInstanceTypes) && selectedInstanceTypes.length
         ? [{ type: 'instanceTypeIn', values: selectedInstanceTypes }]
         : [];
 }
 
-function buildCompanyConditions({ noFriends, selectedGroups }: any) {
+function buildCompanyConditions({
+    noFriends,
+    selectedGroups
+}: {
+    noFriends: boolean;
+    selectedGroups: unknown[];
+}): PresenceCondition[] {
     if (!noFriends) {
         return [{ type: 'withCompany' }];
     }
@@ -64,10 +82,10 @@ async function loadLegacyRules() {
     const selectedGroups = safeArray(selectedGroupsRaw);
     const selectedInstanceTypes = safeArray(selectedInstanceTypesRaw);
     const instanceConditions = buildInstanceConditions(selectedInstanceTypes);
-    const companyActions: Record<string, unknown> = {
+    const companyActions: PresenceActions = {
         status: companyStatus || 'busy'
     };
-    const aloneActions: Record<string, unknown> = {
+    const aloneActions: PresenceActions = {
         status: aloneStatus || 'join me'
     };
     if (companyDescEnabled) {
@@ -111,16 +129,17 @@ async function loadLegacyRules() {
     ];
 }
 
-async function loadStoredRules(key: any) {
+async function loadStoredRules(key: string): Promise<PresenceRule[]> {
     return safeArray(await configRepository.getString(key, '[]')).filter(
-        (rule: any) => rule && typeof rule === 'object'
+        (rule): rule is PresenceRule => isRecord(rule)
     );
 }
 
-function forceGameRunningCondition(rule: any) {
+function forceGameRunningCondition(rule: PresenceRule): PresenceRule {
     const conditions = Array.isArray(rule.conditions)
         ? rule.conditions.filter(
-              (condition: any) => condition?.type !== 'isGameRunning'
+              (condition): condition is PresenceCondition =>
+                  isRecord(condition) && condition?.type !== 'isGameRunning'
           )
         : [];
     return {
@@ -129,7 +148,7 @@ function forceGameRunningCondition(rule: any) {
     };
 }
 
-function hasPresenceAction(rule: any) {
+function hasPresenceAction(rule: PresenceRule) {
     const actions = rule?.actions;
     if (!actions || typeof actions !== 'object') {
         return false;
@@ -166,7 +185,7 @@ export async function loadPresenceAutomationConfig() {
     const contextRules = storedContextRules.map(forceGameRunningCondition);
     const rules = [...timeRules, ...contextRules, ...legacyRules];
     const enabledRules = rules.filter(
-        (rule: any) => rule?.enabled !== false && hasPresenceAction(rule)
+        (rule) => rule?.enabled !== false && hasPresenceAction(rule)
     );
 
     return {

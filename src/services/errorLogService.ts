@@ -1,4 +1,4 @@
-import { invokeTauri } from '@/platform/tauri/invoke';
+import { commands } from '@/platform/tauri/bindings';
 
 const HTTP_ERROR_STATUS_MIN = 400;
 const HTTP_ERROR_STATUS_MAX = 599;
@@ -14,7 +14,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
 }
 
-function pad(value: unknown, length: any = 2): string {
+function pad(value: unknown, length: number = 2): string {
     return String(value).padStart(length, '0');
 }
 
@@ -40,8 +40,8 @@ function truncate(value: string): string {
 
 function serializeValue(
     value: unknown,
-    depth: any = 0,
-    seen: any = new Set<unknown>()
+    depth: number = 0,
+    seen: Set<unknown> = new Set<unknown>()
 ): string {
     if (value instanceof Error) {
         return value.stack || value.message || value.name;
@@ -98,8 +98,8 @@ function serializeValue(
 
 function collectText(
     value: unknown,
-    depth: any = 0,
-    seen: any = new Set<unknown>()
+    depth: number = 0,
+    seen: Set<unknown> = new Set<unknown>()
 ): string {
     if (value instanceof Error) {
         return [value.name, value.message, value.stack]
@@ -137,8 +137,8 @@ function collectText(
 
 function hasHttpErrorStatus(
     value: unknown,
-    depth: any = 0,
-    seen: any = new Set<unknown>()
+    depth: number = 0,
+    seen: Set<unknown> = new Set<unknown>()
 ): boolean {
     if (!isRecord(value) || seen.has(value) || depth > MAX_OBJECT_DEPTH) {
         return false;
@@ -181,7 +181,7 @@ const NETWORK_ERROR_MARKERS = [
 
 function hasNetworkErrorText(text: string): boolean {
     const lower = text.toLowerCase();
-    if (NETWORK_ERROR_MARKERS.some((marker: any) => lower.includes(marker))) {
+    if (NETWORK_ERROR_MARKERS.some((marker) => lower.includes(marker))) {
         return true;
     }
 
@@ -191,16 +191,16 @@ function hasNetworkErrorText(text: string): boolean {
         /\b(?:GET|POST|PUT|PATCH|DELETE)\b[^\n]*(?:4\d\d|5\d\d)\b/i,
         /\brequest failed\s*\((?:4\d\d|5\d\d)\)/i,
         /\berror:\s*\{?[^\n]*(?:4\d\d|5\d\d)\b/i
-    ].some((pattern: any) => pattern.test(text));
+    ].some((pattern) => pattern.test(text));
 }
 
 function shouldSkipErrorLog(values: unknown[]): boolean {
-    if (values.some((value: any) => hasHttpErrorStatus(value))) {
+    if (values.some((value) => hasHttpErrorStatus(value))) {
         return true;
     }
 
     return hasNetworkErrorText(
-        values.map((value: any) => collectText(value)).join('\n')
+        values.map((value) => collectText(value)).join('\n')
     );
 }
 
@@ -224,9 +224,7 @@ async function flushLogQueue(): Promise<void> {
         while (logQueue.length > 0) {
             const nextEntry = logQueue.shift();
             try {
-                await invokeTauri('app__append_error_log', {
-                    entry: nextEntry
-                });
+                await commands.appAppendErrorLog(nextEntry || '');
             } catch {
                 // Logging must never affect the app path that produced the error.
             }
@@ -257,7 +255,7 @@ export async function recordErrorLog(
 
     const entry = formatEntry(
         source,
-        normalizedValues.map((value: any) => serializeValue(value))
+        normalizedValues.map((value) => serializeValue(value))
     );
     await appendEntry(entry);
 }
@@ -295,7 +293,7 @@ function installConsoleErrorCapture(): void {
     }
 
     originalConsoleError = console.error.bind(console);
-    console.error = (...args: any[]) => {
+    console.error = (...args: unknown[]) => {
         originalConsoleError(...args);
         recordErrorLog('js:console.error', args);
     };

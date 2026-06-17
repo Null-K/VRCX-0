@@ -12,6 +12,48 @@ import {
 } from './parsing';
 import { nowPlayingState } from './state';
 
+type WebRecord = Record<string, unknown>;
+type VideoMetadata = {
+    videoName: string;
+    videoLength: number;
+    thumbnailUrl: string;
+};
+type VideoEntryInput = {
+    dt: string;
+    location: string;
+    videoUrl: string;
+    videoId?: unknown;
+    videoName?: unknown;
+    videoLength?: unknown;
+    displayName?: unknown;
+    userId?: unknown;
+    videoPos?: unknown;
+    thumbnailUrl?: unknown;
+};
+type VideoEntry = {
+    created_at: string;
+    type: 'VideoPlay';
+    videoUrl: string;
+    videoId: string;
+    videoName: string;
+    videoLength: number;
+    location: string;
+    displayName: string;
+    userId: string;
+    videoPos: number;
+    thumbnailUrl: string;
+};
+type ProviderVideoGameLog = {
+    dt: string;
+    data?: unknown;
+};
+
+function asRecord(value: unknown): WebRecord {
+    return value && typeof value === 'object'
+        ? (value as WebRecord)
+        : {};
+}
+
 function resetRuntimeNowPlayingState() {
     useRuntimeStore.getState().setNowPlayingState({
         url: '',
@@ -26,7 +68,9 @@ function resetRuntimeNowPlayingState() {
     });
 }
 
-async function lookupYouTubeVideo(videoId: any) {
+async function lookupYouTubeVideo(
+    videoId: unknown
+): Promise<VideoMetadata | null> {
     const normalizedVideoId = normalizeString(videoId);
     if (!normalizedVideoId) {
         return null;
@@ -51,19 +95,21 @@ async function lookupYouTubeVideo(videoId: any) {
         ) {
             return null;
         }
-        const item = payload.items[0];
-        const thumbnails = item?.snippet?.thumbnails || {};
-        const thumbnail =
+        const item = asRecord(payload.items[0]);
+        const snippet = asRecord(item.snippet);
+        const contentDetails = asRecord(item.contentDetails);
+        const thumbnails = asRecord(snippet.thumbnails);
+        const thumbnail = asRecord(
             thumbnails.maxres ||
-            thumbnails.standard ||
-            thumbnails.high ||
-            thumbnails.medium ||
-            thumbnails.default ||
-            {};
+                thumbnails.standard ||
+                thumbnails.high ||
+                thumbnails.medium ||
+                thumbnails.default
+        );
         return {
-            videoName: normalizeString(item?.snippet?.title),
+            videoName: normalizeString(snippet.title),
             videoLength: convertYouTubeDurationToSeconds(
-                item?.contentDetails?.duration
+                contentDetails.duration
             ),
             thumbnailUrl: normalizeString(thumbnail.url)
         };
@@ -73,7 +119,7 @@ async function lookupYouTubeVideo(videoId: any) {
     }
 }
 
-async function resolveUserIdFromDisplayName(displayName: any) {
+async function resolveUserIdFromDisplayName(displayName: unknown) {
     const normalizedDisplayName = normalizeString(displayName);
     if (!normalizedDisplayName) {
         return '';
@@ -102,24 +148,26 @@ function createVideoEntry({
     userId = '',
     videoPos = 8,
     thumbnailUrl = ''
-}: any) {
+}: VideoEntryInput): VideoEntry {
+    const normalizedVideoUrl = normalizeString(videoUrl);
     const youtubeId = videoId ? '' : parseYouTubeVideoId(videoUrl);
     return {
         created_at: dt,
         type: 'VideoPlay',
-        videoUrl,
-        videoId: videoId || (youtubeId ? 'YouTube' : ''),
-        videoName: videoName || youtubeId || videoUrl,
+        videoUrl: normalizedVideoUrl,
+        videoId: normalizeString(videoId) || (youtubeId ? 'YouTube' : ''),
+        videoName:
+            normalizeString(videoName) || youtubeId || normalizedVideoUrl,
         videoLength: Number(videoLength) || 0,
-        location,
-        displayName,
-        userId,
+        location: normalizeString(location),
+        displayName: normalizeString(displayName),
+        userId: normalizeString(userId),
         videoPos: Number(videoPos) || 0,
-        thumbnailUrl
+        thumbnailUrl: normalizeString(thumbnailUrl)
     };
 }
 
-async function createVideoEntryWithMetadata(args: any) {
+async function createVideoEntryWithMetadata(args: VideoEntryInput) {
     const entry = createVideoEntry(args);
     const youtubeId =
         entry.videoId === 'YouTube' ? parseYouTubeVideoId(entry.videoUrl) : '';
@@ -138,7 +186,7 @@ async function createVideoEntryWithMetadata(args: any) {
     };
 }
 
-async function persistVideoEntry(entry: any) {
+async function persistVideoEntry(entry: VideoEntry | null | undefined) {
     if (!entry?.videoUrl) {
         return null;
     }
@@ -179,7 +227,7 @@ async function persistVideoEntry(entry: any) {
         ]
             .filter(Boolean)
             .join(' ')
-    }).catch((error: any) => {
+    }).catch((error: unknown) => {
         console.warn(
             'Failed to publish video shared feed notification:',
             error
@@ -188,9 +236,13 @@ async function persistVideoEntry(entry: any) {
     return entry;
 }
 
-async function persistProviderVideo(gameLog: any, location: any) {
+async function persistProviderVideo(
+    gameLog: ProviderVideoGameLog,
+    location: unknown
+) {
     const data = normalizeString(gameLog.data);
     const type = data.slice(0, data.indexOf(' '));
+    const normalizedLocation = normalizeString(location);
 
     if (type === 'VideoPlay(PyPyDance)') {
         const match =
@@ -213,7 +265,7 @@ async function persistProviderVideo(gameLog: any, location: any) {
         return persistVideoEntry(
             await createVideoEntryWithMetadata({
                 dt: gameLog.dt,
-                location,
+                location: normalizedLocation,
                 videoUrl: match[1],
                 videoPos: match[2],
                 videoLength: match[3],
@@ -247,7 +299,7 @@ async function persistProviderVideo(gameLog: any, location: any) {
         return persistVideoEntry(
             await createVideoEntryWithMetadata({
                 dt: gameLog.dt,
-                location,
+                location: normalizedLocation,
                 videoUrl: match[1],
                 videoPos: match[2] === match[3] ? 0 : match[2],
                 videoLength: match[3],
@@ -267,7 +319,7 @@ async function persistProviderVideo(gameLog: any, location: any) {
         return persistVideoEntry(
             await createVideoEntryWithMetadata({
                 dt: gameLog.dt,
-                location,
+                location: normalizedLocation,
                 videoUrl: videoName,
                 videoPos: match[1],
                 videoLength: match[2],
@@ -281,14 +333,15 @@ async function persistProviderVideo(gameLog: any, location: any) {
     if (type === 'VideoPlay(PopcornPalace)') {
         const jsonStart = data.indexOf('{');
         if (jsonStart < 0) return null;
-        let parsed;
+        let parsed: WebRecord;
         try {
-            parsed = JSON.parse(data.substring(jsonStart));
+            parsed = asRecord(JSON.parse(data.substring(jsonStart)));
         } catch (error) {
             console.warn('Failed to parse PopcornPalace video payload:', error);
             return null;
         }
-        if (!parsed.videoName) {
+        const videoName = normalizeString(parsed.videoName);
+        if (!videoName) {
             nowPlayingState.url = '';
             resetRuntimeNowPlayingState();
             return null;
@@ -296,12 +349,12 @@ async function persistProviderVideo(gameLog: any, location: any) {
         return persistVideoEntry(
             await createVideoEntryWithMetadata({
                 dt: gameLog.dt,
-                location,
-                videoUrl: parsed.videoName,
+                location: normalizedLocation,
+                videoUrl: videoName,
                 videoPos: parsed.videoPos,
                 videoLength: parsed.videoLength,
                 videoId: 'PopcornPalace',
-                videoName: parsed.videoName,
+                videoName,
                 displayName: parsed.displayName || '',
                 thumbnailUrl: parsed.thumbnailUrl || ''
             })

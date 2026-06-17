@@ -1,4 +1,10 @@
 import configRepository from '@/repositories/configRepository';
+import type {
+    FriendProjection,
+    RealtimeCurrentUserProjection,
+    RealtimeInstanceClosedProjection,
+    RealtimeNotificationProjection
+} from '@/platform/tauri/bindings';
 import { useFeedLiveStore } from '@/state/feedLiveStore';
 import { useFriendLogStore } from '@/state/friendLogStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
@@ -12,7 +18,8 @@ import { handleInviteAutomationNotification } from './inviteAutomationService';
 import { handleRealtimeInstanceQueueProjection } from './realtimeInstanceQueueService';
 import { pushSharedFeedNotification } from './sharedFeedFilterService';
 
-type AnyRecord = Record<string, any>;
+type ProjectionRecord = Record<string, unknown>;
+type RuntimeState = ReturnType<typeof useRuntimeStore.getState>;
 const CURRENT_USER_FRIEND_ARRAY_FIELDS = [
     'friends',
     'onlineFriends',
@@ -20,15 +27,15 @@ const CURRENT_USER_FRIEND_ARRAY_FIELDS = [
     'offlineFriends'
 ];
 
-function isRecord(value: unknown): value is AnyRecord {
+function isRecord(value: unknown): value is ProjectionRecord {
     return Boolean(value && typeof value === 'object' && !Array.isArray(value));
 }
 
-function asRecord(value: unknown): AnyRecord {
+function asRecord(value: unknown): ProjectionRecord {
     return isRecord(value) ? value : {};
 }
 
-function hasOwn(record: AnyRecord, key: string): boolean {
+function hasOwn(record: ProjectionRecord, key: string): boolean {
     return Object.prototype.hasOwnProperty.call(record, key);
 }
 
@@ -38,30 +45,33 @@ function normalizeUserId(value: unknown): string {
         : String(value ?? '').trim();
 }
 
-function getCurrentUserSnapshot(
-    runtimeState: any = useRuntimeStore.getState()
-) {
+function getCurrentUserSnapshot(runtimeState: RuntimeState = useRuntimeStore.getState()) {
     return isRecord(runtimeState.auth.currentUserSnapshot)
         ? runtimeState.auth.currentUserSnapshot
         : null;
 }
 
-function currentUserDisplayName(snapshot: AnyRecord, fallback: any = '') {
+function currentUserDisplayName(
+    snapshot: ProjectionRecord,
+    fallback: unknown = ''
+) {
     return (
         normalizeUserId(snapshot.displayName) ||
         normalizeUserId(snapshot.username) ||
         normalizeUserId(snapshot.id) ||
-        fallback
+        normalizeUserId(fallback)
     );
 }
 
-function hasCompleteCurrentUserFriendBucketSnapshot(source: AnyRecord) {
+function hasCompleteCurrentUserFriendBucketSnapshot(source: ProjectionRecord) {
     return CURRENT_USER_FRIEND_ARRAY_FIELDS.every((field) =>
         Array.isArray(source[field])
     );
 }
 
-function getCurrentUserProjectionFriendBucketSource(projection: AnyRecord) {
+function getCurrentUserProjectionFriendBucketSource(
+    projection: Partial<RealtimeCurrentUserProjection>
+) {
     const patch = asRecord(projection.patch);
     if (hasCompleteCurrentUserFriendBucketSnapshot(patch)) {
         return patch;
@@ -77,8 +87,8 @@ function getCurrentUserProjectionFriendBucketSource(projection: AnyRecord) {
 }
 
 function mergeCurrentUserProjectionSnapshot(
-    runtimeState: ReturnType<typeof useRuntimeStore.getState>,
-    projection: AnyRecord
+    runtimeState: RuntimeState,
+    projection: Partial<RealtimeCurrentUserProjection>
 ) {
     const currentSnapshot = getCurrentUserSnapshot(runtimeState);
     const patch = asRecord(projection.patch);
@@ -88,7 +98,7 @@ function mergeCurrentUserProjectionSnapshot(
     const source = Object.keys(patch).length ? patch : snapshotSource;
     const completeFriendBucketSource =
         getCurrentUserProjectionFriendBucketSource(projection);
-    const nextSnapshot: any = {
+    const nextSnapshot: ProjectionRecord = {
         ...(currentSnapshot || {}),
         ...source
     };
@@ -115,7 +125,7 @@ function mergeCurrentUserProjectionSnapshot(
 
 function applyFriendPatch(
     userId: string,
-    patch: AnyRecord,
+    patch: ProjectionRecord,
     stateBucket: string,
     stateBucketAuthority: string
 ) {
@@ -141,7 +151,7 @@ function pushProjectionFeedEntry(entry: unknown) {
     useFeedLiveStore.getState().pushEntry(feedEntry, {
         ownerUserId: useRuntimeStore.getState().auth.currentUserId
     });
-    pushSharedFeedNotification(feedEntry).catch((error: any) => {
+    pushSharedFeedNotification(feedEntry).catch((error: unknown) => {
         console.warn('Failed to publish realtime feed notification:', error);
     });
 }
@@ -152,16 +162,16 @@ function clearNotificationMenuIfNoUnseen() {
     }
 }
 
-function notifyNotificationMenu(notification: AnyRecord) {
+function notifyNotificationMenu(notification: ProjectionRecord) {
     if (notification.version === 2 && notification.seen !== false) {
         return;
     }
     useShellStore.getState().notifyMenu('notification');
 }
 
-async function runInviteAutomation(notification: AnyRecord) {
+async function runInviteAutomation(notification: ProjectionRecord) {
     return handleInviteAutomationNotification(notification).catch(
-        (error: any) => {
+        (error: unknown) => {
             console.warn(
                 'Failed to handle invite automation notification:',
                 error
@@ -174,7 +184,7 @@ async function runInviteAutomation(notification: AnyRecord) {
 function parseStringArray(value: unknown): string[] {
     if (Array.isArray(value)) {
         return value
-            .map((entry: any) => normalizeUserId(entry))
+            .map((entry) => normalizeUserId(entry))
             .filter(Boolean);
     }
     if (typeof value !== 'string') {
@@ -183,7 +193,7 @@ function parseStringArray(value: unknown): string[] {
     try {
         const parsed = JSON.parse(value);
         return Array.isArray(parsed)
-            ? parsed.map((entry: any) => normalizeUserId(entry)).filter(Boolean)
+            ? parsed.map((entry) => normalizeUserId(entry)).filter(Boolean)
             : [];
     } catch {
         return [];
@@ -204,8 +214,8 @@ async function shouldNotifyInstanceClosed(): Promise<boolean> {
     }
 }
 
-function handleRealtimeFriendProjection(payload: unknown) {
-    const projection = asRecord(payload);
+function handleRealtimeFriendProjection(payload: Partial<FriendProjection>) {
+    const projection = payload;
     for (const userId of Array.isArray(projection.removals)
         ? projection.removals
         : []) {
@@ -249,8 +259,10 @@ export function handleRealtimeUserCacheProjection(payload: unknown) {
     useUserFactsStore.getState().replaceUserFacts(users);
 }
 
-async function handleRealtimeNotificationProjection(payload: unknown) {
-    const projection = asRecord(payload);
+async function handleRealtimeNotificationProjection(
+    payload: Partial<RealtimeNotificationProjection>
+) {
+    const projection = payload;
     const store = useVrcNotificationStore.getState();
 
     if (Array.isArray(projection.expiredIds) && projection.expiredIds.length) {
@@ -269,7 +281,7 @@ async function handleRealtimeNotificationProjection(payload: unknown) {
             continue;
         }
         const existingNotification = store.rows.find(
-            (row: any) => row.id === notification.id
+            (row) => row.id === notification.id
         );
         const insertDefaults = asRecord(item.insertDefaults);
         if (!existingNotification && Object.keys(insertDefaults).length) {
@@ -282,7 +294,7 @@ async function handleRealtimeNotificationProjection(payload: unknown) {
         const mergedNotification =
             useVrcNotificationStore
                 .getState()
-                .rows.find((row: any) => row.id === notification.id) ||
+                .rows.find((row) => row.id === notification.id) ||
             notification;
         const automationResult = item.runAutomation
             ? await runInviteAutomation(mergedNotification)
@@ -301,8 +313,10 @@ async function handleRealtimeNotificationProjection(payload: unknown) {
     }
 }
 
-function handleRealtimeCurrentUserProjection(payload: unknown) {
-    const projection = asRecord(payload);
+function handleRealtimeCurrentUserProjection(
+    payload: Partial<RealtimeCurrentUserProjection>
+) {
+    const projection = payload;
     const runtimeStore = useRuntimeStore.getState();
     const snapshot = mergeCurrentUserProjectionSnapshot(
         runtimeStore,
@@ -336,8 +350,10 @@ function handleRealtimeCurrentUserProjection(payload: unknown) {
     });
 }
 
-async function handleRealtimeInstanceClosedProjection(payload: unknown) {
-    const projection = asRecord(payload);
+async function handleRealtimeInstanceClosedProjection(
+    payload: Partial<RealtimeInstanceClosedProjection>
+) {
+    const projection = payload;
     const notification = asRecord(projection.notification);
     if (!notification.id) {
         return;
@@ -349,7 +365,7 @@ async function handleRealtimeInstanceClosedProjection(payload: unknown) {
     useFeedLiveStore.getState().pushEntry(asRecord(projection.feedEntry), {
         ownerUserId: useRuntimeStore.getState().auth.currentUserId
     });
-    pushSharedFeedNotification(notification).catch((error: any) => {
+    pushSharedFeedNotification(notification).catch((error: unknown) => {
         console.warn(
             'Failed to publish instance-closed shared feed notification:',
             error

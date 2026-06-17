@@ -2,7 +2,9 @@ import type { Event, UnlistenFn } from '@tauri-apps/api/event';
 
 import { normalizePlatformError } from './errors';
 
-export type TauriEventHandler = (payload: unknown) => void;
+export type TauriEventHandler<TPayload = unknown> = (
+    payload: TPayload
+) => void;
 
 interface TauriEventRegistration {
     promise: Promise<UnlistenFn>;
@@ -92,6 +94,17 @@ export async function onTauriEvent(
     return () => offTauriEvent(name, handler);
 }
 
+export async function subscribeTauriEvent<TPayload = unknown>(
+    name: string,
+    handler: TauriEventHandler<TPayload>
+): Promise<() => void> {
+    const eventHandler = handler as TauriEventHandler;
+    getBucket(name).add(eventHandler);
+    await ensureTauriSubscription(name);
+
+    return () => offTauriEvent(name, eventHandler);
+}
+
 export function offTauriEvent(name: string, handler: TauriEventHandler): void {
     const bucket = listeners.get(name);
     if (!bucket) {
@@ -144,5 +157,5 @@ export const tauriEvents = Object.freeze({
     off: offTauriEvent,
     emit: emitTauriEvent,
     clear: clearTauriEventListeners,
-    subscribe: onTauriEvent
+    subscribe: subscribeTauriEvent
 });

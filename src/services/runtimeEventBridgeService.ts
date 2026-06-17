@@ -1,4 +1,16 @@
 import { commands } from '@/platform/tauri/bindings';
+import type {
+    BackendRuntimeSnapshot,
+    BackendRuntimeTelemetry,
+    FriendProjection,
+    GameLogProjection,
+    HostSessionProjection,
+    OverlayActivitySnapshot,
+    RealtimeCurrentUserProjection,
+    RealtimeInstanceClosedProjection,
+    RealtimeInstanceQueueProjection,
+    RealtimeNotificationProjection
+} from '@/platform/tauri/bindings';
 import { tauriClient } from '@/platform/tauri/client';
 import { normalizeVrchatEndpointDomain } from '@/shared/vrchatEndpoint';
 import { useNotificationStore } from '@/state/notificationStore';
@@ -56,6 +68,33 @@ type RuntimeEventName =
     | 'ipcEvent'
     | 'browserFocus';
 
+type RuntimeEventPayloadMap = {
+    addGameLogEvent: unknown;
+    backendRuntimeTelemetry: BackendRuntimeTelemetry;
+    gameLogProjection: GameLogProjection;
+    gameLogPersistenceFallback: unknown;
+    gameLogSideEffect: unknown;
+    gameClientEvent: unknown;
+    runtimeWorkerError: unknown;
+    runtimeGroupInstancesProjection: unknown;
+    overlayActivitySnapshot: OverlayActivitySnapshot;
+    notificationDelivery: Parameters<typeof executeNotificationDelivery>[0];
+    realtimeFriendProjection: FriendProjection;
+    realtimeUserProjection: unknown;
+    realtimeNotificationProjection: RealtimeNotificationProjection;
+    realtimeCurrentUserProjection: RealtimeCurrentUserProjection;
+    realtimeInstanceClosedProjection: RealtimeInstanceClosedProjection;
+    realtimeInstanceQueueProjection: RealtimeInstanceQueueProjection;
+    updateIsGameRunning: HostSessionProjection;
+    ipcEvent: string;
+    browserFocus: unknown;
+};
+
+type RuntimeSnapshotPayload =
+    | BackendRuntimeSnapshot
+    | Record<string, unknown>
+    | null;
+
 type CapabilityStatus = {
     available?: unknown;
 };
@@ -70,8 +109,7 @@ type RuntimeEventUnsubscribe = () => void;
 
 let gameLogIngestQueue: Promise<unknown> = Promise.resolve();
 let backendRuntimeHydrationPromise: Promise<void> | null = null;
-let pendingBackendRuntimeHydrationSnapshot: Record<string, unknown> | null =
-    null;
+let pendingBackendRuntimeHydrationSnapshot: RuntimeSnapshotPayload = null;
 let hasPendingBackendRuntimeHydrationSnapshot = false;
 type BackendRealtimeProjectionScope = {
     userId: string;
@@ -88,7 +126,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function applyBackendRuntimeSnapshot(
-    snapshot: Record<string, unknown> | null,
+    snapshot: RuntimeSnapshotPayload,
     { markHydrated = true }: { markHydrated?: boolean } = {}
 ) {
     const runtimeStore = useRuntimeStore.getState();
@@ -101,7 +139,7 @@ function applyBackendRuntimeSnapshot(
 }
 
 function hydrateBackendRuntimeSnapshot(
-    snapshot: Record<string, unknown> | null
+    snapshot: RuntimeSnapshotPayload
 ): Promise<void> {
     pendingBackendRuntimeHydrationSnapshot = snapshot;
     hasPendingBackendRuntimeHydrationSnapshot = true;
@@ -180,7 +218,7 @@ function publishNowPlayingSharedFeed(payload: Record<string, unknown>): void {
         userId: normalizeString(payload.userId),
         message,
         notyName: message
-    }).catch((error: any) => {
+    }).catch((error: unknown) => {
         console.warn(
             'Failed to publish runtime video shared feed notification:',
             error
@@ -324,7 +362,7 @@ function isRealtimeProjectionEvent(name: RuntimeEventName): boolean {
 }
 
 function handleBackendRealtimeProjectionFailure(error: unknown): void {
-    showSQLiteErrorDialog(error).catch((dialogError: any) => {
+    showSQLiteErrorDialog(error).catch((dialogError: unknown) => {
         console.warn('Realtime SQLite error dialog failed:', dialogError);
     });
     useNotificationStore.getState().pushNotification({
@@ -400,7 +438,7 @@ function flushPendingBackendRealtimeProjectionEvents(): void {
 }
 
 function prunePendingBackendRealtimeProjectionEvents(
-    snapshot: Record<string, unknown> | null
+    snapshot: RuntimeSnapshotPayload
 ): void {
     if (!pendingBackendRealtimeProjectionEvents.length) {
         return;
@@ -422,7 +460,7 @@ function prunePendingBackendRealtimeProjectionEvents(
 }
 
 function isBackendRuntimeAuthFailureSnapshot(
-    snapshot: Record<string, unknown> | null
+    snapshot: RuntimeSnapshotPayload
 ): boolean {
     return Boolean(
         isRecord(snapshot) &&
@@ -434,7 +472,7 @@ function isBackendRuntimeAuthFailureSnapshot(
 }
 
 function handleBackendRuntimeAuthFailureSnapshot(
-    snapshot: Record<string, unknown> | null
+    snapshot: RuntimeSnapshotPayload
 ): void {
     if (!isBackendRuntimeAuthFailureSnapshot(snapshot)) {
         return;
@@ -480,7 +518,7 @@ function requestGameRunningStateRefresh(source: string): void {
         return;
     }
 
-    commands.appCheckGameRunning().catch((error: any) => {
+    commands.appCheckGameRunning().catch((error: unknown) => {
         console.warn(
             `Game process state refresh failed during ${source}:`,
             error
@@ -489,7 +527,7 @@ function requestGameRunningStateRefresh(source: string): void {
 }
 
 function requestGroupInstancesRefresh(source: string): void {
-    commands.appRuntimeGroupInstancesRefresh().catch((error: any) => {
+    commands.appRuntimeGroupInstancesRefresh().catch((error: unknown) => {
         console.warn(
             `Runtime group instances refresh failed during ${source}:`,
             error
@@ -497,7 +535,10 @@ function requestGroupInstancesRefresh(source: string): void {
     });
 }
 
-function handleRuntimeEvent(name: RuntimeEventName, payload: unknown): void {
+function handleRuntimeEvent(
+    name: RuntimeEventName,
+    payload: RuntimeEventPayloadMap[RuntimeEventName]
+): void {
     const runtimeStore = useRuntimeStore.getState();
 
     if (name === 'addGameLogEvent') {
@@ -515,7 +556,9 @@ function handleRuntimeEvent(name: RuntimeEventName, payload: unknown): void {
 
     if (name === 'notificationDelivery') {
         runtimeStore.recordRuntimeEvent(name, payload);
-        executeNotificationDelivery(payload as any).catch((error: any) => {
+        executeNotificationDelivery(
+            payload as RuntimeEventPayloadMap['notificationDelivery']
+        ).catch((error: unknown) => {
             console.warn('Failed to execute notification delivery:', error);
         });
         return;
@@ -536,7 +579,7 @@ function handleRuntimeEvent(name: RuntimeEventName, payload: unknown): void {
         } else {
             applyBackendRuntimeSnapshot(snapshot);
             resumeFrontendSessionFromBackendRuntime(snapshot)
-                .catch((error: any) => {
+                .catch((error: unknown) => {
                     console.warn(
                         'Failed to resume frontend session from backend runtime:',
                         error
@@ -656,7 +699,7 @@ function handleRuntimeEvent(name: RuntimeEventName, payload: unknown): void {
         if (!isHostCapabilityAvailable('gameProcessMonitor')) {
             return;
         }
-        handleGameRunningUpdate(payload).catch((error: any) => {
+        handleGameRunningUpdate(payload).catch((error: unknown) => {
             useNotificationStore.getState().pushNotification({
                 level: 'warning',
                 title: 'Game state update failed',
@@ -670,7 +713,7 @@ function handleRuntimeEvent(name: RuntimeEventName, payload: unknown): void {
         if (!isHostCapabilityAvailable('ipc')) {
             return;
         }
-        handleIpcEvent(payload).catch((error: any) => {
+        handleIpcEvent(payload).catch((error: unknown) => {
             useNotificationStore.getState().pushNotification({
                 level: 'warning',
                 title: 'IPC event failed',
@@ -685,7 +728,7 @@ function handleRuntimeEvent(name: RuntimeEventName, payload: unknown): void {
             lastBrowserFocusAt: new Date().toISOString()
         });
         requestGameRunningStateRefresh('browser focus');
-        handleBrowserFocus().catch((error: any) => {
+        handleBrowserFocus().catch((error: unknown) => {
             console.warn('Browser focus status refresh failed:', error);
         });
     }
@@ -719,12 +762,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
 
     try {
         for (const name of events) {
-            const unsubscribe = await tauriClient.events.subscribe(
-                name,
-                (payload: any) => {
-                    handleRuntimeEvent(name, payload);
-                }
-            );
+            const unsubscribe = await subscribeRuntimeEvent(name);
             unsubscribers.push(unsubscribe);
         }
     } catch (error) {
@@ -743,7 +781,7 @@ export async function bindRuntimeEvents(): Promise<() => void> {
 
     useSessionStore.getState().setTransportStatus('runtime-subscribed');
     try {
-        const snapshot: any = await commands.appGetBackendRuntimeSnapshot();
+        const snapshot = await commands.appGetBackendRuntimeSnapshot();
         await hydrateBackendRuntimeSnapshot(snapshot);
     } catch (error) {
         useRuntimeStore.getState().setShellState({
@@ -764,4 +802,15 @@ export async function bindRuntimeEvents(): Promise<() => void> {
         }
         useSessionStore.getState().setTransportStatus('disconnected');
     };
+}
+
+function subscribeRuntimeEvent<Name extends RuntimeEventName>(
+    name: Name
+): Promise<RuntimeEventUnsubscribe> {
+    return tauriClient.events.subscribe<RuntimeEventPayloadMap[Name]>(
+        name,
+        (payload) => {
+            handleRuntimeEvent(name, payload);
+        }
+    );
 }

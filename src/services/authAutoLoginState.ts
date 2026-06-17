@@ -17,10 +17,10 @@ function getAttemptBucket(accountKey: unknown): number[] {
         attemptTimestampsByKey.set(normalizedKey, []);
     }
 
-    return attemptTimestampsByKey.get(normalizedKey);
+    return attemptTimestampsByKey.get(normalizedKey)!;
 }
 
-function pruneAttempts(accountKey: unknown, now: any = Date.now()): void {
+function pruneAttempts(accountKey: unknown, now: number = Date.now()): void {
     const normalizedKey = normalizeThrottleKey(accountKey);
     const bucket = attemptTimestampsByKey.get(normalizedKey);
     if (!bucket) {
@@ -38,7 +38,7 @@ function pruneAttempts(accountKey: unknown, now: any = Date.now()): void {
 
 export function getReactAutoLoginAttemptCount(
     accountKey: unknown,
-    now: any = Date.now()
+    now: number = Date.now()
 ): number {
     pruneAttempts(accountKey, now);
     return (
@@ -49,7 +49,7 @@ export function getReactAutoLoginAttemptCount(
 
 export function canAttemptReactAutoLogin(
     accountKey: unknown,
-    now: any = Date.now()
+    now: number = Date.now()
 ): boolean {
     return (
         getReactAutoLoginAttemptCount(accountKey, now) < AUTO_LOGIN_MAX_ATTEMPTS
@@ -58,7 +58,7 @@ export function canAttemptReactAutoLogin(
 
 export function recordReactAutoLoginAttempt(
     accountKey: unknown,
-    now: any = Date.now()
+    now: number = Date.now()
 ): number {
     pruneAttempts(accountKey, now);
     const bucket = getAttemptBucket(accountKey);

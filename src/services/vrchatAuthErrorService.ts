@@ -11,8 +11,8 @@ function asErrorMessage(error: unknown): string {
 
 export function notifyRuntimeVrchatAuthFailure(
     error: unknown,
-    endpoint: any = '',
-    path: any = 'runtime/social-baseline'
+    endpoint: unknown = '',
+    path: unknown = 'runtime/social-baseline'
 ): void {
     const message = asErrorMessage(error);
     if (!message.includes('Missing Credentials')) {
@@ -22,10 +22,11 @@ export function notifyRuntimeVrchatAuthFailure(
     const requestError = createRequestError(
         message,
         401,
-        path,
+        typeof path === 'string' ? path : String(path ?? ''),
         null
     ) as VrchatRequestError;
-    requestError.endpoint = endpoint;
+    requestError.endpoint =
+        typeof endpoint === 'string' ? endpoint : String(endpoint ?? '');
     if (isVrchatMissingCredentialsError(requestError)) {
         notifyVrchatAuthFailure(requestError);
     }

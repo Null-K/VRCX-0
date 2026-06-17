@@ -9,7 +9,8 @@ import {
     downloadAndInstallUpdate,
     fetchLatestBranchRelease,
     formatReleaseDisplayVersion,
-    hasUpdateForBranch
+    hasUpdateForBranch,
+    type NormalizedRelease
 } from '@/services/updateService';
 import { links } from '@/shared/constants/link';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -26,20 +27,24 @@ import { FieldGroup } from '@/ui/shadcn/field';
 
 const STABLE_BRANCH = 'Stable';
 
-export function UpdaterDialog({ open, onOpenChange }: any) {
+type UpdaterDialogProps = {
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+};
+
+export function UpdaterDialog({ open, onOpenChange }: UpdaterDialogProps) {
     const { t } = useTranslation();
     const hostPlatform = useRuntimeStore(
-        (state: any) => state.hostCapabilities.platform
+        (state) => state.hostCapabilities.platform
     );
-    const hostArch = useRuntimeStore(
-        (state: any) => state.hostCapabilities.arch
-    );
+    const hostArch = useRuntimeStore((state) => state.hostCapabilities.arch);
     const linuxPackageKind = useRuntimeStore(
-        (state: any) => state.hostCapabilities.linuxPackageKind
+        (state) => state.hostCapabilities.linuxPackageKind
     );
     const canInstallUpdates = canInstallUpdatesOnPlatform(hostPlatform);
 
-    const [latestRelease, setLatestRelease] = useState(null);
+    const [latestRelease, setLatestRelease] =
+        useState<NormalizedRelease | null>(null);
     const [loading, setLoading] = useState(false);
     const [downloading, setDownloading] = useState(false);
     const [progress, setProgress] = useState(0);
@@ -83,7 +88,7 @@ export function UpdaterDialog({ open, onOpenChange }: any) {
             hostPlatform,
             requireInstallerAsset: canInstallUpdates
         })
-            .then((nextRelease: any) => {
+            .then((nextRelease) => {
                 if (!active) {
                     return;
                 }
@@ -99,7 +104,7 @@ export function UpdaterDialog({ open, onOpenChange }: any) {
                           : t('message.vrcx_updater.no_releases_found')
                 );
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (active) {
                     setDetail(
                         userFacingErrorMessage(

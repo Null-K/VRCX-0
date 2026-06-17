@@ -1,4 +1,5 @@
 import { commands } from '@/platform/tauri/bindings';
+import type { RegistryBackupMaintenanceResult } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import { clearFavoriteRemoteDetailsCache } from '@/services/favoriteRemoteDetailsCacheService';
@@ -11,7 +12,9 @@ import {
     fetchLatestBranchRelease,
     formatReleaseDisplayVersion,
     hasUpdateForBranch,
-    sanitizeBranch
+    sanitizeBranch,
+    type InstallableUpdateRelease,
+    type NormalizedRelease
 } from '@/services/updateService';
 import { useModalStore } from '@/state/modalStore';
 import { useNotificationStore } from '@/state/notificationStore';
@@ -34,9 +37,54 @@ const APP_UPDATE_CHECK_INTERVAL_SECONDS = 3 * 3600;
 
 let running = false;
 
+type RuntimeAuthSnapshot = {
+    currentUserId: string | null;
+    currentUserEndpoint: string;
+    currentUserWebsocket: string;
+    currentUserSnapshot: Record<string, unknown> | null;
+};
+
+type RuntimeAuthTarget = {
+    currentUserId: string;
+    currentUserEndpoint: string;
+    currentUserWebsocket: string;
+};
+
+type CurrentUserRefreshRecord = {
+    target: RuntimeAuthTarget;
+    overlayPatch: Record<string, unknown> | null;
+    promise: Promise<Record<string, unknown> | null>;
+};
+
+type RefreshCurrentUserOptions = {
+    expectedUserId?: unknown;
+    expectedEndpoint?: unknown;
+    expectedWebsocket?: unknown;
+    overlayPatch?: unknown;
+};
+
+type RefreshPlayerModerationsOptions = {
+    isCurrent?: (() => boolean) | null;
+};
+
+type AppUpdateCheckOptions = {
+    includeRegistryBackup?: boolean;
+};
+
+type RuntimeScheduledTask = () => Promise<unknown>;
+
+type UpdaterReleaseSnapshotSource =
+    | NormalizedRelease
+    | InstallableUpdateRelease
+    | null;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
 function resetTimers() {
     commands.appRuntimeFrontendScheduleSchedulesReset()
-        .catch((error: any) => {
+        .catch((error: unknown) => {
             console.warn(
                 'Failed to reset runtime maintenance scheduler:',
                 error
@@ -44,29 +92,29 @@ function resetTimers() {
         });
 }
 
-function toUpdaterReleaseSnapshot(release: any) {
+function toUpdaterReleaseSnapshot(release: UpdaterReleaseSnapshotSource) {
     if (!release) {
         return null;
     }
     return {
-        title: release.displayName || release.name || release.tagName || '',
+        title: release.displayName || release.tagName || '',
         currentVersion:
             // oxlint-disable-next-line no-undef
             formatReleaseDisplayVersion(VERSION || '') || String(VERSION || ''),
         latestVersion:
             release.displayVersion ||
-            formatReleaseDisplayVersion(
-                release.canonicalVersion || release.version || release.tagName
-            ) ||
-            String(release.version || release.tagName || ''),
-        publishedAt: release.publishedAt || release.date || ''
+            formatReleaseDisplayVersion(release.canonicalVersion) ||
+            String(release.tagName || ''),
+        publishedAt:
+            release.publishedAt ||
+            ('date' in release && release.date ? release.date : '')
     };
 }
 
 function setUpdaterCheckResult(
-    hasAvailableUpdate: any,
-    detail: any = '',
-    release: any = null
+    hasAvailableUpdate: boolean,
+    detail: string = '',
+    release: UpdaterReleaseSnapshotSource = null
 ) {
     useRuntimeStore.getState().setUpdateLoopState({
         hasAvailableUpdate: Boolean(hasAvailableUpdate),
@@ -78,27 +126,29 @@ function setUpdaterCheckResult(
     });
 }
 
-function getRuntimeAuth() {
+function getRuntimeAuth(): RuntimeAuthSnapshot {
     const runtimeState = useRuntimeStore.getState();
     return {
         currentUserId: runtimeState.auth.currentUserId,
         currentUserEndpoint: runtimeState.auth.currentUserEndpoint,
         currentUserWebsocket: runtimeState.auth.currentUserWebsocket,
-        currentUserSnapshot: runtimeState.auth.currentUserSnapshot
+        currentUserSnapshot: isRecord(runtimeState.auth.currentUserSnapshot)
+            ? runtimeState.auth.currentUserSnapshot
+            : null
     };
 }
 
-function normalizeRuntimeAuthValue(value: any) {
+function normalizeRuntimeAuthValue(value: unknown) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-function getRuntimeAuthTargetKey(target: any) {
+function getRuntimeAuthTargetKey(target: RuntimeAuthTarget) {
     return `${target.currentUserEndpoint}\u0000${target.currentUserId}\u0000${target.currentUserWebsocket}`;
 }
 
-const currentUserRefreshes = new Map();
+const currentUserRefreshes = new Map<string, CurrentUserRefreshRecord>();
 const CURRENT_USER_LOCAL_AUTHORITY_FIELDS = [
     'friends',
     'onlineFriends',
@@ -131,8 +181,11 @@ const CURRENT_USER_FRIEND_ARRAY_FIELDS = new Set([
     'offlineFriends'
 ]);
 
-function mergeCurrentUserRefreshOverlayPatch(record: any, patch: any) {
-    if (!patch || typeof patch !== 'object') {
+function mergeCurrentUserRefreshOverlayPatch(
+    record: CurrentUserRefreshRecord,
+    patch: unknown
+) {
+    if (!isRecord(patch)) {
         return;
     }
 
@@ -142,7 +195,7 @@ function mergeCurrentUserRefreshOverlayPatch(record: any, patch: any) {
     };
 }
 
-function areCurrentUserSnapshotValuesEqual(left: any, right: any) {
+function areCurrentUserSnapshotValuesEqual(left: unknown, right: unknown) {
     if (Object.is(left, right)) {
         return true;
     }
@@ -161,10 +214,9 @@ function areCurrentUserSnapshotValuesEqual(left: any, right: any) {
     return false;
 }
 
-function hasCurrentUserSnapshotField(source: any, field: any) {
+function hasCurrentUserSnapshotField(source: unknown, field: string) {
     return (
-        source &&
-        typeof source === 'object' &&
+        isRecord(source) &&
         Object.prototype.hasOwnProperty.call(source, field)
     );
 }
@@ -174,11 +226,18 @@ function mergeCurrentUserRefreshSnapshot({
     baseSnapshot,
     currentSnapshot,
     overlayPatch
-}: any) {
-    let user =
-        currentSnapshot && typeof currentSnapshot === 'object'
-            ? { ...currentSnapshot, ...responseUser }
-            : { ...responseUser };
+}: {
+    responseUser: Record<string, unknown>;
+    baseSnapshot: Record<string, unknown> | null;
+    currentSnapshot: unknown;
+    overlayPatch: Record<string, unknown> | null;
+}): Record<string, unknown> {
+    const currentSnapshotRecord = isRecord(currentSnapshot)
+        ? currentSnapshot
+        : null;
+    let user: Record<string, unknown> = currentSnapshotRecord
+        ? { ...currentSnapshotRecord, ...responseUser }
+        : { ...responseUser };
 
     for (const field of CURRENT_USER_LOCAL_AUTHORITY_FIELDS) {
         if (
@@ -194,15 +253,12 @@ function mergeCurrentUserRefreshSnapshot({
 
     if (
         baseSnapshot &&
-        typeof baseSnapshot === 'object' &&
-        currentSnapshot &&
-        typeof currentSnapshot === 'object' &&
         normalizeRuntimeAuthValue(baseSnapshot.id) ===
-            normalizeRuntimeAuthValue(currentSnapshot.id)
+            normalizeRuntimeAuthValue(currentSnapshotRecord?.id)
     ) {
         const keys = new Set([
             ...Object.keys(baseSnapshot),
-            ...Object.keys(currentSnapshot)
+            ...Object.keys(currentSnapshotRecord || {})
         ]);
         keys.delete('id');
         for (const key of keys) {
@@ -215,15 +271,15 @@ function mergeCurrentUserRefreshSnapshot({
             if (
                 !areCurrentUserSnapshotValuesEqual(
                     baseSnapshot[key],
-                    currentSnapshot[key]
+                    currentSnapshotRecord?.[key]
                 )
             ) {
-                user[key] = currentSnapshot[key];
+                user[key] = currentSnapshotRecord?.[key];
             }
         }
     }
 
-    if (overlayPatch && typeof overlayPatch === 'object') {
+    if (overlayPatch) {
         user = { ...user, ...overlayPatch };
     }
 
@@ -235,9 +291,9 @@ export async function refreshCurrentUser({
     expectedEndpoint = '',
     expectedWebsocket = '',
     overlayPatch = null
-}: any = {}) {
+}: RefreshCurrentUserOptions = {}) {
     const initialAuth = getRuntimeAuth();
-    const target: any = {
+    const target: RuntimeAuthTarget = {
         currentUserId: normalizeRuntimeAuthValue(
             expectedUserId || initialAuth.currentUserId
         ),
@@ -260,10 +316,10 @@ export async function refreshCurrentUser({
         return activeRecord.promise;
     }
 
-    const record: any = {
+    const record: CurrentUserRefreshRecord = {
         target,
         overlayPatch: null,
-        promise: null
+        promise: Promise.resolve(null)
     };
     mergeCurrentUserRefreshOverlayPatch(record, overlayPatch);
     record.promise = refreshCurrentUserForTarget({
@@ -279,7 +335,13 @@ export async function refreshCurrentUser({
     return record.promise;
 }
 
-async function refreshCurrentUserForTarget({ target, record }: any) {
+async function refreshCurrentUserForTarget({
+    target,
+    record
+}: {
+    target: RuntimeAuthTarget;
+    record: CurrentUserRefreshRecord;
+}) {
     const {
         currentUserId,
         currentUserEndpoint,
@@ -300,9 +362,7 @@ async function refreshCurrentUserForTarget({ target, record }: any) {
         endpoint: target.currentUserEndpoint
     });
     const responseUser =
-        response.json && typeof response.json === 'object'
-            ? (response.json as Record<string, any>)
-            : null;
+        response.json && isRecord(response.json) ? response.json : null;
     if (!responseUser?.id) {
         return null;
     }
@@ -329,28 +389,29 @@ async function refreshCurrentUserForTarget({ target, record }: any) {
     });
 
     import('./realtimeTransportService')
-        .then(({ syncRuntimeRealtimeCurrentUserSnapshot }: any) =>
+        .then(({ syncRuntimeRealtimeCurrentUserSnapshot }) =>
             syncRuntimeRealtimeCurrentUserSnapshot(user, record.overlayPatch)
         )
-        .catch((error: any) => {
+        .catch((error: unknown) => {
             console.warn(
                 'Failed to sync current user snapshot to runtime:',
                 error
             );
         });
 
-    const { snapshot: nextSnapshot } = buildAvatarWearSnapshotUpdate({
+    const { snapshot } = buildAvatarWearSnapshotUpdate({
         previousSnapshot: runtimeStore.auth.currentUserSnapshot,
         nextSnapshot: user,
         isGameRunning: runtimeStore.gameState.isGameRunning
-    }) as any;
+    });
+    const nextSnapshot = isRecord(snapshot) ? snapshot : user;
 
     useRuntimeStore.getState().setAuthBootstrap({
-        currentUserId: nextSnapshot.id,
+        currentUserId: normalizeRuntimeAuthValue(nextSnapshot.id),
         currentUserDisplayName:
-            nextSnapshot.displayName ||
-            nextSnapshot.username ||
-            nextSnapshot.id,
+            normalizeRuntimeAuthValue(nextSnapshot.displayName) ||
+            normalizeRuntimeAuthValue(nextSnapshot.username) ||
+            normalizeRuntimeAuthValue(nextSnapshot.id),
         currentUserEndpoint: target.currentUserEndpoint,
         currentUserWebsocket: target.currentUserWebsocket,
         currentUserSnapshot: nextSnapshot
@@ -382,8 +443,9 @@ async function refreshFriendsAndFavorites() {
         })
     ]);
     const failed = results.find(
-        (result: any) => result.status === 'rejected'
-    ) as PromiseRejectedResult | undefined;
+        (result): result is PromiseRejectedResult =>
+            result.status === 'rejected'
+    );
     if (failed) {
         throw failed.reason;
     }
@@ -404,7 +466,9 @@ export async function refreshFriendAndFavoriteSnapshots(
     }
 }
 
-export async function refreshPlayerModerations({ isCurrent = null }: any = {}) {
+export async function refreshPlayerModerations({
+    isCurrent = null
+}: RefreshPlayerModerationsOptions = {}) {
     const { currentUserId, currentUserEndpoint } = getRuntimeAuth();
     if (!currentUserId) {
         return;
@@ -450,7 +514,7 @@ async function runRegistryBackupMaintenance(reason: string) {
         return;
     }
 
-    let result: any;
+    let result: RegistryBackupMaintenanceResult;
     try {
         result = await commands.appRegistryBackupMaintenanceRun(reason);
     } catch (error) {
@@ -485,7 +549,9 @@ async function runRegistryBackupMaintenance(reason: string) {
     }
 }
 
-async function checkForAppUpdate({ includeRegistryBackup = true }: any = {}) {
+async function checkForAppUpdate({
+    includeRegistryBackup = true
+}: AppUpdateCheckOptions = {}) {
     const hostCapabilities = useRuntimeStore.getState().hostCapabilities;
     const hostPlatform = hostCapabilities.platform;
     const hostArch = hostCapabilities.arch;
@@ -523,11 +589,11 @@ async function checkForAppUpdate({ includeRegistryBackup = true }: any = {}) {
             }
 
             if (canInstallUpdates) {
-                const update = (await checkInstallableUpdate(branch, {
+                const update = await checkInstallableUpdate(branch, {
                     hostArch,
                     linuxPackageKind,
                     hostPlatform
-                })) as Record<string, any> | null;
+                });
                 if (update) {
                     const displayVersion = formatReleaseDisplayVersion(
                         update.version
@@ -551,12 +617,12 @@ async function checkForAppUpdate({ includeRegistryBackup = true }: any = {}) {
                     setUpdaterCheckResult(false);
                 }
             } else {
-                const latestRelease = (await fetchLatestBranchRelease(branch, {
+                const latestRelease = await fetchLatestBranchRelease(branch, {
                     hostArch,
                     linuxPackageKind,
                     hostPlatform,
                     requireInstallerAsset: false
-                })) as Record<string, any> | null;
+                });
                 const hasUpdate =
                     latestRelease &&
                     hasUpdateForBranch(
@@ -617,14 +683,14 @@ export async function runStartupMaintenance() {
 }
 
 async function deferRuntimeScheduledFrontendJob(
-    timerName: any,
-    delaySeconds: any
+    timerName: string,
+    delaySeconds: number
 ) {
     await commands.appRuntimeFrontendScheduleJobDefer({
             name: timerName,
             delaySeconds
         })
-        .catch((error: any) => {
+        .catch((error: unknown) => {
             console.warn(
                 `Failed to defer runtime maintenance task ${timerName}:`,
                 error
@@ -634,7 +700,7 @@ async function deferRuntimeScheduledFrontendJob(
 
 async function getDueRuntimeScheduledFrontendJobs() {
     const dueJobs = await commands.appRuntimeFrontendScheduleDueJobsGet()
-        .catch((error: any) => {
+        .catch((error: unknown) => {
             console.warn('Failed to read runtime maintenance due jobs:', error);
             return [];
         });
@@ -642,9 +708,9 @@ async function getDueRuntimeScheduledFrontendJobs() {
 }
 
 async function runRuntimeScheduledTask(
-    timerName: any,
-    intervalSeconds: any,
-    task: any
+    timerName: string,
+    intervalSeconds: number,
+    task: RuntimeScheduledTask
 ) {
     await runRuntimeTelemetryJob(
         {

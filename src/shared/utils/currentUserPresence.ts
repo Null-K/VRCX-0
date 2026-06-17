@@ -166,7 +166,10 @@ function buildPresencePatch({
     };
 }
 
-export function buildCurrentUserGameStatePresencePatch(gameState: any, currentUser: any) {
+export function buildCurrentUserGameStatePresencePatch(
+    gameState: CurrentUserPresenceGameState | null | undefined,
+    currentUser: CurrentUserPresenceRecord | null | undefined
+): CurrentUserPresencePatch | null {
     if (!gameState?.isGameRunning) {
         return null;
     }

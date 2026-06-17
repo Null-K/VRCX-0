@@ -4,6 +4,10 @@ import groupProfileRepository from '@/repositories/groupProfileRepository';
 import playerListPersistenceRepository from '@/repositories/playerListPersistenceRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
 import { ActivityType, StatusDisplayType } from '@/shared/constants/discord';
+import type {
+    ActivityTypeValue,
+    StatusDisplayTypeValue
+} from '@/shared/constants/discord';
 import {
     getPlatformLabel,
     getRpcWorldConfig,
@@ -19,6 +23,32 @@ import i18n from './i18nService';
 
 const DEFAULT_APP_ID = '1510639562177642557';
 const GAME_STOP_DISCORD_CLOSE_ATTEMPTS = 5;
+type RuntimeState = ReturnType<typeof useRuntimeStore.getState>;
+type CurrentUserSnapshot = RuntimeState['auth']['currentUserSnapshot'];
+type ParsedLocation = ReturnType<typeof parseLocation>;
+type DiscordPresenceOptions = {
+    force?: boolean;
+};
+type DiscordConfig = {
+    discordActive: boolean;
+    discordInstance: boolean;
+    discordHideInvite: boolean;
+    discordJoinButton: boolean;
+    discordHideImage: boolean;
+    discordShowPlatform: boolean;
+    discordWorldIntegration: boolean;
+    discordWorldNameAsDiscordStatus: boolean;
+};
+type LocationDetails = {
+    tag: string;
+    parsed: ParsedLocation | null;
+    worldName: string;
+    thumbnailImageUrl: string;
+    worldCapacity: number;
+    worldLink: string;
+    groupName: string;
+};
+type DiscordActivityPayload = Record<string, unknown>;
 const i18nKeys = [
     'dialog.new_instance.access_type_public',
     'dialog.new_instance.access_type_invite_plus',
@@ -42,7 +72,7 @@ let isDiscordActive = false;
 let lastLocationDetails = createEmptyLocationDetails();
 let gameStopDiscordCloseAttemptsRemaining = 0;
 
-function createEmptyLocationDetails() {
+function createEmptyLocationDetails(): LocationDetails {
     return {
         tag: '',
         parsed: null,
@@ -80,7 +110,10 @@ function createActivityTimestamps(startTime: unknown, endTime: unknown = 0) {
     return Object.keys(timestamps).length ? timestamps : undefined;
 }
 
-function clampGameSessionStartTime(runtimeState: Record<string, any>, startTime: unknown) {
+function clampGameSessionStartTime(
+    runtimeState: RuntimeState,
+    startTime: unknown
+) {
     if (!runtimeState.gameState.isGameRunning) {
         return startTime;
     }
@@ -137,20 +170,20 @@ function createActivityButtons(buttonText: unknown, buttonUrl: unknown) {
 function compactObject(value: Record<string, unknown>) {
     return Object.fromEntries(
         Object.entries(value).filter(
-            ([, entry]: any) => entry !== undefined && entry !== null && entry !== ''
+            ([, entry]) => entry !== undefined && entry !== null && entry !== ''
         )
     );
 }
 
 async function createTranslator() {
     const pairs = await Promise.all(
-        i18nKeys.map(async (key: any) => [key, await i18n.t(key)])
+        i18nKeys.map(async (key) => [key, await i18n.t(key)] as const)
     );
     const labels = Object.fromEntries(pairs);
     return (key: string) => labels[key] ?? key;
 }
 
-async function loadDiscordConfig() {
+async function loadDiscordConfig(): Promise<DiscordConfig> {
     const [
         discordActive,
         discordInstance,
@@ -183,7 +216,10 @@ async function loadDiscordConfig() {
     };
 }
 
-function getCurrentLocationContext(runtimeState: any, currentUser: any) {
+function getCurrentLocationContext(
+    runtimeState: RuntimeState,
+    currentUser: CurrentUserSnapshot
+) {
     let currentLocation = normalizeLocationValue(
         runtimeState.gameState.currentLocation
     );
@@ -201,11 +237,12 @@ function getCurrentLocationContext(runtimeState: any, currentUser: any) {
                 currentUser?.location ||
                 currentUser?.worldId
         );
-        startTime =
+        startTime = String(
             currentUser?.$location_at ||
-            currentUser?.locationAt ||
-            currentUser?.updated_at ||
-            '';
+                currentUser?.locationAt ||
+                currentUser?.updated_at ||
+                ''
+        ).trim();
         const travelingToLocation = normalizeLocationValue(
             currentUser?.$travelingToLocation ||
                 currentUser?.travelingToLocation
@@ -221,7 +258,10 @@ function getCurrentLocationContext(runtimeState: any, currentUser: any) {
     };
 }
 
-async function setDiscordActiveState(active: boolean, { force = false }: any = {}) {
+async function setDiscordActiveState(
+    active: boolean,
+    { force = false }: DiscordPresenceOptions = {}
+) {
     if (!force && active === isDiscordActive) {
         return isDiscordActive;
     }
@@ -248,7 +288,7 @@ async function loadLocationDetails(currentLocation: string, endpoint: string) {
     }
 
     const parsed = parseLocation(currentLocation);
-    const details: any = {
+    const details: LocationDetails = {
         ...createEmptyLocationDetails(),
         tag: parsed.tag,
         parsed
@@ -297,7 +337,10 @@ async function loadLocationDetails(currentLocation: string, endpoint: string) {
     return details;
 }
 
-function getGroupAccessName(parsed: Record<string, any>, t: (key: string) => string) {
+function getGroupAccessName(
+    parsed: ParsedLocation,
+    t: (key: string) => string
+) {
     if (parsed.groupAccessType === 'public') {
         return t('dialog.new_instance.group_access_type_public');
     }
@@ -312,7 +355,12 @@ function buildAccessName({
     groupName,
     platform,
     t
-}: Record<string, any>) {
+}: {
+    parsed: ParsedLocation;
+    groupName: string;
+    platform: string;
+    t: (key: string) => string;
+}) {
     switch (parsed.accessType) {
         case 'public':
             return `${t('dialog.new_instance.access_type_public')} #${parsed.instanceName}${platform}`;
@@ -338,7 +386,15 @@ function buildAccessName({
     }
 }
 
-async function getPartySize({ currentUserId, currentLocation, runtimeState }: Record<string, any>) {
+async function getPartySize({
+    currentUserId,
+    currentLocation,
+    runtimeState
+}: {
+    currentUserId: string;
+    currentLocation: string;
+    runtimeState: RuntimeState;
+}) {
     const runtimePartySize = Array.isArray(
         runtimeState?.gameState?.currentLocationPlayerIds
     )
@@ -359,7 +415,7 @@ async function getPartySize({ currentUserId, currentLocation, runtimeState }: Re
     }
 }
 
-function getNowPlayingTimes(nowPlaying: Record<string, any>) {
+function getNowPlayingTimes(nowPlaying: RuntimeState['nowPlaying']) {
     if (!nowPlaying?.url && !nowPlaying?.name) {
         return { startTime: 0, endTime: 0 };
     }
@@ -378,7 +434,11 @@ async function publishDiscordActivity({
     appId = DEFAULT_APP_ID,
     activity,
     detail
-}: Record<string, any>) {
+}: {
+    appId?: string;
+    activity: DiscordActivityPayload;
+    detail: string;
+}) {
     try {
         isDiscordActive = Boolean(
             await commands.discordSetAssets({ appId, activity })
@@ -401,19 +461,25 @@ async function publishRunningFallbackPresence({
     config,
     currentUser,
     runtimeState
-}: Record<string, any>) {
+}: {
+    config: DiscordConfig;
+    currentUser: CurrentUserSnapshot;
+    runtimeState: RuntimeState;
+}) {
     const t = await createTranslator();
     const statusInfo = getStatusInfo(
-        currentUser?.status,
+        String(currentUser?.status || '').trim(),
         Boolean(config.discordHideInvite),
         t
     );
     const platform = config.discordShowPlatform
         ? getPlatformLabel(
-              currentUser?.presence?.platform ||
-                  currentUser?.platform ||
-                  currentUser?.last_platform ||
-                  '',
+              String(
+                  currentUser?.presence?.platform ||
+                      currentUser?.platform ||
+                      currentUser?.last_platform ||
+                      ''
+              ).trim(),
               true,
               Boolean(runtimeState.gameState.isGameNoVR),
               t
@@ -463,7 +529,9 @@ export async function runDiscordPresenceMaintenanceTick() {
     await refreshDiscordPresence();
 }
 
-export async function refreshDiscordPresence({ force = false }: any = {}) {
+export async function refreshDiscordPresence({
+    force = false
+}: DiscordPresenceOptions = {}) {
     if (force) {
         invalidateDiscordPresenceCache();
     }
@@ -513,10 +581,12 @@ export async function refreshDiscordPresence({ force = false }: any = {}) {
 
     const platform = config.discordShowPlatform
         ? getPlatformLabel(
-              currentUser?.presence?.platform ||
-                  currentUser?.platform ||
-                  currentUser?.last_platform ||
-                  '',
+              String(
+                  currentUser?.presence?.platform ||
+                      currentUser?.platform ||
+                      currentUser?.last_platform ||
+                      ''
+              ).trim(),
               Boolean(runtimeState.gameState.isGameRunning),
               Boolean(runtimeState.gameState.isGameNoVR),
               t
@@ -540,7 +610,7 @@ export async function refreshDiscordPresence({ force = false }: any = {}) {
     }
 
     const statusInfo = getStatusInfo(
-        currentUser?.status,
+        String(currentUser?.status || '').trim(),
         Boolean(config.discordHideInvite),
         t
     );
@@ -552,8 +622,8 @@ export async function refreshDiscordPresence({ force = false }: any = {}) {
     let stateText = accessName;
     let startTime = rawStartTime;
     let endTime = 0;
-    let activityType: any = ActivityType.Playing;
-    let statusDisplayType: any = config.discordWorldNameAsDiscordStatus
+    let activityType: ActivityTypeValue = ActivityType.Playing;
+    let statusDisplayType: StatusDisplayTypeValue = config.discordWorldNameAsDiscordStatus
         ? StatusDisplayType.Details
         : StatusDisplayType.Name;
     let appId = DEFAULT_APP_ID;
@@ -561,7 +631,7 @@ export async function refreshDiscordPresence({ force = false }: any = {}) {
     let detailsUrl = locationDetails.worldLink;
     let partyId = `${parsed.worldId}:${parsed.instanceName}`;
     let partySize = await getPartySize({
-        currentUserId: auth.currentUserId,
+        currentUserId: auth.currentUserId || '',
         currentLocation,
         runtimeState
     });

@@ -1,7 +1,10 @@
 import { commands } from '@/platform/tauri/bindings';
 import { toast } from 'sonner';
 
-import authRepository from '@/repositories/authRepository';
+import authRepository, {
+    type SavedAuthSnapshot,
+    type SavedCredentialRecord
+} from '@/repositories/authRepository';
 import webRepository from '@/repositories/webRepository';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
@@ -28,6 +31,7 @@ type AutoLoginDelayOptions = {
 
 type AuthAutoLoginError = Error & {
     code?: string;
+    authSnapshot?: SavedAuthSnapshot;
 };
 
 function createAutoLoginAbortError() {
@@ -38,15 +42,16 @@ function createAutoLoginAbortError() {
     return error;
 }
 
-function isMissingCredentialsError(error: any) {
+function isMissingCredentialsError(error: unknown) {
     return Boolean(
-        error?.status === 401 &&
-        typeof error?.message === 'string' &&
-        error.message.includes('Missing Credentials')
+        isRecord(error) &&
+            error.status === 401 &&
+            typeof error.message === 'string' &&
+            error.message.includes('Missing Credentials')
     );
 }
 
-function isRecord(value: unknown): value is Record<string, any> {
+function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
 }
 
@@ -80,15 +85,15 @@ function waitForAutoLoginDelay(
         return Promise.resolve();
     }
 
-    return new Promise((resolve: any, reject: any) => {
+    return new Promise<void>((resolve, reject) => {
         if (signal?.aborted) {
             reject(createAutoLoginAbortError());
             return;
         }
 
         const deadline = Date.now() + delaySeconds * 1000;
-        let timeoutId = null;
-        let lastRemainingSeconds = null;
+        let timeoutId: ReturnType<typeof window.setTimeout> | null = null;
+        let lastRemainingSeconds: number | null = null;
         let settled = false;
 
         function cleanup() {
@@ -196,12 +201,14 @@ function setSignedOutSessionState() {
 }
 
 export async function executeReactAutoLogin(
-    snapshot: Record<string, any>,
+    snapshot: SavedAuthSnapshot,
     { signal, onCountdown }: AutoLoginDelayOptions = {}
 ) {
     const runtimeStore = useRuntimeStore.getState();
-    const savedCredential = isRecord(snapshot?.autoLoginTarget)
-        ? snapshot.autoLoginTarget
+    const savedCredential: SavedCredentialRecord | null = isRecord(
+        snapshot?.autoLoginTarget
+    )
+        ? (snapshot.autoLoginTarget as SavedCredentialRecord)
         : null;
     const displayName =
         String(snapshot?.autoLoginDisplayName || '').trim() ||
@@ -303,7 +310,7 @@ export async function executeReactAutoLogin(
 
         if (!savedCredentialFallbackAvailable || !savedCredential) {
             setSignedOutSessionState();
-            applySavedAuthSnapshot(snapshot as any);
+            applySavedAuthSnapshot(snapshot);
             runtimeStore.setStartupTask(
                 'auth',
                 'completed',
@@ -332,7 +339,8 @@ export async function executeReactAutoLogin(
             snapshot: nextSnapshot
         };
     } catch (error) {
-        if (error?.code === 'AUTH_AUTO_LOGIN_CANCELLED') {
+        const authError = error as AuthAutoLoginError;
+        if (authError?.code === 'AUTH_AUTO_LOGIN_CANCELLED') {
             runtimeStore.setStartupTask(
                 'auth',
                 'completed',
@@ -344,8 +352,8 @@ export async function executeReactAutoLogin(
             };
         }
 
-        if (error?.authSnapshot) {
-            applySavedAuthSnapshot(error.authSnapshot);
+        if (authError?.authSnapshot) {
+            applySavedAuthSnapshot(authError.authSnapshot);
         }
 
         runtimeStore.setStartupTask(
@@ -367,7 +375,7 @@ export async function executeReactAutoLogin(
 
         return {
             status: 'failed',
-            snapshot: error?.authSnapshot ?? snapshot,
+            snapshot: authError?.authSnapshot ?? snapshot,
             error
         };
     }

@@ -1,7 +1,7 @@
 type RawGameLogRow = unknown[];
 type ParsedGameLog = Record<string, unknown> & {
-    dt: unknown;
-    type: unknown;
+    dt: string;
+    type: string;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -15,14 +15,14 @@ function normalizeString(value: unknown): string {
 }
 
 function delay(ms: number): Promise<void> {
-    return new Promise((resolve: any) => {
+    return new Promise((resolve) => {
         setTimeout(resolve, ms);
     });
 }
 
 function parseRawGameLog(
-    dt: unknown,
-    type: unknown,
+    dt: string,
+    type: string,
     args: unknown[]
 ): ParsedGameLog {
     const gameLog: ParsedGameLog = { dt, type };
@@ -107,7 +107,9 @@ function toRawRow(payload: unknown): RawGameLogRow {
 
 function parseRawRow(payload: unknown): ParsedGameLog {
     const row = toRawRow(payload);
-    const [, dt, type, ...args] = row;
+    const [, rawDt, rawType, ...args] = row;
+    const dt = normalizeString(rawDt);
+    const type = normalizeString(rawType);
     if (!dt || !type) {
         throw new Error('Game log payload is missing dt or type.');
     }
@@ -202,3 +204,4 @@ export {
     parseWebJson,
     parseYouTubeVideoId
 };
+export type { ParsedGameLog };

@@ -1,11 +1,26 @@
 use specta_typescript::{BigIntExportBehavior, Typescript};
 use tauri_specta::{collect_commands, Builder, ErrorHandlingMode};
+use vrcx_0_application::{
+    BackendRuntimeTelemetry, FriendProjection, GameLogProjection, HostSessionProjection,
+    OverlayActivitySnapshot, RealtimeCurrentUserProjection, RealtimeInstanceClosedProjection,
+    RealtimeInstanceQueueProjection, RealtimeNotificationProjection, RealtimeWsStatusPayload,
+};
 
 use crate::commands;
 
 pub fn builder() -> Builder<tauri::Wry> {
     Builder::<tauri::Wry>::new()
         .error_handling(ErrorHandlingMode::Throw)
+        .typ::<BackendRuntimeTelemetry>()
+        .typ::<FriendProjection>()
+        .typ::<GameLogProjection>()
+        .typ::<HostSessionProjection>()
+        .typ::<OverlayActivitySnapshot>()
+        .typ::<RealtimeCurrentUserProjection>()
+        .typ::<RealtimeInstanceClosedProjection>()
+        .typ::<RealtimeInstanceQueueProjection>()
+        .typ::<RealtimeNotificationProjection>()
+        .typ::<RealtimeWsStatusPayload>()
         .commands(collect_commands![
             commands::storage::storage__get,
             commands::storage::storage__set,
@@ -474,7 +489,8 @@ pub fn export_bindings() -> Result<(), String> {
 // Post-process the tauri-specta output to fit this app's frontend bridge:
 // - route the generated invoke through the repo error-logging wrapper,
 // - drop the placeholder `TAURI_CHANNEL` type that collides with the import,
-// - expose `serde_json::Value` as `any` (it carries no compile-time shape).
+// - keep `serde_json::Value` compatible with the app's dynamic storage/API paths,
+// - remove `any` from the generated event helper.
 fn patch_bindings(raw: &str) -> String {
     let mut out: Vec<String> = Vec::new();
     let mut routed_invoke = false;
@@ -482,6 +498,66 @@ fn patch_bindings(raw: &str) -> String {
         let trimmed = line.trim();
         if trimmed.starts_with("export type JsonValue =") {
             out.push("export type JsonValue = any;".to_string());
+            continue;
+        }
+        if trimmed == "function __makeEvents__<T extends Record<string, any>>(" {
+            out.push("function __makeEvents__<T extends Record<string, unknown>>(".to_string());
+            continue;
+        }
+        if line.contains("return new Proxy((() => {}) as any, {") {
+            out.push(line.replace(
+                "return new Proxy((() => {}) as any, {",
+                "return new Proxy((() => {}) as (...args: unknown[]) => unknown, {",
+            ));
+            continue;
+        }
+        if line.contains("get: (_, command: keyof __EventObj__<any>) => {") {
+            out.push(line.replace(
+                "get: (_, command: keyof __EventObj__<any>) => {",
+                "get: (_, command: keyof __EventObj__<unknown>) => {",
+            ));
+            continue;
+        }
+        if line.contains("listen: (arg: any) => window.listen(name, arg),") {
+            out.push(line.replace(
+                "listen: (arg: any) => window.listen(name, arg),",
+                "listen: (arg: TAURI_API_EVENT.EventCallback<unknown>) => window.listen<unknown>(name, arg),",
+            ));
+            continue;
+        }
+        if line.contains("once: (arg: any) => window.once(name, arg),") {
+            out.push(line.replace(
+                "once: (arg: any) => window.once(name, arg),",
+                "once: (arg: TAURI_API_EVENT.EventCallback<unknown>) => window.once<unknown>(name, arg),",
+            ));
+            continue;
+        }
+        if line.contains("emit: (arg: any) => window.emit(name, arg),") {
+            out.push(line.replace(
+                "emit: (arg: any) => window.emit(name, arg),",
+                "emit: (arg: unknown) => window.emit(name, arg),",
+            ));
+            continue;
+        }
+        if line.contains("return (arg: any) => TAURI_API_EVENT.listen(name, arg);") {
+            out.push(line.replace(
+                "return (arg: any) => TAURI_API_EVENT.listen(name, arg);",
+                "return (arg: TAURI_API_EVENT.EventCallback<unknown>) => TAURI_API_EVENT.listen<unknown>(name, arg);",
+            ));
+            continue;
+        }
+        if line.contains("return (arg: any) => TAURI_API_EVENT.once(name, arg);") {
+            out.push(line.replace(
+                "return (arg: any) => TAURI_API_EVENT.once(name, arg);",
+                "return (arg: TAURI_API_EVENT.EventCallback<unknown>) => TAURI_API_EVENT.once<unknown>(name, arg);",
+            ));
+            continue;
+        }
+        if line.contains("return (arg: any) => TAURI_API_EVENT.emit(name, arg);") {
+            out.push(line.replace(
+                "return (arg: any) => TAURI_API_EVENT.emit(name, arg);",
+                "return (arg: unknown) => TAURI_API_EVENT.emit(name, arg);",
+            ));
             continue;
         }
         if trimmed.starts_with("export type TAURI_CHANNEL<TSend> = null") {

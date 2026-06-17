@@ -10,17 +10,24 @@ import {
 import { isHostCapabilityAvailable } from '@/services/hostCapabilityService';
 import { parseLocation } from '@/shared/utils/locationParser';
 
+type LooseRecord = Record<string, unknown>;
+type ParsedLocation = ReturnType<typeof parseLocation>;
+
 function normalizeString(value: unknown) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-function emptyArray(value: unknown): Record<string, any>[] {
+function isRecord(value: unknown): value is LooseRecord {
+    return Boolean(value && typeof value === 'object');
+}
+
+function emptyRecordArray(value: unknown): LooseRecord[] {
     return Array.isArray(value) ? value : [];
 }
 
-function openWorldLocation(location: unknown, title: any = '') {
+function openWorldLocation(location: unknown, title: unknown = '') {
     const parsedLocation = parseLocation(location);
     const worldDialogTarget =
         parsedLocation.isRealInstance && parsedLocation.tag
@@ -32,7 +39,7 @@ function openWorldLocation(location: unknown, title: any = '') {
     });
 }
 
-export function buildVrcLaunchUrl(location: unknown, shortName: any = '') {
+export function buildVrcLaunchUrl(location: unknown, shortName: unknown = '') {
     const normalizedLocation = normalizeString(location);
     const normalizedShortName = normalizeString(shortName);
     let launchUrl = `vrchat://launch?ref=vrcx.app&id=${normalizedLocation}`;
@@ -57,7 +64,10 @@ function normalizeLaunchLocation(location: unknown) {
     };
 }
 
-function shouldUseProvidedLaunchToken(parsed: Record<string, any>, shortName: string) {
+function shouldUseProvidedLaunchToken(
+    parsed: ParsedLocation,
+    shortName: string
+) {
     return Boolean(
         shortName &&
         parsed.accessType !== 'public' &&
@@ -67,8 +77,8 @@ function shouldUseProvidedLaunchToken(parsed: Record<string, any>, shortName: st
 
 export async function resolveInstanceLaunchToken(
     location: unknown,
-    shortName: any = '',
-    endpoint: any = ''
+    shortName: unknown = '',
+    endpoint: unknown = ''
 ) {
     const { parsed } = normalizeLaunchLocation(location);
     let launchToken = normalizeString(shortName || parsed.shortName);
@@ -82,7 +92,7 @@ export async function resolveInstanceLaunchToken(
             const response = await vrchatInstanceRepository.getInstanceShortName({
                 worldId: parsed.worldId,
                 instanceId: parsed.instanceId,
-                endpoint
+                endpoint: normalizeString(endpoint)
             });
             launchToken = normalizeString(
                 response.json?.shortName || response.json?.secureName
@@ -100,8 +110,8 @@ export async function resolveInstanceLaunchToken(
 
 export async function resolveVrcLaunchUrl(
     location: unknown,
-    shortName: any = '',
-    endpoint: any = ''
+    shortName: unknown = '',
+    endpoint: unknown = ''
 ) {
     const { location: normalizedLocation, parsed } =
         normalizeLaunchLocation(location);
@@ -115,8 +125,8 @@ export async function resolveVrcLaunchUrl(
 
 export async function tryOpenLaunchLocation(
     location: unknown,
-    shortName: any = '',
-    endpoint: any = ''
+    shortName: unknown = '',
+    endpoint: unknown = ''
 ) {
     if (!isHostCapabilityAvailable('vrchatLaunchPipe')) {
         return false;
@@ -143,12 +153,16 @@ export async function tryOpenLaunchLocation(
     }
 }
 
-async function verifyShortName(location: unknown, shortName: string, endpoint: any = '') {
+async function verifyShortName(
+    location: unknown,
+    shortName: string,
+    endpoint: unknown = ''
+) {
     const response = await vrchatSearchRepository.getInstanceFromShortName(
         shortName,
-        { endpoint }
+        { endpoint: normalizeString(endpoint) }
     );
-    const json = response.json as Record<string, any> | undefined;
+    const json = isRecord(response.json) ? response.json : {};
     const nextLocation = json?.location || location;
     if (!nextLocation) {
         return false;
@@ -164,23 +178,24 @@ async function verifyShortName(location: unknown, shortName: string, endpoint: a
         return true;
     }
 
+    const world = isRecord(json.world) ? json.world : {};
     openWorldLocation(
         nextLocation,
-        json?.world?.name || json?.worldName || nextLocation
+        world.name || json?.worldName || nextLocation
     );
     return true;
 }
 
-async function openGroupByShortCode(shortCode: string, endpoint: any = '') {
+async function openGroupByShortCode(shortCode: string, endpoint: unknown = '') {
     const response = await vrchatSearchRepository.getGroupsStrictSearch(
         {
             query: shortCode
         },
-        { endpoint }
+        { endpoint: normalizeString(endpoint) }
     );
-    const group = emptyArray(response.json).find(
-        (entry: any) =>
-            `${entry.shortCode || ''}.${entry.discriminator || ''}` ===
+    const group = emptyRecordArray(response.json).find(
+        (entry) =>
+            `${normalizeString(entry.shortCode)}.${normalizeString(entry.discriminator)}` ===
             shortCode
     );
     if (!group?.id) {
@@ -195,7 +210,7 @@ async function openGroupByShortCode(shortCode: string, endpoint: any = '') {
     return true;
 }
 
-async function directAccessWorld(rawInput: unknown, endpoint: any = '') {
+async function directAccessWorld(rawInput: unknown, endpoint: unknown = '') {
     let input = normalizeString(rawInput);
     if (!input) {
         return false;
@@ -282,7 +297,7 @@ async function directAccessWorld(rawInput: unknown, endpoint: any = '') {
     return false;
 }
 
-export async function directAccessParse(input: unknown, endpoint: any = '') {
+export async function directAccessParse(input: unknown, endpoint: unknown = '') {
     const value = normalizeString(input);
     if (!value) {
         return false;

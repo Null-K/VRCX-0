@@ -86,13 +86,13 @@ export function resetRuntimeCrashRelaunchDecision(): void {
 }
 
 export function waitForRuntimeCrashRelaunchDecision(
-    timeoutMs: any = 2000
+    timeoutMs: number = 2000
 ): Promise<boolean> {
     if (getRuntimeCrashRelaunchHandled() || lastRuntimeCrashRelaunchDecision) {
         return Promise.resolve(true);
     }
 
-    return new Promise((resolve: any) => {
+    return new Promise<boolean>((resolve) => {
         let timer: ReturnType<typeof globalThis.setTimeout>;
         const finish = (received: boolean) => {
             globalThis.clearTimeout(timer);
@@ -100,7 +100,7 @@ export function waitForRuntimeCrashRelaunchDecision(
         };
         timer = globalThis.setTimeout(() => {
             crashRelaunchDecisionWaiters = crashRelaunchDecisionWaiters.filter(
-                (entry: any) => entry !== finish
+                (entry) => entry !== finish
             );
             resolve(false);
         }, timeoutMs);

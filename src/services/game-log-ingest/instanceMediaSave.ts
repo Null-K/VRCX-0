@@ -89,7 +89,7 @@ function enqueueInstanceMediaSave(
     instanceMediaSaveQueue = instanceMediaSaveQueue
         .then(() => delay(INSTANCE_MEDIA_SAVE_INTERVAL_MS))
         .then(task)
-        .catch((error: any) => {
+        .catch((error: unknown) => {
             console.error('Failed to save instance media:', error);
         });
     return instanceMediaSaveQueue;
@@ -226,7 +226,7 @@ async function saveInstanceEmojiToFile({
             }
         }
 
-        const emoji: any = {
+        const emoji: Record<string, unknown> = {
             ...(item.metadata || {}),
             name: `${holderDisplayName || holderUserId || userId}_${inventoryId}`
         };

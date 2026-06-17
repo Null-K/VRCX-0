@@ -40,6 +40,23 @@ type JoinLeaveEntry = Record<string, unknown> & {
 type ScreenshotExtra = {
     creationDate?: unknown;
 };
+type ScreenshotMetadata = {
+    application: 'VRCX-0';
+    version: number;
+    author: {
+        id: unknown;
+        displayName: unknown;
+    };
+    world: {
+        name: unknown;
+        id: string;
+        instanceId: string;
+    };
+    players: Array<{
+        id: unknown;
+        displayName: unknown;
+    }>;
+};
 
 function buildScreenshotMetadataContext(): ScreenshotMetadataContext | null {
     const location = getCurrentLocation();
@@ -55,7 +72,7 @@ function buildScreenshotMetadataContext(): ScreenshotMetadataContext | null {
                 useRuntimeStore.getState().gameState.currentWorldName
             ),
         players: Array.from(ingestState.playersByKey.values()).map(
-            (player: any) => ({
+            (player) => ({
                 userId: player.userId || '',
                 displayName: player.displayName || ''
             })
@@ -181,7 +198,7 @@ async function processScreenshot(
             const currentUser =
                 (useRuntimeStore.getState().auth.currentUserSnapshot ||
                     {}) as Record<string, unknown>;
-            const metadata: any = {
+            const metadata: ScreenshotMetadata = {
                 application: 'VRCX-0',
                 version: 1,
                 author: {
@@ -200,7 +217,7 @@ async function processScreenshot(
                     id: location.worldId,
                     instanceId: screenshotContext.location
                 },
-                players: screenshotContext.players.map((player: any) => ({
+                players: screenshotContext.players.map((player) => ({
                     id: player.userId || '',
                     displayName: player.displayName || ''
                 }))
@@ -225,9 +242,11 @@ async function processScreenshot(
     }
 
     if (copyToClipboard && shouldCopyToClipboard) {
-        await mediaRepository.copyImageToClipboard(nextPath).catch((error: any) => {
-            console.error('Failed to copy screenshot to clipboard:', error);
-        });
+        await mediaRepository
+            .copyImageToClipboard(nextPath)
+            .catch((error: unknown) => {
+                console.error('Failed to copy screenshot to clipboard:', error);
+            });
     }
 
     return nextPath;

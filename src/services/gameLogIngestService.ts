@@ -22,7 +22,8 @@ import {
 import {
     getPlayerKey,
     normalizeString,
-    parseRawRow
+    parseRawRow,
+    type ParsedGameLog
 } from './game-log-ingest/parsing';
 import {
     shouldSkipRuntimeHandledGameLogSideEffect as shouldSkipRuntimeHandledGameLogSideEffectByCapability,
@@ -36,7 +37,8 @@ import {
     ingestState,
     instanceMediaState,
     nowPlayingState,
-    resetCurrentGameLogSessionState
+    resetCurrentGameLogSessionState,
+    type GameLogPlayer
 } from './game-log-ingest/state';
 import {
     createVideoEntryWithMetadata,
@@ -47,7 +49,17 @@ import {
 import { isHostCapabilityAvailable } from './hostCapabilityService';
 
 const GAME_LOG_BATCH_LIMIT = 50;
-type GameLogRow = Record<string, any>;
+type RuntimeState = ReturnType<typeof useRuntimeStore.getState>;
+type GameStatePatch = Parameters<RuntimeState['setGameState']>[0];
+type GameLogRow = ParsedGameLog;
+type GameLogPersistOptions = {
+    copyScreenshotToClipboard?: boolean;
+};
+type LocationUpdateInput = {
+    location: unknown;
+    worldName?: unknown;
+    createdAt?: unknown;
+};
 
 function isRuntimeGameLogIngestActive() {
     return isHostCapabilityAvailable('runtimeGameLogIngest');
@@ -73,14 +85,18 @@ function updateCurrentLocation({
     location,
     worldName = '',
     createdAt = ''
-}: GameLogRow) {
-    const parsed = parseLocation(location);
+}: LocationUpdateInput) {
+    const normalizedLocation = normalizeString(location);
+    const normalizedWorldName = normalizeString(worldName);
+    const normalizedCreatedAt = normalizeString(createdAt);
+    const parsed = parseLocation(normalizedLocation);
     const preserveTravelingPlayers =
-        ingestState.currentLocation === 'traveling' && location !== 'traveling';
-    ingestState.currentLocation = location;
-    ingestState.currentWorldName = worldName;
+        ingestState.currentLocation === 'traveling' &&
+        normalizedLocation !== 'traveling';
+    ingestState.currentLocation = normalizedLocation;
+    ingestState.currentWorldName = normalizedWorldName;
     ingestState.currentLocationStartedAt =
-        createdAt || new Date().toISOString();
+        normalizedCreatedAt || new Date().toISOString();
     if (!preserveTravelingPlayers) {
         ingestState.playersByKey.clear();
     }
@@ -89,9 +105,9 @@ function updateCurrentLocation({
 
     const runtimeStore = useRuntimeStore.getState();
     runtimeStore.setGameState({
-        currentLocation: location,
+        currentLocation: normalizedLocation,
         currentWorldId: parsed.worldId || '',
-        currentWorldName: worldName,
+        currentWorldName: normalizedWorldName,
         currentDestination: '',
         currentLocationStartedAt: ingestState.currentLocationStartedAt,
         currentLocationPlayerIds: getCurrentLocationPlayerIds(),
@@ -101,9 +117,9 @@ function updateCurrentLocation({
     });
 
     patchCurrentUserLocationFromGameState(runtimeStore, {
-        currentLocation: location,
+        currentLocation: normalizedLocation,
         currentWorldId: parsed.worldId || '',
-        currentWorldName: worldName,
+        currentWorldName: normalizedWorldName,
         currentDestination: '',
         currentLocationStartedAt: ingestState.currentLocationStartedAt,
         currentLocationPlayerIds: getCurrentLocationPlayerIds(),
@@ -114,32 +130,30 @@ function updateCurrentLocation({
         endpoint: domainRuntime.auth.currentUserEndpoint,
         currentUserId: domainRuntime.auth.currentUserId,
         currentUserSnapshot: domainRuntime.auth.currentUserSnapshot,
-        currentLocation: location,
+        currentLocation: normalizedLocation,
         currentLocationStartedAt: ingestState.currentLocationStartedAt,
         currentLocationPlayers: getCurrentLocationPlayers(),
-        currentWorldName: worldName
+        currentWorldName: normalizedWorldName
     });
 }
 
-function normalizeProjectionPlayers(
-    value: unknown
-): Array<Record<string, any>> {
+function normalizeProjectionPlayers(value: unknown): GameLogPlayer[] {
     if (!Array.isArray(value)) {
         return [];
     }
     return value
-        .map((player: any) =>
+        .map((player): GameLogPlayer | null =>
             player && typeof player === 'object'
-                ? (player as Record<string, any>)
+                ? (player as GameLogPlayer)
                 : null
         )
-        .filter(Boolean) as Array<Record<string, any>>;
+        .filter((player): player is GameLogPlayer => Boolean(player));
 }
 
 export function applyRuntimeGameLogProjection(payload: unknown) {
     const projection =
         payload && typeof payload === 'object'
-            ? (payload as Record<string, any>)
+            ? (payload as Record<string, unknown>)
             : {};
     const currentLocation = normalizeString(projection.currentLocation);
     const currentWorldId = normalizeString(projection.currentWorldId);
@@ -179,7 +193,7 @@ export function applyRuntimeGameLogProjection(payload: unknown) {
 
     const currentLocationPlayerIds = getCurrentLocationPlayerIds();
     const currentLocationPlayers = getCurrentLocationPlayers();
-    const gameStatePatch: any = {
+    const gameStatePatch: GameStatePatch = {
         currentLocation,
         currentWorldId,
         currentWorldName,
@@ -211,8 +225,8 @@ export function applyRuntimeGameLogProjection(payload: unknown) {
 }
 
 function patchCurrentUserLocationFromGameState(
-    runtimeStore: Record<string, any>,
-    gameStatePatch: GameLogRow
+    runtimeStore: RuntimeState,
+    gameStatePatch: GameStatePatch
 ) {
     const currentSnapshot = runtimeStore.auth.currentUserSnapshot;
     if (!currentSnapshot || typeof currentSnapshot !== 'object') {
@@ -231,9 +245,11 @@ function patchCurrentUserLocationFromGameState(
         return;
     }
 
-    const startedAt = Date.parse(gameStatePatch.currentLocationStartedAt || '');
+    const startedAt = Date.parse(
+        normalizeString(gameStatePatch.currentLocationStartedAt)
+    );
     const locationTime = Number.isFinite(startedAt) ? startedAt : Date.now();
-    const timedPresencePatch: any = {
+    const timedPresencePatch: Record<string, unknown> = {
         ...presencePatch,
         ...(gameStatePatch.currentLocation === 'traveling'
             ? { $travelingToTime: locationTime }
@@ -262,7 +278,7 @@ function removeCurrentLocationPlayer(userId: unknown, displayName: unknown) {
     }
 
     const matches = Array.from(ingestState.playersByKey.entries()).filter(
-        ([, value]: any) =>
+        ([, value]) =>
             normalizeString(value?.displayName).toLowerCase() ===
             normalizedDisplayName
     );
@@ -275,7 +291,10 @@ function removeCurrentLocationPlayer(userId: unknown, displayName: unknown) {
     return matchedPlayer;
 }
 
-async function persistGameLog(gameLog: GameLogRow, options: GameLogRow = {}) {
+async function persistGameLog(
+    gameLog: GameLogRow,
+    options: GameLogPersistOptions = {}
+) {
     const runtimeStore = useRuntimeStore.getState();
     const location = getCurrentLocation();
     const copyScreenshotToClipboard =
@@ -402,13 +421,12 @@ async function persistGameLog(gameLog: GameLogRow, options: GameLogRow = {}) {
         case 'player-left': {
             const userId = normalizeString(gameLog.userId);
             const displayName = normalizeString(gameLog.displayName);
-            const joined = removeCurrentLocationPlayer(userId, displayName) as
-                | Record<string, any>
-                | undefined;
+            const joined = removeCurrentLocationPlayer(userId, displayName);
             const leftAt = Date.parse(gameLog.dt);
+            const joinedAt = Number(joined?.joinTime);
             const duration =
-                joined?.joinTime && Number.isFinite(leftAt)
-                    ? Math.max(0, leftAt - joined.joinTime)
+                Number.isFinite(joinedAt) && Number.isFinite(leftAt)
+                    ? Math.max(0, leftAt - joinedAt)
                     : 0;
             runtimeStore.setGameState({
                 currentLocationPlayerIds: getCurrentLocationPlayerIds(),
@@ -554,7 +572,7 @@ async function persistGameLog(gameLog: GameLogRow, options: GameLogRow = {}) {
             ) {
                 const bias = Date.parse(gameLog.dt) + 3000;
                 if (bias >= Date.now()) {
-                    await commands.appQuitGame().catch((error: any) => {
+                    await commands.appQuitGame().catch((error: unknown) => {
                         console.warn(
                             'QuitGame failed during vrc-quit handling:',
                             error
@@ -610,7 +628,11 @@ async function persistGameLog(gameLog: GameLogRow, options: GameLogRow = {}) {
             if (await configRepository.getBool('saveInstanceStickers', false)) {
                 enqueueStickerSave(
                     instanceMediaState.stickerInventoryIds,
-                    gameLog
+                    {
+                        displayName: gameLog.displayName,
+                        userId: gameLog.userId,
+                        inventoryId: gameLog.inventoryId
+                    }
                 );
             }
             break;
@@ -692,18 +714,18 @@ export async function finalizeCurrentGameLogSession(
 
     try {
         if (location && Number.isFinite(stoppedAtTime) && !skipPersistence) {
-            const leaveEntries = [];
-            for (const playerValue of ingestState.playersByKey.values()) {
-                const player = playerValue as Record<string, any>;
+            const leaveEntries: ReturnType<typeof createJoinLeaveEntry>[] = [];
+            for (const player of ingestState.playersByKey.values()) {
+                const joinedAt = Number(player.joinTime);
                 leaveEntries.unshift(
                     createJoinLeaveEntry(
                         'OnPlayerLeft',
                         stoppedAt,
-                        player.displayName,
+                        normalizeString(player.displayName),
                         location,
-                        player.userId,
-                        Number.isFinite(player.joinTime)
-                            ? Math.max(0, stoppedAtTime - player.joinTime)
+                        normalizeString(player.userId),
+                        Number.isFinite(joinedAt)
+                            ? Math.max(0, stoppedAtTime - joinedAt)
                             : 0
                     )
                 );

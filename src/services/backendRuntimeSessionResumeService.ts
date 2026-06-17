@@ -1,12 +1,18 @@
 import { commands } from '@/platform/tauri/bindings';
-import type { BackendRuntimeSnapshot } from '@/platform/tauri/bindings';
+import type {
+    BackendRuntimeFrontendSessionSnapshot,
+    BackendRuntimeSnapshot,
+    RuntimeAuthScopeSnapshot
+} from '@/platform/tauri/bindings';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
 import { recordCurrentUserSnapshot } from './domainIngestionService';
 import { bootstrapAuthenticatedSession } from './sessionBootstrapService';
 
-function isRecord(value: unknown): value is Record<string, any> {
+type CurrentUserSnapshot = Record<string, unknown>;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
 }
 
@@ -36,7 +42,7 @@ function isCurrentAuthenticatedBackendRuntimeUser(userId: string): boolean {
 }
 
 function frontendSessionMatchesUser(
-    frontendSessionSnapshot: Record<string, any> | null,
+    frontendSessionSnapshot: BackendRuntimeFrontendSessionSnapshot | null,
     userId: string
 ): boolean {
     if (!frontendSessionSnapshot) {
@@ -44,7 +50,11 @@ function frontendSessionMatchesUser(
     }
     const frontendUserId =
         normalizeString(frontendSessionSnapshot.userId) ||
-        normalizeString(frontendSessionSnapshot.currentUserSnapshot?.id);
+        normalizeString(
+            isRecord(frontendSessionSnapshot.currentUserSnapshot)
+                ? frontendSessionSnapshot.currentUserSnapshot.id
+                : ''
+        );
     return (
         frontendSessionSnapshot.authenticated === true &&
         frontendUserId === userId
@@ -52,7 +62,7 @@ function frontendSessionMatchesUser(
 }
 
 function authScopeMatchesUser(
-    scope: Record<string, any> | null,
+    scope: RuntimeAuthScopeSnapshot | null,
     userId: string
 ): boolean {
     return Boolean(
@@ -63,8 +73,8 @@ function authScopeMatchesUser(
 
 function buildMinimalCurrentUserSnapshot(
     snapshot: BackendRuntimeSnapshot,
-    previousSnapshot: Record<string, any> | null
-): Record<string, any> {
+    previousSnapshot: CurrentUserSnapshot | null
+): CurrentUserSnapshot {
     const userId = normalizeString(snapshot.authUserId);
     const displayName = normalizeString(snapshot.authDisplayName) || userId;
     if (
@@ -94,9 +104,9 @@ function buildCurrentUserSnapshotForResume({
     previousSnapshot
 }: {
     runtimeSnapshot: BackendRuntimeSnapshot;
-    frontendSessionSnapshot: Record<string, any> | null;
-    previousSnapshot: Record<string, any> | null;
-}): Record<string, any> {
+    frontendSessionSnapshot: BackendRuntimeFrontendSessionSnapshot | null;
+    previousSnapshot: CurrentUserSnapshot | null;
+}): CurrentUserSnapshot {
     const userId = normalizeString(runtimeSnapshot.authUserId);
     const frontendUserSnapshot = isRecord(
         frontendSessionSnapshot?.currentUserSnapshot
@@ -166,7 +176,9 @@ export async function resumeFrontendSessionFromBackendRuntime(
     const currentUserSnapshot = buildCurrentUserSnapshotForResume({
         runtimeSnapshot: snapshot,
         frontendSessionSnapshot,
-        previousSnapshot: currentRuntimeState.auth.currentUserSnapshot
+        previousSnapshot: isRecord(currentRuntimeState.auth.currentUserSnapshot)
+            ? currentRuntimeState.auth.currentUserSnapshot
+            : null
     });
     if (latestSessionState.sessionPhase === 'ready') {
         if (normalizeString(currentRuntimeState.auth.currentUserId) !== userId) {

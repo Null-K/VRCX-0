@@ -24,7 +24,38 @@ import { startVrcStatusPolling } from './vrcStatusService';
 
 const BOOTSTRAP_RETRY_DELAYS_MS = [5_000, 15_000, 30_000, 60_000];
 
-function pushRuntimeNotification({ level, title, error }: any) {
+type ShellState = ReturnType<typeof useShellStore.getState>;
+type CleanupFn = () => void;
+type AuthenticatedRuntimeContext = {
+    userId: string;
+    endpoint: string;
+    websocket: string;
+    currentUserSnapshot: Record<string, unknown>;
+};
+type RuntimeNotificationOptions = {
+    level: string;
+    title: string;
+    error: unknown;
+};
+type BootstrapRetryKey = 'friends' | 'favorites';
+type BootstrapRetryState = Record<
+    BootstrapRetryKey,
+    {
+        timer: ReturnType<typeof window.setTimeout> | null;
+        attempt: number;
+    }
+>;
+type RealtimeTransportOwner = 'none' | 'frontend' | 'backend';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function pushRuntimeNotification({
+    level,
+    title,
+    error
+}: RuntimeNotificationOptions) {
     useNotificationStore.getState().pushNotification({
         level,
         title,
@@ -32,7 +63,10 @@ function pushRuntimeNotification({ level, title, error }: any) {
     });
 }
 
-function isSameAuthenticatedContext(left: any, right: any) {
+function isSameAuthenticatedContext(
+    left: AuthenticatedRuntimeContext | null,
+    right: AuthenticatedRuntimeContext | null
+) {
     return (
         left?.userId === right?.userId &&
         left?.endpoint === right?.endpoint &&
@@ -40,7 +74,7 @@ function isSameAuthenticatedContext(left: any, right: any) {
     );
 }
 
-function getAuthenticatedRuntimeContext() {
+function getAuthenticatedRuntimeContext(): AuthenticatedRuntimeContext | null {
     const sessionState = useSessionStore.getState();
     const runtimeState = useRuntimeStore.getState();
 
@@ -56,11 +90,16 @@ function getAuthenticatedRuntimeContext() {
         userId: runtimeState.auth.currentUserId,
         endpoint: runtimeState.auth.currentUserEndpoint,
         websocket: runtimeState.auth.currentUserWebsocket,
-        currentUserSnapshot: runtimeState.auth.currentUserSnapshot
+        currentUserSnapshot: runtimeState.auth.currentUserSnapshot as Record<
+            string,
+            unknown
+        >
     };
 }
 
-function isCurrentAuthenticatedContext(context: any) {
+function isCurrentAuthenticatedContext(
+    context: AuthenticatedRuntimeContext | null
+) {
     return isSameAuthenticatedContext(
         context,
         getAuthenticatedRuntimeContext()
@@ -68,12 +107,15 @@ function isCurrentAuthenticatedContext(context: any) {
 }
 
 let reactRuntimeConsumerCount = 0;
-let reactRuntimeStartPromise = null;
-let reactRuntimeCleanup = null;
+let reactRuntimeStartPromise: Promise<void> | null = null;
+let reactRuntimeCleanup: CleanupFn | null = null;
 
-function isBackendRuntimeOwningRealtime(context: any): boolean {
-    const snapshot: any = useRuntimeStore.getState().backendRuntime;
+function isBackendRuntimeOwningRealtime(
+    context: AuthenticatedRuntimeContext
+): boolean {
+    const snapshot = useRuntimeStore.getState().backendRuntime;
     return Boolean(
+        isRecord(snapshot) &&
         snapshot?.phase === 'running' &&
             snapshot?.authStatus === 'authenticated' &&
             snapshot?.authUserId === context?.userId &&
@@ -90,11 +132,13 @@ function cleanupReactRuntimeServices() {
 }
 
 function createReactRuntimeStartPromise() {
-    const cleanups = [startRuntimeAuthFailureRecovery()];
+    const cleanups: Array<CleanupFn | null | undefined> = [
+        startRuntimeAuthFailureRecovery()
+    ];
 
     return initializeReactRuntime()
         .then(() => bindRuntimeEvents())
-        .then((cleanup: any) => {
+        .then((cleanup) => {
             cleanups.push(cleanup ?? null);
             cleanups.push(startRuntimeGameClientSync());
             cleanups.push(startRuntimeUpdateLoop());
@@ -110,7 +154,7 @@ function createReactRuntimeStartPromise() {
                 cleanupReactRuntimeServices();
             }
         })
-        .catch((error: any) => {
+        .catch((error: unknown) => {
             for (const entry of cleanups) {
                 entry?.();
             }
@@ -156,8 +200,8 @@ export function startReactRuntimeServices() {
 }
 
 export function startThemeModeSync() {
-    const syncThemeMode = (themeMode: any, title: any) => {
-        applyThemeMode(themeMode).catch((error: any) => {
+    const syncThemeMode = (themeMode: ShellState['themeMode'], title: string) => {
+        applyThemeMode(themeMode).catch((error: unknown) => {
             pushRuntimeNotification({
                 level: 'warning',
                 title,
@@ -169,7 +213,7 @@ export function startThemeModeSync() {
     syncThemeMode(useShellStore.getState().themeMode, 'Theme sync failed');
 
     const unsubscribeThemeMode = useShellStore.subscribe(
-        (state: any, previousState: any) => {
+        (state, previousState) => {
             if (state.themeMode !== previousState.themeMode) {
                 syncThemeMode(state.themeMode, 'Theme sync failed');
             }
@@ -196,7 +240,7 @@ export function startThemeModeSync() {
 }
 
 export function startI18nLanguageSync() {
-    const syncLanguage = (locale: any) => {
+    const syncLanguage = (locale: unknown) => {
         const nextLocale = normalizeLanguageCode(locale);
         if (typeof document !== 'undefined') {
             document.documentElement.setAttribute('lang', nextLocale);
@@ -206,7 +250,7 @@ export function startI18nLanguageSync() {
             .setTimeUnitLabels(
                 getTimeUnitLabels(nextLocale, DEFAULT_TIME_UNIT_LABELS)
             );
-        setI18nLanguage(nextLocale).catch((error: any) => {
+        setI18nLanguage(nextLocale).catch((error: unknown) => {
             pushRuntimeNotification({
                 level: 'warning',
                 title: 'Language sync failed',
@@ -217,7 +261,7 @@ export function startI18nLanguageSync() {
 
     syncLanguage(useShellStore.getState().locale);
 
-    return useShellStore.subscribe((state: any, previousState: any) => {
+    return useShellStore.subscribe((state, previousState) => {
         if (state.locale !== previousState.locale) {
             syncLanguage(state.locale);
         }
@@ -226,20 +270,20 @@ export function startI18nLanguageSync() {
 
 export function startAuthenticatedRuntimeServices() {
     let disposed = false;
-    let activeContext = null;
+    let activeContext: AuthenticatedRuntimeContext | null = null;
     let activeRunId = 0;
     let friendBootstrapStarted = false;
     let favoritesBootstrapStarted = false;
     let activityWarmupStarted = false;
     let realtimeTransportStarted = false;
-    let realtimeTransportOwner = 'none';
-    const bootstrapRetryState: any = {
+    let realtimeTransportOwner: RealtimeTransportOwner = 'none';
+    const bootstrapRetryState: BootstrapRetryState = {
         friends: { timer: null, attempt: 0 },
         favorites: { timer: null, attempt: 0 }
     };
     let requestBootstrapUpdate = () => {};
 
-    const clearBootstrapRetry = (key: any) => {
+    const clearBootstrapRetry = (key: BootstrapRetryKey) => {
         const state = bootstrapRetryState[key];
         if (!state) {
             return;
@@ -256,7 +300,7 @@ export function startAuthenticatedRuntimeServices() {
         clearBootstrapRetry('favorites');
     };
 
-    const resetContext = (context: any) => {
+    const resetContext = (context: AuthenticatedRuntimeContext | null) => {
         activeContext = context;
         activeRunId += 1;
         friendBootstrapStarted = false;
@@ -268,12 +312,19 @@ export function startAuthenticatedRuntimeServices() {
         stopRealtimeTransport({ updateStatus: false });
     };
 
-    const isActiveRun = (runId: any, context: any) =>
+    const isActiveRun = (
+        runId: number,
+        context: AuthenticatedRuntimeContext
+    ) =>
         !disposed &&
         activeRunId === runId &&
         isCurrentAuthenticatedContext(context);
 
-    const scheduleBootstrapRetry = (key: any, runId: any, context: any) => {
+    const scheduleBootstrapRetry = (
+        key: BootstrapRetryKey,
+        runId: number,
+        context: AuthenticatedRuntimeContext
+    ) => {
         const state = bootstrapRetryState[key];
         if (!state || state.timer !== null || !isActiveRun(runId, context)) {
             return;
@@ -292,7 +343,10 @@ export function startAuthenticatedRuntimeServices() {
         }, delay);
     };
 
-    const runFriendBootstrap = (context: any, runId: any) => {
+    const runFriendBootstrap = (
+        context: AuthenticatedRuntimeContext,
+        runId: number
+    ) => {
         friendBootstrapStarted = true;
         bootstrapFriendRoster({
             userId: context.userId,
@@ -304,7 +358,7 @@ export function startAuthenticatedRuntimeServices() {
                     clearBootstrapRetry('friends');
                 }
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (!isActiveRun(runId, context)) {
                     return;
                 }
@@ -319,7 +373,10 @@ export function startAuthenticatedRuntimeServices() {
             });
     };
 
-    const runFavoritesBootstrap = (context: any, runId: any) => {
+    const runFavoritesBootstrap = (
+        context: AuthenticatedRuntimeContext,
+        runId: number
+    ) => {
         favoritesBootstrapStarted = true;
         bootstrapFavorites({
             userId: context.userId,
@@ -331,7 +388,7 @@ export function startAuthenticatedRuntimeServices() {
                     clearBootstrapRetry('favorites');
                 }
             })
-            .catch((error: any) => {
+            .catch((error: unknown) => {
                 if (!isActiveRun(runId, context)) {
                     return;
                 }
@@ -346,12 +403,15 @@ export function startAuthenticatedRuntimeServices() {
             });
     };
 
-    const runActivityWarmup = (context: any, runId: any) => {
+    const runActivityWarmup = (
+        context: AuthenticatedRuntimeContext,
+        runId: number
+    ) => {
         activityWarmupStarted = true;
         bootstrapActivityCache({
             userId: context.userId,
             currentUserSnapshot: context.currentUserSnapshot
-        }).catch((error: any) => {
+        }).catch((error: unknown) => {
             if (!isActiveRun(runId, context)) {
                 return;
             }
@@ -364,7 +424,10 @@ export function startAuthenticatedRuntimeServices() {
         });
     };
 
-    const runRealtimeTransport = (context: any, runId: any) => {
+    const runRealtimeTransport = (
+        context: AuthenticatedRuntimeContext,
+        runId: number
+    ) => {
         realtimeTransportStarted = true;
         realtimeTransportOwner = 'frontend';
         startRealtimeTransport({
@@ -372,7 +435,7 @@ export function startAuthenticatedRuntimeServices() {
             endpoint: context.endpoint,
             websocket: context.websocket,
             currentUserSnapshot: context.currentUserSnapshot
-        }).catch((error: any) => {
+        }).catch((error: unknown) => {
             if (isActiveRun(runId, context)) {
                 console.warn('Realtime transport bootstrap failed:', error);
             }

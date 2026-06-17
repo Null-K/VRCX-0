@@ -24,7 +24,7 @@ function ingestedEntryFor(userId: string, source?: string) {
     return tauriMock.commands.appIngestUserFacts.mock.calls
         .flatMap((call) => (Array.isArray(call[0]) ? call[0] : []))
         .filter(
-            (entry: any) =>
+            (entry: { user?: { id?: unknown }; source?: unknown }) =>
                 entry?.user?.id === userId &&
                 (source === undefined || entry?.source === source)
         )

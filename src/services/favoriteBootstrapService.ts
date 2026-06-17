@@ -1,4 +1,7 @@
-import { commands } from '@/platform/tauri/bindings';
+import {
+    commands,
+    type SocialFavoritesBaselineOutput
+} from '@/platform/tauri/bindings';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -7,7 +10,25 @@ import { useSessionStore } from '@/state/sessionStore';
 import { notifyRuntimeVrchatAuthFailure } from './vrchatAuthErrorService';
 import { syncStartupServicesTask } from './startupServicesStatus';
 
-const activeHydrations = new Map<string, Promise<unknown>>();
+type FavoriteSnapshotRecord = Record<string, unknown> & {
+    detail?: unknown;
+};
+type FavoriteBootstrapOptions = {
+    userId?: unknown;
+    endpoint?: unknown;
+    currentUserSnapshot?: unknown;
+};
+type FavoriteBootstrapResult = {
+    userId: string;
+    stale: boolean;
+    count: number;
+};
+
+const activeHydrations = new Map<string, Promise<FavoriteBootstrapResult>>();
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
 
 function normalizeUserId(value: unknown) {
     return typeof value === 'string'
@@ -15,15 +36,19 @@ function normalizeUserId(value: unknown) {
         : String(value ?? '').trim();
 }
 
-function getDisplayName(user: Record<string, any> | null | undefined) {
-    return user?.displayName || user?.username || user?.id || '';
+function getDisplayName(user: Record<string, unknown> | null | undefined) {
+    return (
+        normalizeUserId(user?.displayName) ||
+        normalizeUserId(user?.username) ||
+        normalizeUserId(user?.id)
+    );
 }
 
-function favoriteBootstrapKey(userId: unknown, endpoint: any = '') {
+function favoriteBootstrapKey(userId: unknown, endpoint: unknown = '') {
     return `${normalizeUserId(userId)}\u0000${String(endpoint || '')}`;
 }
 
-function isCurrentFavoriteBootstrapTarget(userId: string, endpoint: any = '') {
+function isCurrentFavoriteBootstrapTarget(userId: string, endpoint: unknown = '') {
     const runtimeState = useRuntimeStore.getState();
     const sessionState = useSessionStore.getState();
 
@@ -39,15 +64,18 @@ async function runFavoriteBootstrap({
     userId,
     endpoint = '',
     currentUserSnapshot
-}: any) {
-    const normalizedUserId = normalizeUserId(userId || currentUserSnapshot?.id);
+}: FavoriteBootstrapOptions): Promise<FavoriteBootstrapResult> {
+    const currentSnapshot = isRecord(currentUserSnapshot)
+        ? currentUserSnapshot
+        : null;
+    const normalizedUserId = normalizeUserId(userId || currentSnapshot?.id);
     if (!normalizedUserId) {
         throw new Error(
             'Favorites hydration requires an authenticated user id.'
         );
     }
 
-    const displayName = getDisplayName(currentUserSnapshot) || normalizedUserId;
+    const displayName = getDisplayName(currentSnapshot) || normalizedUserId;
     const friendRosterById = useFriendRosterStore.getState().friendsById;
 
     useFavoriteStore
@@ -65,21 +93,23 @@ async function runFavoriteBootstrap({
             `Loading favorites baseline for ${displayName}.`
         );
 
-    const result = await commands.appSocialFavoritesBaselineGet({
+    const result: SocialFavoritesBaselineOutput = await commands.appSocialFavoritesBaselineGet({
             userId: normalizedUserId,
-            endpoint,
-            currentUserSnapshot,
+            endpoint: String(endpoint || ''),
+            currentUserSnapshot: currentSnapshot,
             friendRosterById
         })
-        .catch((error: any) => {
+        .catch((error: unknown) => {
             notifyRuntimeVrchatAuthFailure(
                 error,
-                endpoint,
+                String(endpoint || ''),
                 'favorites baseline'
             );
             throw error;
         });
-    const snapshot = result.snapshot as any;
+    const snapshot: FavoriteSnapshotRecord | null = isRecord(result.snapshot)
+        ? result.snapshot
+        : null;
 
     if (result.stale || !snapshot) {
         if (isCurrentFavoriteBootstrapTarget(normalizedUserId, endpoint)) {
@@ -103,7 +133,11 @@ async function runFavoriteBootstrap({
         };
     }
 
-    useFavoriteStore.getState().setFavoritesSnapshot(snapshot);
+    const favoriteSnapshot = {
+        ...snapshot,
+        detail: String(snapshot.detail || '')
+    };
+    useFavoriteStore.getState().setFavoritesSnapshot(favoriteSnapshot);
     useSessionStore.getState().setFavoritesLoaded(true);
     syncStartupServicesTask([String(snapshot.detail || '')]);
 
@@ -114,13 +148,17 @@ async function runFavoriteBootstrap({
     };
 }
 
-export function bootstrapFavorites(options: any) {
+export function bootstrapFavorites(
+    options: FavoriteBootstrapOptions
+): Promise<FavoriteBootstrapResult> {
     const normalizedUserId = normalizeUserId(
-        options?.userId || options?.currentUserSnapshot?.id
+        options?.userId ||
+            (isRecord(options?.currentUserSnapshot)
+                ? options.currentUserSnapshot.id
+                : '')
     );
     const currentUserSnapshot =
-        options?.currentUserSnapshot &&
-        typeof options.currentUserSnapshot === 'object'
+        isRecord(options?.currentUserSnapshot)
             ? options.currentUserSnapshot
             : null;
 
@@ -132,7 +170,7 @@ export function bootstrapFavorites(options: any) {
 
     const activeKey = favoriteBootstrapKey(normalizedUserId, options?.endpoint);
     if (activeHydrations.has(activeKey)) {
-        return activeHydrations.get(activeKey);
+        return activeHydrations.get(activeKey)!;
     }
 
     const promise = runFavoriteBootstrap({
@@ -140,7 +178,7 @@ export function bootstrapFavorites(options: any) {
         userId: normalizedUserId,
         currentUserSnapshot
     })
-        .catch((error: any) => {
+        .catch((error: unknown) => {
             if (
                 isCurrentFavoriteBootstrapTarget(
                     normalizedUserId,

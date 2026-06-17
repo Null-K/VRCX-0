@@ -1,4 +1,4 @@
-import { commands } from '@/platform/tauri/bindings';
+import { commands, type HostSessionProjection } from '@/platform/tauri/bindings';
 import configRepository from '@/repositories/configRepository';
 import gameLogRepository from '@/repositories/gameLogRepository';
 import {
@@ -32,27 +32,37 @@ import { useNotificationStore } from '@/state/notificationStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
-let debugLoggingTimer = null;
-let crashRelaunchTimer = null;
+type RuntimeState = ReturnType<typeof useRuntimeStore.getState>;
+type GameState = RuntimeState['gameState'];
+type GameStatePatch = Parameters<RuntimeState['setGameState']>[0];
+type GameRunningPayload = Partial<HostSessionProjection> &
+    Record<string, unknown>;
 
-function normalizeBoolean(value: any) {
+let debugLoggingTimer: ReturnType<typeof window.setTimeout> | null = null;
+let crashRelaunchTimer: ReturnType<typeof window.setTimeout> | null = null;
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function normalizeBoolean(value: unknown) {
     return value === true || value === 'true' || value === 1 || value === '1';
 }
 
-function normalizeString(value: any) {
+function normalizeString(value: unknown) {
     return typeof value === 'string'
         ? value.trim()
         : String(value ?? '').trim();
 }
 
-function scheduleDebugLoggingCheck(delayMs: any = 60000) {
+function scheduleDebugLoggingCheck(delayMs: number = 60000) {
     if (debugLoggingTimer !== null) {
         window.clearTimeout(debugLoggingTimer);
     }
 
     debugLoggingTimer = window.setTimeout(() => {
         debugLoggingTimer = null;
-        checkVRChatDebugLogging().catch((error: any) => {
+        checkVRChatDebugLogging().catch((error: unknown) => {
             console.warn('VRChat debug logging check failed:', error);
         });
     }, delayMs);
@@ -65,11 +75,13 @@ function clearCrashRelaunchTimer() {
     }
 }
 
-function buildLaunchUrl(location: any) {
-    return `vrchat://launch?ref=vrcx.app&id=${encodeURIComponent(location)}`;
+function buildLaunchUrl(location: unknown) {
+    return `vrchat://launch?ref=vrcx.app&id=${encodeURIComponent(
+        normalizeString(location)
+    )}`;
 }
 
-async function launchVrchat(location: any, desktopMode: any) {
+async function launchVrchat(location: unknown, desktopMode: unknown) {
     requireHostCapabilitySupported('gameLaunch');
     const args = [buildLaunchUrl(location)];
     const launchArguments = await configRepository.getString(
@@ -103,7 +115,7 @@ async function launchVrchat(location: any, desktopMode: any) {
     }
 }
 
-async function persistGameStopSession(previousGameState: any) {
+async function persistGameStopSession(previousGameState: GameState) {
     const startedAt = Date.parse(previousGameState.lastGameStartedAt || '');
     const offlineAt = Date.now();
 
@@ -155,7 +167,7 @@ async function sweepVrchatCacheIfEnabled() {
     }
 }
 
-async function scheduleCrashRelaunchIfNeeded(previousGameState: any) {
+async function scheduleCrashRelaunchIfNeeded(previousGameState: GameState) {
     if (isRuntimeGameClientLifecycleActive()) {
         await waitForRuntimeCrashRelaunchDecision();
         return;
@@ -231,7 +243,7 @@ async function scheduleCrashRelaunchIfNeeded(previousGameState: any) {
                     message
                 });
                 await launchVrchat(location, previousGameState.isGameNoVR);
-            })().catch((error: any) => {
+            })().catch((error: unknown) => {
                 showSQLiteErrorDialog(error);
                 useNotificationStore.getState().pushNotification({
                     level: 'error',
@@ -246,8 +258,8 @@ async function scheduleCrashRelaunchIfNeeded(previousGameState: any) {
 }
 
 async function handleGameStopped(
-    previousGameState: any,
-    currentUserSnapshot: any
+    previousGameState: GameState,
+    currentUserSnapshot: unknown
 ) {
     const stoppedAt = new Date().toISOString();
     resetNowPlayingState();
@@ -271,7 +283,7 @@ async function handleGameStopped(
 
     clearStoppedGameLocationSnapshot(previousGameState, currentUserSnapshot);
     queueDiscordPresenceGameStopCloseAttempts();
-    await refreshDiscordPresence({ force: true }).catch((error: any) => {
+    await refreshDiscordPresence({ force: true }).catch((error: unknown) => {
         console.warn('Discord presence refresh after game stop failed:', error);
     });
 
@@ -287,7 +299,7 @@ async function handleGameStopped(
     }
 }
 
-function buildNewGameSessionPatch(startedAt: any) {
+function buildNewGameSessionPatch(startedAt: string): GameStatePatch {
     return {
         currentLocation: '',
         currentWorldId: '',
@@ -300,7 +312,7 @@ function buildNewGameSessionPatch(startedAt: any) {
     };
 }
 
-function buildStoppedGameSessionPatch(stoppedAt: any) {
+function buildStoppedGameSessionPatch(stoppedAt: string): GameStatePatch {
     return {
         currentLocation: '',
         currentWorldId: '',
@@ -315,10 +327,10 @@ function buildStoppedGameSessionPatch(stoppedAt: any) {
 }
 
 function clearStoppedGameLocationSnapshot(
-    previousGameState: any,
-    currentUserSnapshot: any
+    previousGameState: GameState,
+    currentUserSnapshot: unknown
 ) {
-    if (!currentUserSnapshot || typeof currentUserSnapshot !== 'object') {
+    if (!isRecord(currentUserSnapshot)) {
         return;
     }
 
@@ -331,12 +343,12 @@ function clearStoppedGameLocationSnapshot(
         return;
     }
 
-    const clearedFields: any = {};
-    const clearIfMatches = (field: any, ...values: any[]) => {
+    const clearedFields: Record<string, string> = {};
+    const clearIfMatches = (field: string, ...values: unknown[]) => {
         const currentValue = normalizeString(currentUserSnapshot[field]);
         if (
             currentValue &&
-            values.some((value: any) => value && currentValue === value)
+            values.some((value) => Boolean(value) && currentValue === value)
         ) {
             clearedFields[field] = '';
         }
@@ -418,22 +430,25 @@ export async function checkVRChatDebugLogging() {
 }
 
 export async function handleGameRunningUpdate(
-    payload: Record<string, any> = {}
+    payload: unknown = {}
 ) {
+    const projection: GameRunningPayload = isRecord(payload)
+        ? (payload as GameRunningPayload)
+        : {};
     const runtimeStore = useRuntimeStore.getState();
     const previousGameState = runtimeStore.gameState;
     const currentUserSnapshot = runtimeStore.auth.currentUserSnapshot;
     const previousGameRunning = runtimeStore.gameState.isGameRunning;
     const previousSteamVrRunning = runtimeStore.gameState.isSteamVRRunning;
-    const nextGameRunning = normalizeBoolean(payload?.isGameRunning);
-    const nextSteamVrRunning = normalizeBoolean(payload?.isSteamVRRunning);
+    const nextGameRunning = normalizeBoolean(projection?.isGameRunning);
+    const nextSteamVrRunning = normalizeBoolean(projection?.isSteamVRRunning);
     const gameRunningChanged = previousGameRunning !== nextGameRunning;
     const steamVrRunningChanged = previousSteamVrRunning !== nextSteamVrRunning;
     const changed = gameRunningChanged || steamVrRunningChanged;
     const payloadChangedAt =
-        normalizeString(payload?.lastGameStateChangedAt) ||
-        normalizeString(payload?.changedAt);
-    const payloadStartedAt = normalizeString(payload?.lastGameStartedAt);
+        normalizeString(projection?.lastGameStateChangedAt) ||
+        normalizeString(projection?.changedAt);
+    const payloadStartedAt = normalizeString(projection?.lastGameStartedAt);
     const shouldRefreshDiscordPresence =
         gameRunningChanged ||
         (nextGameRunning === true &&
@@ -497,7 +512,7 @@ export async function handleGameRunningUpdate(
     }
 
     if (shouldRefreshDiscordPresence) {
-        await refreshDiscordPresence({ force: true }).catch((error: any) => {
+        await refreshDiscordPresence({ force: true }).catch((error: unknown) => {
             console.warn(
                 'Discord presence refresh after game state update failed:',
                 error

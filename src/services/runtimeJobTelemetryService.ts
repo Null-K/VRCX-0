@@ -23,7 +23,7 @@ export async function recordRuntimeJobTelemetry(
         owner: 'frontend',
         detail: '',
         ...record
-    }).catch((error: any) => {
+    }).catch((error: unknown) => {
         console.warn('Failed to record runtime background job state:', error);
     });
 }

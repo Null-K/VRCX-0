@@ -37,7 +37,7 @@ function routeModerationAuthFailure(error: unknown, path: string): never {
     const normalizedError = normalizeModerationError(error, path);
     const handled = handleRuntimeAuthFailure(normalizedError);
     if (handled) {
-        handled.catch((recoveryError: any) => {
+        handled.catch((recoveryError: unknown) => {
             console.warn(
                 'Backend moderation auth failure recovery failed:',
                 recoveryError

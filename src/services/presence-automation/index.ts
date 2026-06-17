@@ -3,7 +3,13 @@ import { loadPresenceAutomationConfig } from './presenceConfig';
 import { applyPresenceAutomationResult } from './presenceExecutor';
 import { evaluatePresenceRules } from './presenceRuleEngine';
 
-export async function runPresenceAutomation({ now = new Date() }: any = {}) {
+type PresenceAutomationRunOptions = {
+    now?: Date;
+};
+
+export async function runPresenceAutomation({
+    now = new Date()
+}: PresenceAutomationRunOptions = {}) {
     const config = await loadPresenceAutomationConfig();
     if (!config.enabled) {
         return {

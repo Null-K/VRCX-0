@@ -1374,6 +1374,7 @@ export type BackendRuntimeFrontendSessionSnapshot = { authenticated: boolean; us
 export type BackendRuntimeMode = "foreground" | "background" | "headless"
 export type BackendRuntimePhase = "idle" | "starting" | "authenticating" | "running" | "stopping" | "error"
 export type BackendRuntimeSnapshot = { mode: BackendRuntimeMode; phase: BackendRuntimePhase; authStatus: string; authUserId: string; authDisplayName: string; wsStatus: string; gameLogStatus: string; processStatus: string; wsMessageCounts: Partial<{ [key in string]: number }>; wsPersistedCount: number; gameLogPersistedCount: number; lastError: string | null; updatedAt: string }
+export type BackendRuntimeTelemetry = { kind: string; detail: string; snapshot: BackendRuntimeSnapshot }
 export type BackgroundImageFilesResolveInput = { paths: string[] | null; folderPath: string | null }
 export type BrokenGameLogDisplayNameOutput = { id: JsonValue; displayName: JsonValue }
 export type CacheCheckResult = { Item1: number; Item2: boolean; Item3: string }
@@ -1407,10 +1408,14 @@ export type FriendLogHistoryQueryInput = { userId: string; targetUserId?: string
 export type FriendLogMutationResult = { userId: string; targetUserId: string; count: number; inserted?: boolean | null; historyCount: number }
 export type FriendLogReplaceOptionsInput = { historyEntries?: FriendLogHistoryEntryInput[]; addedHistoryEntries?: FriendLogHistoryEntryInput[] }
 export type FriendLogUpsertOptionsInput = { historyEntry?: FriendLogHistoryEntryInput | null; forceHistory?: boolean }
+export type FriendProjection = { generation: number; baselineRevision: number; patches?: FriendProjectionPatch[]; removals?: string[]; feedEntries?: JsonValue[]; friendLogChanged: boolean }
+export type FriendProjectionPatch = { userId: string; patch: JsonValue; stateBucket: string; stateBucketAuthority?: string | null }
 export type FriendRecord = (Partial<{ [key in string]: null | boolean | number | string | JsonValue[] | Partial<{ [key in string]: JsonValue }> }>) & { id?: string; displayName?: string; username?: string; state?: string; stateBucket?: string; location?: string; travelingToLocation?: string; worldId?: string; platform?: string; lastPlatform?: string; status?: string; statusDescription?: string; bio?: string; currentAvatarImageUrl?: string; currentAvatarThumbnailImageUrl?: string; currentAvatarAuthorId?: string; currentAvatarName?: string }
+export type GameLogProjection = { currentLocation: string; currentWorldId: string; currentWorldName: string; currentDestination: string; currentLocationStartedAt: string | null; currentLocationPlayerIds: string[]; currentLocationPlayers: PlayerState[]; lastGameLogAt: string; lastGameLogType: string }
 export type GameLogQueryInput = { kind: string; params?: RawJson }
 export type GameLogRuntimeSnapshotDto = { location: string; worldName: string; destination: string; players: PlayerState[] }
 export type HostCapabilities = { platform: string; arch: string; linuxPackageKind: string; localDatabase: CapabilityStatus; websocketRuntime: CapabilityStatus; gameLogWatcher: CapabilityStatus; runtimeGameLogIngest: CapabilityStatus; runtimeGameLogSideEffects: CapabilityStatus; runtimeGameClientLifecycle: CapabilityStatus; runtimeRealtimeTransport: CapabilityStatus; gameProcessMonitor: CapabilityStatus; vrchatPathDiscovery: CapabilityStatus; steamLibraryDiscovery: CapabilityStatus; steamRuntimeIntegration: CapabilityStatus; registryPrefs: CapabilityStatus; gameLaunch: CapabilityStatus; ipc: CapabilityStatus; vrchatLaunchPipe: CapabilityStatus; screenshotCache: CapabilityStatus }
+export type HostSessionProjection = { isGameRunning: boolean; isSteamVRRunning: boolean; lastGameStartedAt?: string | null; lastGameStateChangedAt?: string | null; generation: number; gameChanged: boolean; steamvrChanged: boolean; changedAt: string }
 export type HttpApiExecuteResponse = { status: number; data: string; raw: JsonValue }
 export type InstanceActivityRowOutput = { id: number; createdAt: string; type: string; displayName: string; location: string; userId: string; time: number }
 export type JsonValue = any;
@@ -1453,7 +1458,13 @@ export type PlayerJoinLeaveOutput = { id: number; createdAt: string; type: strin
 export type PlayerLocationOutput = { createdAt: string; location: string; worldId: string; worldName: string; time: number; groupName: string }
 export type PlayerState = { userId: string; displayName: string; joinTimeMs: number | null }
 export type RawJson = JsonValue
+export type RealtimeCurrentUserProjection = { generation: number; patch: Partial<{ [key in string]: JsonValue }>; snapshot: Partial<{ [key in string]: JsonValue }>; gameStatePatch?: Partial<{ [key in string]: JsonValue }> | null }
+export type RealtimeInstanceClosedProjection = { generation: number; notification: JsonValue; feedEntry: JsonValue }
+export type RealtimeInstanceQueueProjection = { generation: number; kind: string; instanceLocation: string; position: number; queueSize: number; receivedAt: string }
+export type RealtimeNotificationProjection = { generation: number; upserts?: RealtimeNotificationUpsert[]; expiredIds?: string[]; seenIds?: string[]; clearMenuIfNoUnseen: boolean }
+export type RealtimeNotificationUpsert = { notification: JsonValue; insertDefaults?: JsonValue | null; notifyMenu: boolean; deliverRuntime: boolean; runAutomation: boolean }
 export type RealtimeTransportStartResult = { generation: number; clientRunId: number; sessionGeneration: number }
+export type RealtimeWsStatusPayload = { status: string; websocketDomain: string; at: string; clientRunId?: number | null; generation?: number | null; sessionGeneration?: number | null; reason?: string | null; statusCode?: number | null }
 export type RegistryBackupMaintenanceResult = { backups: RegistryBackupSnapshot[]; autoBackupCreated: boolean; restorePromptNeeded: boolean; restorePromptBackupDate: string | null; detail: string }
 export type RegistryBackupSnapshot = { key: string; name: string; date: string; data: JsonValue }
 export type RemoteModerationRow = { id: string; type: string; sourceUserId: string; sourceDisplayName: string; targetUserId: string; targetDisplayName: string; created: string }
@@ -1613,7 +1624,7 @@ export type Result<T, E> =
 	| { status: "ok"; data: T }
 	| { status: "error"; error: E };
 
-function __makeEvents__<T extends Record<string, any>>(
+function __makeEvents__<T extends Record<string, unknown>>(
 	mappings: Record<keyof T, string>,
 ) {
 	return new Proxy(
@@ -1626,20 +1637,20 @@ function __makeEvents__<T extends Record<string, any>>(
 			get: (_, event) => {
 				const name = mappings[event as keyof T];
 
-				return new Proxy((() => {}) as any, {
+				return new Proxy((() => {}) as (...args: unknown[]) => unknown, {
 					apply: (_, __, [window]: [__WebviewWindow__]) => ({
-						listen: (arg: any) => window.listen(name, arg),
-						once: (arg: any) => window.once(name, arg),
-						emit: (arg: any) => window.emit(name, arg),
+						listen: (arg: TAURI_API_EVENT.EventCallback<unknown>) => window.listen<unknown>(name, arg),
+						once: (arg: TAURI_API_EVENT.EventCallback<unknown>) => window.once<unknown>(name, arg),
+						emit: (arg: unknown) => window.emit(name, arg),
 					}),
-					get: (_, command: keyof __EventObj__<any>) => {
+					get: (_, command: keyof __EventObj__<unknown>) => {
 						switch (command) {
 							case "listen":
-								return (arg: any) => TAURI_API_EVENT.listen(name, arg);
+								return (arg: TAURI_API_EVENT.EventCallback<unknown>) => TAURI_API_EVENT.listen<unknown>(name, arg);
 							case "once":
-								return (arg: any) => TAURI_API_EVENT.once(name, arg);
+								return (arg: TAURI_API_EVENT.EventCallback<unknown>) => TAURI_API_EVENT.once<unknown>(name, arg);
 							case "emit":
-								return (arg: any) => TAURI_API_EVENT.emit(name, arg);
+								return (arg: unknown) => TAURI_API_EVENT.emit(name, arg);
 						}
 					},
 				});

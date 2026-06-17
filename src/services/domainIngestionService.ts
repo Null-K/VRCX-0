@@ -78,7 +78,7 @@ function recordKnownUsers(
 ) {
     ingestUserFactEntries(
         (Array.isArray(users) ? users : [])
-            .filter((user: any): user is Record<string, unknown> =>
+            .filter((user): user is Record<string, unknown> =>
                 Boolean(user && typeof user === 'object')
             )
             .map((user) => toIngestEntry(user, options))
@@ -245,7 +245,7 @@ function recordLocationHintsFromInstances({
             ...(Array.isArray(source.playerList) ? source.playerList : []),
             ...(Array.isArray(source.userList) ? source.userList : []),
             ...(Array.isArray(source.userIds)
-                ? source.userIds.map((userId: any) =>
+                ? source.userIds.map((userId: unknown) =>
                       typeof userId === 'string'
                           ? {
                                 id: userId,

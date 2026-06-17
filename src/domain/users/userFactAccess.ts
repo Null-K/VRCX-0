@@ -49,7 +49,7 @@ function ingestUserFactEntries(
     if (!valid.length) {
         return;
     }
-    commands.appIngestUserFacts(valid).catch((error: any) => {
+    commands.appIngestUserFacts(valid).catch((error: unknown) => {
         console.warn('Failed to ingest user facts:', error);
     });
 }

@@ -6,7 +6,9 @@ import { stopRuntimeUpdateLoopAndWaitForIdle } from './updateLoopService';
 function currentAuthScope() {
     const auth = useRuntimeStore.getState().auth;
     return {
-        userId: auth.currentUserId ?? auth.currentUserSnapshot?.id ?? '',
+        userId: String(
+            auth.currentUserId ?? auth.currentUserSnapshot?.id ?? ''
+        ).trim(),
         endpoint: auth.currentUserEndpoint ?? ''
     };
 }

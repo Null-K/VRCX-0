@@ -93,7 +93,7 @@ export function startMutualGraphFetchStatusPolling() {
         return;
     }
     pollTimer = window.setInterval(() => {
-        refreshMutualGraphFetchStatus().catch((error: any) => {
+        refreshMutualGraphFetchStatus().catch((error: unknown) => {
             useRuntimeStore.getState().setMutualGraphState({
                 status: 'error',
                 lastError:

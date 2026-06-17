@@ -1,14 +1,7 @@
-import authRepository from '@/repositories/authRepository';
+import authRepository, {
+    type SavedAuthSnapshot
+} from '@/repositories/authRepository';
 import { useRuntimeStore } from '@/state/runtimeStore';
-
-type SavedAuthSnapshot = Record<string, unknown> & {
-    lastUserLoggedIn: unknown;
-    savedCredentialCount: unknown;
-    autoLoginStatus: string;
-    autoLoginReason: string;
-    autoLoginDelayEnabled: unknown;
-    autoLoginDelaySeconds: unknown;
-};
 
 type AuthStartupTask = {
     status: string;

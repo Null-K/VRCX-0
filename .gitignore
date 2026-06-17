@@ -22,4 +22,5 @@ bun.lock
 .codex
 build-scripts/package-windows-release.ps1
 .claude/
+.agents/
 .mcp.json

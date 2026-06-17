@@ -1,5 +1,14 @@
 import { commands } from '@/platform/tauri/bindings';
-import type { FriendRecord as BackendFriendRecord } from '@/platform/tauri/bindings';
+import type {
+    FriendProjection,
+    FriendRecord as BackendFriendRecord,
+    RealtimeCurrentUserProjection,
+    RealtimeInstanceClosedProjection,
+    RealtimeInstanceQueueProjection,
+    RealtimeNotificationProjection,
+    RealtimeTransportStartResult,
+    RealtimeWsStatusPayload
+} from '@/platform/tauri/bindings';
 import { tauriClient } from '@/platform/tauri/client';
 import { DEFAULT_WEBSOCKET_DOMAIN } from '@/repositories/vrchatAuthRepository';
 import { useFriendRosterStore } from '@/state/friendRosterStore';
@@ -19,19 +28,51 @@ import {
 import { showSQLiteErrorDialog } from './sqliteErrorDialogService';
 import { syncStartupServicesTask } from './startupServicesStatus';
 
-let activeContext: Record<string, any> | null = null;
+type RuntimeTransportContext = {
+    userId: string;
+    endpoint: string;
+    websocket: string;
+    currentUserSnapshot: Record<string, unknown>;
+};
+
+type RuntimeTransportStopScope = {
+    userId: string | null;
+    endpoint: string | null;
+    websocket: string | null;
+    clientRunId: number | null;
+    generation: number | null;
+};
+
+type ConnectRealtimeTransportOptions = {
+    announceIpc?: boolean;
+    preserveMetrics?: boolean;
+};
+
+type StartRealtimeTransportOptions = {
+    userId?: unknown;
+    endpoint?: string;
+    websocket?: string;
+    currentUserSnapshot?: unknown;
+};
+
+type StopRealtimeTransportOptions = {
+    preserveTelemetry?: boolean;
+    updateStatus?: boolean;
+};
+
+let activeContext: RuntimeTransportContext | null = null;
 let intentionalStop = false;
 let ipcAnnouncedForActiveSession = false;
 let runtimeTransportStarting = false;
 let runtimeTransportActive = false;
 let runtimeTransportCleanup: (() => void) | null = null;
 let runtimeTransportRunId = 0;
-let runtimeTransportContext: Record<string, any> | null = null;
+let runtimeTransportContext: RuntimeTransportContext | null = null;
 let runtimeTransportClientRunId: number | null = null;
 let runtimeTransportGeneration: number | null = null;
 let pendingRuntimeProjectionEvents: Array<{
     payload: unknown;
-    context: Record<string, any>;
+    context: RuntimeTransportContext;
     deliver: () => void;
 }> = [];
 
@@ -44,7 +85,7 @@ function normalizeWebsocketDomain(value: unknown) {
 }
 
 function isCurrentTransportTarget(
-    context: Record<string, any> | null = activeContext
+    context: RuntimeTransportContext | null = activeContext
 ) {
     return (
         isCurrentTransportIdentity(context) &&
@@ -53,7 +94,7 @@ function isCurrentTransportTarget(
 }
 
 function isCurrentTransportIdentity(
-    context: Record<string, any> | null = activeContext
+    context: RuntimeTransportContext | null = activeContext
 ) {
     if (!context?.userId) {
         return false;
@@ -75,7 +116,7 @@ function updateTransportStartupDetail(detail: string) {
     syncStartupServicesTask([detail]);
 }
 
-function isRecord(value: unknown): value is Record<string, any> {
+function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value && typeof value === 'object');
 }
 
@@ -86,7 +127,7 @@ function projectionGeneration(payload: unknown) {
 
 function isCurrentRealtimeProjection(
     payload: unknown,
-    context: Record<string, any>
+    context: RuntimeTransportContext
 ) {
     return (
         isCurrentTransportIdentity(context) &&
@@ -97,7 +138,7 @@ function isCurrentRealtimeProjection(
 
 function routeRealtimeProjection(
     payload: unknown,
-    context: Record<string, any>,
+    context: RuntimeTransportContext,
     deliver: () => void
 ) {
     if (isCurrentRealtimeProjection(payload, context)) {
@@ -170,10 +211,10 @@ function runtimeTransportStopScope() {
 }
 
 function transportStopScopeForRun(
-    context: Record<string, any>,
+    context: RuntimeTransportContext,
     clientRunId: number,
     generation: number | null
-) {
+): RuntimeTransportStopScope {
     return {
         userId: context.userId ?? null,
         endpoint: context.endpoint ?? null,
@@ -183,7 +224,9 @@ function transportStopScopeForRun(
     };
 }
 
-function requestRuntimeRealtimeStop(scope: any = runtimeTransportStopScope()) {
+function requestRuntimeRealtimeStop(
+    scope: RuntimeTransportStopScope = runtimeTransportStopScope()
+) {
     commands
         .appStopRealtimeTransport(
             scope.userId,
@@ -192,7 +235,7 @@ function requestRuntimeRealtimeStop(scope: any = runtimeTransportStopScope()) {
             scope.clientRunId,
             scope.generation
         )
-        .catch((error: any) => {
+        .catch((error: unknown) => {
             console.warn('Backend realtime transport stop failed:', error);
         });
 }
@@ -210,7 +253,7 @@ function stopRuntimeRealtimeTransport() {
 }
 
 function handleRealtimeMessageFailure(error: unknown) {
-    showSQLiteErrorDialog(error).catch((dialogError: any) => {
+    showSQLiteErrorDialog(error).catch((dialogError: unknown) => {
         console.warn('Realtime SQLite error dialog failed:', dialogError);
     });
     useNotificationStore.getState().pushNotification({
@@ -220,7 +263,7 @@ function handleRealtimeMessageFailure(error: unknown) {
     });
 }
 
-function handleRealtimeAuthFailure(payload: Record<string, any>) {
+function handleRealtimeAuthFailure(payload: Record<string, unknown>) {
     const reason = String(payload.reason || '').trim();
     const statusCode = Number(payload.statusCode);
     const isRecoverableAuthFailure =
@@ -243,7 +286,7 @@ function handleRealtimeAuthFailure(payload: Record<string, any>) {
     });
     const handled = handleRuntimeAuthFailure(error);
     if (handled) {
-        handled.catch((recoveryError: any) => {
+        handled.catch((recoveryError: unknown) => {
             console.warn(
                 'Realtime auth failure recovery failed:',
                 recoveryError
@@ -259,9 +302,12 @@ function handleRealtimeAuthFailure(payload: Record<string, any>) {
     });
 }
 
-function handleRealtimeStatus(payload: unknown, context: Record<string, any>) {
+function handleRealtimeStatus(
+    payload: RealtimeWsStatusPayload,
+    context: RuntimeTransportContext
+) {
     useRuntimeStore.getState().recordRuntimeEvent('realtimeWsStatus', payload);
-    const statusPayload = isRecord(payload) ? payload : {};
+    const statusPayload = payload;
     const status = String(statusPayload.status || '');
     if (!isCurrentTransportTarget(context)) {
         return;
@@ -335,7 +381,7 @@ function handleRealtimeStatus(payload: unknown, context: Record<string, any>) {
             lastDisconnectedAt: new Date().toISOString()
         });
         useSessionStore.getState().setTransportStatus('pipeline-error');
-        handleRealtimeAuthFailure(statusPayload);
+        handleRealtimeAuthFailure({ ...statusPayload });
         return;
     }
 
@@ -350,14 +396,17 @@ function handleRealtimeStatus(payload: unknown, context: Record<string, any>) {
     }
 }
 
-async function subscribeRuntimeRealtimeEvents(context: Record<string, any>) {
+async function subscribeRuntimeRealtimeEvents(context: RuntimeTransportContext) {
     const unsubscribers = await Promise.all([
-        tauriClient.events.subscribe('realtimeWsStatus', (payload: any) => {
-            handleRealtimeStatus(payload, context);
-        }),
+        tauriClient.events.subscribe<RealtimeWsStatusPayload>(
+            'realtimeWsStatus',
+            (payload) => {
+                handleRealtimeStatus(payload, context);
+            }
+        ),
         tauriClient.events.subscribe(
             'realtimeFriendProjection',
-            (payload: any) => {
+            (payload: FriendProjection) => {
                 routeRealtimeProjection(payload, context, () => {
                     useRuntimeStore
                         .getState()
@@ -371,7 +420,7 @@ async function subscribeRuntimeRealtimeEvents(context: Record<string, any>) {
         ),
         tauriClient.events.subscribe(
             'realtimeNotificationProjection',
-            (payload: any) => {
+            (payload: RealtimeNotificationProjection) => {
                 routeRealtimeProjection(payload, context, () => {
                     useRuntimeStore
                         .getState()
@@ -387,7 +436,7 @@ async function subscribeRuntimeRealtimeEvents(context: Record<string, any>) {
         ),
         tauriClient.events.subscribe(
             'realtimeCurrentUserProjection',
-            (payload: any) => {
+            (payload: RealtimeCurrentUserProjection) => {
                 routeRealtimeProjection(payload, context, () => {
                     useRuntimeStore
                         .getState()
@@ -401,7 +450,7 @@ async function subscribeRuntimeRealtimeEvents(context: Record<string, any>) {
         ),
         tauriClient.events.subscribe(
             'realtimeInstanceClosedProjection',
-            (payload: any) => {
+            (payload: RealtimeInstanceClosedProjection) => {
                 routeRealtimeProjection(payload, context, () => {
                     useRuntimeStore
                         .getState()
@@ -417,7 +466,7 @@ async function subscribeRuntimeRealtimeEvents(context: Record<string, any>) {
         ),
         tauriClient.events.subscribe(
             'realtimeInstanceQueueProjection',
-            (payload: any) => {
+            (payload: RealtimeInstanceQueueProjection) => {
                 routeRealtimeProjection(payload, context, () => {
                     useRuntimeStore
                         .getState()
@@ -438,7 +487,7 @@ async function subscribeRuntimeRealtimeEvents(context: Record<string, any>) {
     };
 }
 
-async function startRuntimeRealtimeTransport(context: Record<string, any>) {
+async function startRuntimeRealtimeTransport(context: RuntimeTransportContext) {
     const runId = ++runtimeTransportRunId;
     cleanupRuntimeRealtimeSubscription();
     runtimeTransportStarting = true;
@@ -471,10 +520,10 @@ async function startRuntimeRealtimeTransport(context: Record<string, any>) {
     }
     runtimeTransportCleanup = cleanup;
 
-    let startResult: Record<string, any>;
+    let startResult: RealtimeTransportStartResult;
     let startGeneration: number | null = null;
     try {
-        startResult = (await commands.appStartRealtimeTransport(
+        startResult = await commands.appStartRealtimeTransport(
             context.userId,
             context.endpoint,
             context.websocket,
@@ -484,7 +533,7 @@ async function startRuntimeRealtimeTransport(context: Record<string, any>) {
                 string,
                 BackendFriendRecord
             >
-        )) as Record<string, any>;
+        );
         startGeneration = Number(startResult?.generation) || null;
         if (runId === runtimeTransportRunId) {
             runtimeTransportGeneration = startGeneration;
@@ -541,7 +590,7 @@ function handleTransportFailure(error: unknown) {
 async function connectRealtimeTransport({
     announceIpc,
     preserveMetrics
-}: Record<string, any>) {
+}: ConnectRealtimeTransportOptions) {
     const context = activeContext;
     if (!isCurrentTransportTarget(context)) {
         return stopRealtimeTransport();
@@ -602,7 +651,7 @@ export async function startRealtimeTransport({
     endpoint = '',
     websocket = '',
     currentUserSnapshot
-}: any) {
+}: StartRealtimeTransportOptions) {
     const normalizedUserId =
         typeof userId === 'string'
             ? userId.trim()
@@ -634,7 +683,7 @@ export async function startRealtimeTransport({
         userId: normalizedUserId,
         endpoint,
         websocket,
-        currentUserSnapshot
+        currentUserSnapshot: currentUserSnapshot as Record<string, unknown>
     };
 
     try {
@@ -709,7 +758,7 @@ export async function syncRuntimeRealtimeCurrentUserSnapshot(
 export function stopRealtimeTransport({
     preserveTelemetry = false,
     updateStatus = true
-}: any = {}) {
+}: StopRealtimeTransportOptions = {}) {
     intentionalStop = true;
     ipcAnnouncedForActiveSession = false;
     stopRuntimeRealtimeTransport();

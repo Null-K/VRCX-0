@@ -6,6 +6,97 @@ const STATUS_VALUES = new Set([
     'offline'
 ]);
 
+type PresenceFacts = {
+    now: Date | string | number;
+    currentUser?: Record<string, unknown> | null;
+    currentUserId: string;
+    endpoint: string;
+    isGameRunning: boolean;
+    isTraveling: boolean;
+    currentLocationStartedAt: string;
+    instanceType: string;
+    playerFactsKnown: boolean;
+    playerCount: number;
+    friendCount: number;
+    presentFavoriteGroupKeys: string[];
+    presentFriendIds: string[];
+    canInviteFromCurrentLocation: boolean;
+};
+
+type PresenceCondition = Record<string, unknown> & {
+    type?: unknown;
+    start?: unknown;
+    end?: unknown;
+    days?: unknown;
+    values?: unknown;
+    op?: unknown;
+    value?: unknown;
+};
+
+type PresenceActions = Record<string, unknown> & {
+    status?: unknown;
+    statusDescription?: unknown;
+    clearStatusDescription?: unknown;
+};
+
+type PresenceRule = Record<string, unknown> & {
+    id?: unknown;
+    label?: unknown;
+    enabled?: unknown;
+    generated?: unknown;
+    domain?: unknown;
+    priority?: unknown;
+    conditions?: unknown;
+    actions?: PresenceActions;
+    stopProcessing?: unknown;
+    restorePreviousState?: unknown;
+};
+
+type PresenceActionPatch = {
+    status?: string;
+    statusDescription?: string;
+};
+
+type PresenceRuleMatch = {
+    matched: boolean;
+    reason: string;
+};
+
+type PresenceRuleEvaluationInput = {
+    facts: PresenceFacts;
+    rules: unknown;
+};
+
+type MatchedPresenceRule = {
+    id: string;
+    label: string;
+    domain: string;
+    priority: number;
+    restorePreviousState: boolean;
+    ownedFields: string[];
+    actions: PresenceActionPatch;
+};
+
+type SkippedPresenceRule = {
+    id: string;
+    domain: string;
+    reason: string;
+};
+
+type PresenceEvaluationResult = {
+    patch: PresenceActionPatch;
+    fieldOwners: Record<string, string>;
+    matchedRules: MatchedPresenceRule[];
+    skippedRules: SkippedPresenceRule[];
+    explanation: Record<string, unknown>;
+};
+
+function normalizeString(value: unknown): string {
+    return typeof value === 'string'
+        ? value.trim()
+        : String(value ?? '').trim();
+}
+
 function compareNumbers(left: number, op: string, right: number) {
     if (op === '>') {
         return left > right;
@@ -25,7 +116,7 @@ function compareNumbers(left: number, op: string, right: number) {
     return left === right;
 }
 
-function parseClockMinutes(value: any) {
+function parseClockMinutes(value: unknown) {
     const match = String(value || '').match(/^(\d{1,2}):(\d{2})$/);
     if (!match) {
         return null;
@@ -38,7 +129,7 @@ function parseClockMinutes(value: any) {
     return hours * 60 + minutes;
 }
 
-function getLocalDayValue(date: any, offsetDays: any = 0) {
+function getLocalDayValue(date: Date, offsetDays: number = 0) {
     if (!offsetDays) {
         const day = date.getDay();
         return day === 0 ? 7 : day;
@@ -49,14 +140,21 @@ function getLocalDayValue(date: any, offsetDays: any = 0) {
     return day === 0 ? 7 : day;
 }
 
-function matchesDayFilter(days: any, now: any, activeDayOffset: any = 0) {
+function matchesDayFilter(
+    days: number[],
+    now: Date,
+    activeDayOffset: number = 0
+) {
     if (!days.length) {
         return true;
     }
     return days.includes(getLocalDayValue(now, activeDayOffset));
 }
 
-function matchesTimeWindow(condition: Record<string, any>, facts: Record<string, any>) {
+function matchesTimeWindow(
+    condition: PresenceCondition,
+    facts: PresenceFacts
+) {
     const start = parseClockMinutes(condition.start);
     const end = parseClockMinutes(condition.end);
     if (start === null || end === null) {
@@ -64,7 +162,9 @@ function matchesTimeWindow(condition: Record<string, any>, facts: Record<string,
     }
 
     const now = facts.now instanceof Date ? facts.now : new Date(facts.now);
-    const days = Array.isArray(condition.days) ? condition.days : [];
+    const days = Array.isArray(condition.days)
+        ? condition.days.map((day) => Number(day)).filter(Number.isFinite)
+        : [];
     const nowMinutes = now.getHours() * 60 + now.getMinutes();
     if (start === end) {
         return matchesDayFilter(days, now);
@@ -84,11 +184,14 @@ function matchesTimeWindow(condition: Record<string, any>, facts: Record<string,
     return false;
 }
 
-function hasPlayerFacts(facts: Record<string, any>) {
+function hasPlayerFacts(facts: PresenceFacts) {
     return facts?.playerFactsKnown === true;
 }
 
-function matchesCondition(condition: Record<string, any>, facts: Record<string, any>) {
+function matchesCondition(
+    condition: PresenceCondition,
+    facts: PresenceFacts
+) {
     const type = condition?.type;
     if (!type) {
         return false;
@@ -110,7 +213,7 @@ function matchesCondition(condition: Record<string, any>, facts: Record<string, 
         }
         return compareNumbers(
             facts.playerCount,
-            condition.op || '==',
+            normalizeString(condition.op) || '==',
             Number(condition.value) || 0
         );
     }
@@ -120,7 +223,7 @@ function matchesCondition(condition: Record<string, any>, facts: Record<string, 
         }
         return compareNumbers(
             facts.friendCount,
-            condition.op || '==',
+            normalizeString(condition.op) || '==',
             Number(condition.value) || 0
         );
     }
@@ -135,8 +238,8 @@ function matchesCondition(condition: Record<string, any>, facts: Record<string, 
             return false;
         }
         const values = Array.isArray(condition.values) ? condition.values : [];
-        return values.some((groupKey: any) =>
-            facts.presentFavoriteGroupKeys.includes(groupKey)
+        return values.some((groupKey) =>
+            facts.presentFavoriteGroupKeys.includes(normalizeString(groupKey))
         );
     }
     if (type === 'hasSpecificFriend') {
@@ -144,7 +247,9 @@ function matchesCondition(condition: Record<string, any>, facts: Record<string, 
             return false;
         }
         const values = Array.isArray(condition.values) ? condition.values : [];
-        return values.some((userId: any) => facts.presentFriendIds.includes(userId));
+        return values.some((userId) =>
+            facts.presentFriendIds.includes(normalizeString(userId))
+        );
     }
     if (type === 'isAlone') {
         if (!hasPlayerFacts(facts)) {
@@ -174,10 +279,11 @@ function matchesCondition(condition: Record<string, any>, facts: Record<string, 
     return false;
 }
 
-function validateActionPatch(actions: Record<string, any> = {}) {
-    const patch: Record<string, any> = {};
-    if (actions.status && STATUS_VALUES.has(actions.status)) {
-        patch.status = actions.status;
+function validateActionPatch(actions: PresenceActions = {}) {
+    const patch: PresenceActionPatch = {};
+    const status = normalizeString(actions.status);
+    if (status && STATUS_VALUES.has(status)) {
+        patch.status = status;
     }
     if (Object.prototype.hasOwnProperty.call(actions, 'statusDescription')) {
         patch.statusDescription = String(
@@ -189,8 +295,16 @@ function validateActionPatch(actions: Record<string, any> = {}) {
     return patch;
 }
 
-function evaluateRule(rule: Record<string, any>, facts: Record<string, any>) {
-    const conditions = Array.isArray(rule.conditions) ? rule.conditions : [];
+function evaluateRule(
+    rule: PresenceRule,
+    facts: PresenceFacts
+): PresenceRuleMatch {
+    const conditions: PresenceCondition[] = Array.isArray(rule.conditions)
+        ? rule.conditions.filter(
+              (condition): condition is PresenceCondition =>
+                  Boolean(condition && typeof condition === 'object')
+          )
+        : [];
     for (const condition of conditions) {
         if (!matchesCondition(condition, facts)) {
             return {
@@ -202,10 +316,17 @@ function evaluateRule(rule: Record<string, any>, facts: Record<string, any>) {
     return { matched: true, reason: 'matched' };
 }
 
-export function evaluatePresenceRules({ facts, rules }: any) {
+export function evaluatePresenceRules({
+    facts,
+    rules
+}: PresenceRuleEvaluationInput): PresenceEvaluationResult {
     const sortedRules = [...(Array.isArray(rules) ? rules : [])]
-        .filter((rule: any) => rule?.enabled !== false)
-        .sort((left: any, right: any) => {
+        .filter(
+            (rule): rule is PresenceRule =>
+                Boolean(rule && typeof rule === 'object') &&
+                (rule as PresenceRule).enabled !== false
+        )
+        .sort((left, right) => {
             const priorityDelta =
                 Number(right.priority || 0) - Number(left.priority || 0);
             if (priorityDelta) {
@@ -213,17 +334,18 @@ export function evaluatePresenceRules({ facts, rules }: any) {
             }
             return String(left.id || '').localeCompare(String(right.id || ''));
         });
-    const patch: Record<string, any> = {};
+    const patch: PresenceActionPatch = {};
     const fieldOwners: Record<string, string> = {};
-    const stoppedDomains = new Set();
-    const matchedRules = [];
-    const skippedRules = [];
+    const stoppedDomains = new Set<string>();
+    const matchedRules: MatchedPresenceRule[] = [];
+    const skippedRules: SkippedPresenceRule[] = [];
 
     for (const rule of sortedRules) {
-        const domain = rule.domain || 'context';
+        const id = normalizeString(rule.id);
+        const domain = normalizeString(rule.domain) || 'context';
         if (stoppedDomains.has(domain)) {
             skippedRules.push({
-                id: rule.id,
+                id,
                 domain,
                 reason: 'domain-stopped'
             });
@@ -233,7 +355,7 @@ export function evaluatePresenceRules({ facts, rules }: any) {
         const result = evaluateRule(rule, facts);
         if (!result.matched) {
             skippedRules.push({
-                id: rule.id,
+                id,
                 domain,
                 reason: result.reason
             });
@@ -245,16 +367,16 @@ export function evaluatePresenceRules({ facts, rules }: any) {
         for (const [field, value] of Object.entries(actionPatch)) {
             if (!Object.prototype.hasOwnProperty.call(fieldOwners, field)) {
                 patch[field] = value;
-                fieldOwners[field] = rule.id || '';
+                fieldOwners[field] = id;
                 ownedFields.push(field);
             }
         }
 
         matchedRules.push({
-            id: rule.id,
-            label: rule.label || rule.id,
+            id,
+            label: normalizeString(rule.label) || id,
             domain,
-            priority: rule.priority || 0,
+            priority: Number(rule.priority) || 0,
             restorePreviousState: rule.restorePreviousState !== false,
             ownedFields,
             actions: actionPatch
@@ -283,3 +405,13 @@ export function evaluatePresenceRules({ facts, rules }: any) {
 }
 
 export { STATUS_VALUES };
+export type {
+    MatchedPresenceRule,
+    PresenceActions,
+    PresenceActionPatch,
+    PresenceCondition,
+    PresenceFacts,
+    PresenceEvaluationResult,
+    PresenceRule,
+    SkippedPresenceRule
+};

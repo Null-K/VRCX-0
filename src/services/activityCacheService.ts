@@ -4,26 +4,46 @@ import { useSessionStore } from '@/state/sessionStore';
 
 import { syncStartupServicesTask } from './startupServicesStatus';
 
-type ActivitySession = Record<string, any> & {
-    start: any;
-    end: any;
+type RuntimeState = ReturnType<typeof useRuntimeStore.getState>;
+type ActivityStatePatch = Parameters<RuntimeState['setActivityState']>[0];
+type ActivitySyncState = NonNullable<
+    Awaited<
+        ReturnType<typeof activityPersistenceRepository.getActivitySyncState>
+    >
+>;
+type ActivitySession = Awaited<
+    ReturnType<typeof activityPersistenceRepository.getActivitySessions>
+>[number];
+type ActivityRefreshResult = Awaited<
+    ReturnType<typeof activityPersistenceRepository.refreshSelfActivitySessions>
+>;
+type ActivitySourceBounds = Awaited<
+    ReturnType<typeof activityPersistenceRepository.getSelfActivitySourceBounds>
+>;
+type CurrentUserSnapshot = Record<string, unknown> & {
+    id?: unknown;
+    displayName?: unknown;
+    username?: unknown;
+};
+type ActivityWarmupOptions = {
+    userId?: unknown;
+    currentUserSnapshot?: unknown;
+};
+type ActivityWarmupResult = {
+    userId: string;
+    stale: boolean;
+    cachedRangeDays?: number;
+    sessionCount?: number;
 };
 
 type ActivitySnapshot = {
     userId: string;
-    sync: Record<string, any> & {
-        userId: string;
-        updatedAt: string;
-        isSelf: boolean;
-        sourceLastCreatedAt: string;
-        pendingSessionStartAt: any;
-        cachedRangeDays: number;
-    };
+    sync: ActivitySyncState;
     sessions: ActivitySession[];
 };
 
 const snapshotMap = new Map<string, ActivitySnapshot>();
-const activeWarmups = new Map<string, Promise<unknown>>();
+const activeWarmups = new Map<string, Promise<ActivityWarmupResult>>();
 const FULL_CACHE_BATCH_DAYS = 30;
 const FULL_CACHE_MAX_DAYS = 3650;
 const INITIAL_RANGE_DAYS = 90;
@@ -34,8 +54,16 @@ function normalizeUserId(value: unknown) {
         : String(value ?? '').trim();
 }
 
-function getDisplayName(user: Record<string, any> | null | undefined) {
-    return user?.displayName || user?.username || user?.id || '';
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value && typeof value === 'object');
+}
+
+function getDisplayName(user: CurrentUserSnapshot | null | undefined) {
+    return (
+        normalizeUserId(user?.displayName) ||
+        normalizeUserId(user?.username) ||
+        normalizeUserId(user?.id)
+    );
 }
 
 function createSnapshot(userId: string): ActivitySnapshot {
@@ -59,7 +87,7 @@ function getSnapshot(userId: unknown) {
         snapshotMap.set(normalizedUserId, createSnapshot(normalizedUserId));
     }
 
-    return snapshotMap.get(normalizedUserId);
+    return snapshotMap.get(normalizedUserId)!;
 }
 
 function clearSnapshot(userId: unknown) {
@@ -83,7 +111,7 @@ function isCurrentWarmupTarget(userId: unknown) {
     );
 }
 
-function updateActivityState(patch: Record<string, any>) {
+function updateActivityState(patch: ActivityStatePatch) {
     useRuntimeStore.getState().setActivityState(patch);
 }
 
@@ -163,8 +191,8 @@ async function hydrateSnapshot(userId: string) {
     if (syncState) {
         snapshot.sync = {
             ...snapshot.sync,
-            ...(syncState as Record<string, any>),
-            userId: normalizeUserId((syncState as Record<string, any>).userId),
+            ...syncState,
+            userId: normalizeUserId(syncState.userId),
             isSelf: true
         };
     }
@@ -178,7 +206,7 @@ async function hydrateSnapshot(userId: string) {
 
 function applyActivityRefreshResult(
     snapshot: ActivitySnapshot,
-    result: Record<string, any>
+    result: ActivityRefreshResult
 ) {
     if (Array.isArray(result?.sessions)) {
         snapshot.sessions = result.sessions as ActivitySession[];
@@ -186,7 +214,7 @@ function applyActivityRefreshResult(
     if (result?.sync && typeof result.sync === 'object') {
         snapshot.sync = {
             ...snapshot.sync,
-            ...(result.sync as Record<string, any>),
+            ...result.sync,
             userId: normalizeUserId(result.sync.userId || snapshot.userId),
             isSelf: true
         };
@@ -231,18 +259,18 @@ async function expandRange(snapshot: ActivitySnapshot, rangeDays: number) {
 async function runActivityCacheWarmup({
     userId,
     currentUserSnapshot
-}: {
-    userId?: unknown;
-    currentUserSnapshot?: Record<string, any> | null;
-}) {
-    const normalizedUserId = normalizeUserId(userId || currentUserSnapshot?.id);
+}: ActivityWarmupOptions): Promise<ActivityWarmupResult> {
+    const currentSnapshot = isRecord(currentUserSnapshot)
+        ? (currentUserSnapshot as CurrentUserSnapshot)
+        : null;
+    const normalizedUserId = normalizeUserId(userId || currentSnapshot?.id);
     if (!normalizedUserId) {
         throw new Error(
             'Activity cache warm-up requires an authenticated user id.'
         );
     }
 
-    const displayName = getDisplayName(currentUserSnapshot) || normalizedUserId;
+    const displayName = getDisplayName(currentSnapshot) || normalizedUserId;
     const snapshot = await hydrateSnapshot(normalizedUserId);
 
     updateWarmupProgress(
@@ -294,7 +322,7 @@ async function runActivityCacheWarmup({
     }
 
     const currentDays = snapshot.sync.cachedRangeDays || INITIAL_RANGE_DAYS;
-    const sourceBounds =
+    const sourceBounds: ActivitySourceBounds =
         await activityPersistenceRepository.getSelfActivitySourceBounds();
 
     if (!isCurrentWarmupTarget(normalizedUserId)) {
@@ -366,13 +394,17 @@ async function runActivityCacheWarmup({
     };
 }
 
-export function bootstrapActivityCache(options: Record<string, any> = {}) {
+export function bootstrapActivityCache(
+    options: ActivityWarmupOptions = {}
+): Promise<ActivityWarmupResult> {
     const normalizedUserId = normalizeUserId(
-        options?.userId || options?.currentUserSnapshot?.id
+        options?.userId ||
+            (isRecord(options?.currentUserSnapshot)
+                ? options.currentUserSnapshot.id
+                : '')
     );
     const currentUserSnapshot =
-        options?.currentUserSnapshot &&
-        typeof options.currentUserSnapshot === 'object'
+        isRecord(options?.currentUserSnapshot)
             ? options.currentUserSnapshot
             : null;
 
@@ -385,14 +417,14 @@ export function bootstrapActivityCache(options: Record<string, any> = {}) {
     }
 
     if (activeWarmups.has(normalizedUserId)) {
-        return activeWarmups.get(normalizedUserId);
+        return activeWarmups.get(normalizedUserId)!;
     }
 
     const promise = runActivityCacheWarmup({
         userId: normalizedUserId,
         currentUserSnapshot
     })
-        .catch((error: any) => {
+        .catch((error: unknown) => {
             setWarmupError(normalizedUserId, error);
             throw error;
         })

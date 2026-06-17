@@ -1,8 +1,13 @@
 import { commands } from '@/platform/tauri/bindings';
 import { normalizePlatformError } from '@/platform/tauri/errors';
 
-type GenericRecord = Record<string, unknown>;
-type SavedCredentialsMap = Record<string, GenericRecord>;
+export type GenericRecord = Record<string, unknown>;
+export type SavedCredentialRecord = GenericRecord & {
+    user?: GenericRecord | null;
+    loginParams?: GenericRecord | null;
+    hasLoginCredentials?: boolean;
+};
+export type SavedCredentialsMap = Record<string, SavedCredentialRecord>;
 
 export type SavedAuthSnapshot = Record<string, unknown> & {
     lastUserLoggedIn: unknown;
