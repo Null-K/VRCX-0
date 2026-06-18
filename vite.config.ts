@@ -109,6 +109,7 @@ export default defineConfig(({ mode }) => {
                     plugins: [['babel-plugin-react-compiler', {}]]
                 }
             }),
+            ,
             tailwindcss()
         ],
         resolve: {
@@ -130,14 +131,15 @@ export default defineConfig(({ mode }) => {
         },
         optimizeDeps: {
             include: [
+                '@base-ui/react',
+                "i18next",
+                'radix-ui',
+
                 'react',
-                'react/jsx-runtime',
                 'react-dom',
                 'react-router-dom',
                 '@tanstack/react-query',
-                '@tanstack/react-table',
                 'zustand',
-                'sonner',
                 'lucide-react',
                 'tailwindcss',
                 'graphology',
@@ -147,7 +149,8 @@ export default defineConfig(({ mode }) => {
                 'sigma',
                 '@sigma/edge-curve',
                 '@sigma/node-border'
-            ]
+            ],
+            holdUntilCrawlEnd: false
         },
         define: {
             VERSION: JSON.stringify(version),
