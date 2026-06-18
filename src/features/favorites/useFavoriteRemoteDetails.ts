@@ -9,6 +9,7 @@ import {
     setFavoriteRemoteDetailsCache,
     setFavoriteRemoteDetailsPromise
 } from '@/services/favoriteRemoteDetailsCacheService';
+import { persistWorldDetailsById } from '@/services/favoriteWorldCacheService';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
 function normalizeValues(values: any) {
@@ -153,6 +154,9 @@ export function useFavoriteRemoteDetails({
                         if (data[favoriteId]) {
                             filtered[favoriteId] = data[favoriteId];
                         }
+                    }
+                    if (type === 'world') {
+                        persistWorldDetailsById(filtered);
                     }
 
                     const nextState: any = {

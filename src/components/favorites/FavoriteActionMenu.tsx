@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 
 import favoritePersistenceRepository from '@/repositories/favoritePersistenceRepository';
 import vrchatFavoriteRepository from '@/repositories/vrchatFavoriteRepository';
+import { persistWorldDetails } from '@/services/favoriteWorldCacheService';
 import { useFavoriteStore } from '@/state/favoriteStore';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -164,6 +165,9 @@ export function FavoriteActionMenu({
             if (response.json && typeof response.json === 'object') {
                 addRemoteFavorite(response.json);
             }
+            if (kind === 'world' && entity && typeof entity === 'object') {
+                persistWorldDetails(entity, normalizedEntityId);
+            }
             toast.success(t('view.favorite.label.favorite_added'));
         } catch (error) {
             toast.error(
@@ -234,6 +238,9 @@ export function FavoriteActionMenu({
         actionStatusRef.current = 'local-favorite';
         setActionStatus('local-favorite');
         try {
+            if (kind === 'world' && entity && typeof entity === 'object') {
+                persistWorldDetails(entity, normalizedEntityId);
+            }
             await favoritePersistenceRepository.addLocalFavorite({
                 kind,
                 entityId: normalizedEntityId,

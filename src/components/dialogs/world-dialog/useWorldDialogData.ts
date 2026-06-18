@@ -8,6 +8,7 @@ import groupProfileRepository from '@/repositories/groupProfileRepository';
 import memoPersistenceRepository from '@/repositories/memoPersistenceRepository';
 import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
+import { persistFavoriteWorldDetails } from '@/services/favoriteWorldCacheService';
 
 import {
     defaultWorldSideData,
@@ -176,6 +177,7 @@ export function useWorldDialogData({
                     return;
                 }
 
+                persistFavoriteWorldDetails(nextWorld);
                 setWorld(nextWorld);
                 setLoadStatus('ready');
             })

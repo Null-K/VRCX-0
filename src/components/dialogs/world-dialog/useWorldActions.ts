@@ -12,6 +12,7 @@ import vrchatAuthRepository from '@/repositories/vrchatAuthRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
 import { tryOpenLaunchLocation } from '@/services/directAccessService';
 import { copyTextToClipboard } from '@/services/entityMediaService';
+import { persistFavoriteWorldDetails } from '@/services/favoriteWorldCacheService';
 import { openFolderAndSelectItem } from '@/services/shellIntegrationService';
 
 import { normalizeEntityId } from './worldInstances';
@@ -68,6 +69,7 @@ export function useWorldActions({
             if (!isCurrentWorldTarget(targetWorldId, targetEndpoint)) {
                 return;
             }
+            persistFavoriteWorldDetails(nextWorld);
             setWorld(nextWorld);
             toast.success(t('dialog.world.success.world_refreshed'));
         } catch (error) {
