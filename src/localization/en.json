@@ -415,7 +415,7 @@
             "vrchat_launch_request_sent": "VRChat launch request sent",
             "invite_request_sent": "Invite request sent",
             "boop_sent": "Boop sent",
-            "friend_and_favorite_snapshots_refreshed": "Friends and favorites refreshed"
+            "friend_and_favorite_snapshots_refreshed": "Friends refreshed"
         },
         "error": {
             "unable_to_open_this_instance_in_vrchat": "Unable to open this instance in VRChat",

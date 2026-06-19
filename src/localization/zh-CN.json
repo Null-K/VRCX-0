@@ -415,7 +415,7 @@
             "vrchat_launch_request_sent": "已发送 VRChat 启动请求",
             "invite_request_sent": "邀请请求已发送",
             "boop_sent": "戳一戳已发送",
-            "friend_and_favorite_snapshots_refreshed": "好友和收藏已刷新"
+            "friend_and_favorite_snapshots_refreshed": "好友已刷新"
         },
         "error": {
             "unable_to_open_this_instance_in_vrchat": "无法在 VRChat 中打开这个房间",

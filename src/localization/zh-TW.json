@@ -415,7 +415,7 @@
             "vrchat_launch_request_sent": "已傳送 VRChat 啟動請求",
             "invite_request_sent": "邀請請求已傳送",
             "boop_sent": "戳一戳已傳送",
-            "friend_and_favorite_snapshots_refreshed": "好友和收藏已重新整理"
+            "friend_and_favorite_snapshots_refreshed": "好友已重新整理"
         },
         "error": {
             "unable_to_open_this_instance_in_vrchat": "無法在 VRChat 中開啟這個房間",

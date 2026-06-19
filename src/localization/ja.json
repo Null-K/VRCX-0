@@ -415,7 +415,7 @@
             "vrchat_launch_request_sent": "VRChat の起動リクエストを送信しました",
             "invite_request_sent": "招待リクエストを送信しました",
             "boop_sent": "Boop を送信しました",
-            "friend_and_favorite_snapshots_refreshed": "フレンドとお気に入りを更新しました"
+            "friend_and_favorite_snapshots_refreshed": "フレンドを更新しました"
         },
         "error": {
             "unable_to_open_this_instance_in_vrchat": "このインスタンスを VRChat で開けませんでした",
