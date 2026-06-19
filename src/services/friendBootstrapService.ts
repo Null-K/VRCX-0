@@ -18,7 +18,6 @@ import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 import { useSessionStore } from '@/state/sessionStore';
 
-import { recordFriendPatch } from './domainIngestionService';
 import { syncStartupServicesTask } from './startupServicesStatus';
 import { notifyRuntimeVrchatAuthFailure } from './vrchatAuthErrorService';
 
@@ -339,10 +338,6 @@ function hasFriendListSnapshot(
     );
 }
 
-function resolveSnapshotStateBucket(stateBucket: unknown): FriendStateBucket {
-    return normalizeStateBucket(stateBucket) || 'offline';
-}
-
 function buildUnfriendHistoryEntry(
     row: FriendLogRow,
     createdAt: string
@@ -382,53 +377,6 @@ function buildFriendHistoryEntry(
 
 function getFriendLogInitKey(userId: string) {
     return `friendLogInit_${userId}`;
-}
-
-function parseVrchatResponseData(response: unknown) {
-    const data = isRecord(response) ? response.data : null;
-    if (typeof data !== 'string') {
-        return isRecord(data) ? data : null;
-    }
-
-    try {
-        const parsed = JSON.parse(data);
-        return isRecord(parsed) ? parsed : null;
-    } catch {
-        return null;
-    }
-}
-
-function isValidUserProfile(value: unknown): value is FriendRecord {
-    const record = asFriendRecord(value);
-    return Boolean(record && normalizeUserId(record.id));
-}
-
-function bulkFriendStateInput(friend: FriendRecord | null | undefined) {
-    const platform = normalizeUserId(friend?.platform);
-    if (platform === 'web') {
-        return 'active';
-    }
-    if (platform) {
-        return 'online';
-    }
-    return 'offline';
-}
-
-function friendNeedsSupplementalFetch(
-    friend: FriendRecord | null | undefined,
-    snapshotStateBucket: string
-) {
-    if (!friend || typeof friend !== 'object') {
-        return true;
-    }
-    if (normalizeUserId(friend.$profileSource) === 'placeholder') {
-        return true;
-    }
-    const currentState = resolveSnapshotStateBucket(snapshotStateBucket);
-    return (
-        currentState !== bulkFriendStateInput(friend) ||
-        normalizeUserId(friend.location) === 'traveling'
-    );
 }
 
 function buildCurrentEntryFromFriend({
@@ -802,130 +750,18 @@ async function seedFriendRosterFromCurrentUserSnapshot({
     return true;
 }
 
-async function fetchSupplementalFriendProfile({
-    normalizedUserId,
-    endpoint,
-    websocket,
-    userId,
-    stateBucket,
-    detail
-}: {
-    normalizedUserId: string;
-    endpoint: string;
-    websocket: string;
-    userId: string;
-    stateBucket: string;
-    detail: string;
-}) {
-    const response = await commands.appVrchatUserGet({
-        endpoint,
-        userId
-    });
-    const profile = parseVrchatResponseData(response);
-    if (!isValidUserProfile(profile)) {
-        return false;
-    }
-    if (!isCurrentBootstrapTarget(normalizedUserId, endpoint, websocket)) {
-        return false;
-    }
-
-    const nextStateBucket = resolveSnapshotStateBucket(
-        profile.state || profile.stateBucket || stateBucket
-    );
-    useFriendRosterStore.getState().applyFriendPatches(
-        [
-            {
-                userId,
-                stateBucket: nextStateBucket,
-                patch: profile
-            }
-        ],
-        detail
-    );
-    recordFriendPatch({
-        endpoint,
-        userId,
-        stateBucket: nextStateBucket,
-        patch: profile
-    });
-    return true;
-}
-
-async function runFriendRosterBackgroundSupplements({
-    normalizedUserId,
-    endpoint,
-    websocket,
-    currentUserSnapshot,
-    fastFriendsById,
-    detail
-}: {
-    normalizedUserId: string;
-    endpoint: string;
-    websocket: string;
-    currentUserSnapshot: unknown;
-    fastFriendsById: Record<string, FriendRecord>;
-    detail: string;
-}) {
-    if (!hasCompleteFriendStateSnapshot(currentUserSnapshot)) {
-        return;
-    }
-    const stateById = buildFriendStateMap(currentUserSnapshot);
-    const fetchIds = new Set<string>();
-    for (const [userId, stateBucket] of stateById.entries()) {
-        const friend = fastFriendsById[userId];
-        if (friendNeedsSupplementalFetch(friend, stateBucket)) {
-            fetchIds.add(userId);
-        }
-    }
-
-    for (const userId of fetchIds) {
-        if (!isCurrentBootstrapTarget(normalizedUserId, endpoint, websocket)) {
-            return;
-        }
-        try {
-            await fetchSupplementalFriendProfile({
-                normalizedUserId,
-                endpoint,
-                websocket,
-                userId,
-                stateBucket: stateById.get(userId) || 'offline',
-                detail
-            });
-        } catch (error) {
-            console.warn('Failed to supplement friend profile:', error);
-        }
-    }
-}
-
-async function confirmRemovedFriend({
-    endpoint,
-    userId
-}: {
-    endpoint: string;
-    userId: string;
-}) {
-    const response = await commands.appVrchatFriendStatusGet({
-        endpoint,
-        userId
-    });
-    const status = parseVrchatResponseData(response);
-    return status?.isFriend === false;
-}
-
 async function runFriendLogStartupReconciliation({
     normalizedUserId,
     endpoint,
     websocket,
     currentUserSnapshot,
-    fastFriendsById,
-    nowIso = () => new Date().toJSON()
+    fastFriendsById
 }: {
     normalizedUserId: string;
     endpoint: string;
     websocket: string;
     currentUserSnapshot: unknown;
     fastFriendsById: Record<string, FriendRecord>;
-    nowIso?: () => string;
 }) {
     if (!hasFriendListSnapshot(currentUserSnapshot)) {
         return;
@@ -936,157 +772,46 @@ async function runFriendLogStartupReconciliation({
             getFriendLogInitKey(normalizedUserId),
             false
         );
-        const existingRows: FriendLogRow[] =
-            await friendLogRepository.getFriendLogCurrent(normalizedUserId);
+        if (initialized) {
+            return;
+        }
         if (!isCurrentBootstrapTarget(normalizedUserId, endpoint, websocket)) {
             return;
         }
 
-        const existingRowsById = buildFriendLogRowsById(existingRows);
         const currentFriendIds = currentUserSnapshot.friends
             .map(normalizeUserId)
             .filter(Boolean);
         const currentFriendIdSet = new Set(currentFriendIds);
-        const maxFriendNumber = existingRows.reduce((maxValue, row) => {
-            const friendNumber =
-                Number.parseInt(
-                    String(row?.friendNumber ?? row?.$friendNumber ?? 0),
-                    10
-                ) || 0;
-            return Math.max(maxValue, friendNumber);
-        }, 0);
-        let nextFriendNumber =
-            maxFriendNumber > 0 ? maxFriendNumber + 1 : existingRows.length + 1;
         const explicitAddIntentUserIds = new Set(
             getExplicitFriendLogAddIntentUserIds(normalizedUserId)
         );
 
-        if (!initialized) {
-            const entries = currentFriendIds
-                .filter((friendId) => friendId !== normalizedUserId)
-                .map((friendId, index) =>
-                    buildCurrentEntryFromFriend({
-                        userId: friendId,
-                        friend: fastFriendsById[friendId] || { id: friendId },
-                        friendNumber: index + 1
-                    })
-                );
-            if (
-                !isCurrentBootstrapTarget(normalizedUserId, endpoint, websocket)
-            ) {
-                return;
-            }
-            await friendLogRepository.replaceFriendLogCurrent(
-                normalizedUserId,
-                entries,
-                { historyEntries: [], addedHistoryEntries: [] }
+        const entries = currentFriendIds
+            .filter((friendId) => friendId !== normalizedUserId)
+            .map((friendId, index) =>
+                buildCurrentEntryFromFriend({
+                    userId: friendId,
+                    friend: fastFriendsById[friendId] || { id: friendId },
+                    friendNumber: index + 1
+                })
             );
-            for (const friendId of explicitAddIntentUserIds) {
-                if (currentFriendIdSet.has(friendId)) {
-                    markExplicitFriendLogAddIntentsHandledByBootstrap(
-                        normalizedUserId,
-                        [friendId]
-                    );
-                }
-            }
-            if (
-                !isCurrentBootstrapTarget(normalizedUserId, endpoint, websocket)
-            ) {
-                return;
-            }
-            await configRepository.setBool(
-                getFriendLogInitKey(normalizedUserId),
-                true
-            );
+        if (!isCurrentBootstrapTarget(normalizedUserId, endpoint, websocket)) {
             return;
         }
-
-        for (const friendId of currentFriendIds) {
-            if (
-                !isCurrentBootstrapTarget(normalizedUserId, endpoint, websocket)
-            ) {
-                return;
-            }
-            if (
-                friendId === normalizedUserId ||
-                existingRowsById.has(friendId)
-            ) {
-                continue;
-            }
-            const friend = fastFriendsById[friendId] || { id: friendId };
-            const currentEntry = buildCurrentEntryFromFriend({
-                userId: friendId,
-                friend,
-                friendNumber: nextFriendNumber++
-            });
-            const hasExplicitAddIntent = explicitAddIntentUserIds.has(friendId);
-            const historyEntry =
-                initialized && !hasExplicitAddIntent
-                    ? buildFriendHistoryEntry(currentEntry, nowIso())
-                    : null;
-            await friendLogRepository.upsertFriendLogCurrent(
-                normalizedUserId,
-                currentEntry,
-                historyEntry ? { historyEntry } : {}
-            );
-            if (hasExplicitAddIntent) {
+        await friendLogRepository.replaceFriendLogCurrent(
+            normalizedUserId,
+            entries,
+            { historyEntries: [], addedHistoryEntries: [] }
+        );
+        for (const friendId of explicitAddIntentUserIds) {
+            if (currentFriendIdSet.has(friendId)) {
                 markExplicitFriendLogAddIntentsHandledByBootstrap(
                     normalizedUserId,
                     [friendId]
                 );
             }
         }
-
-        if (initialized) {
-            for (const row of existingRows) {
-                if (
-                    !isCurrentBootstrapTarget(
-                        normalizedUserId,
-                        endpoint,
-                        websocket
-                    )
-                ) {
-                    return;
-                }
-                const friendId = normalizeUserId(row?.userId);
-                if (
-                    !friendId ||
-                    friendId === normalizedUserId ||
-                    currentFriendIdSet.has(friendId)
-                ) {
-                    continue;
-                }
-                let confirmedRemoved = false;
-                try {
-                    confirmedRemoved = await confirmRemovedFriend({
-                        endpoint,
-                        userId: friendId
-                    });
-                } catch (error) {
-                    console.warn('Failed to confirm removed friend:', error);
-                }
-                if (
-                    !confirmedRemoved ||
-                    !isCurrentBootstrapTarget(
-                        normalizedUserId,
-                        endpoint,
-                        websocket
-                    )
-                ) {
-                    continue;
-                }
-                const historyEntry = buildUnfriendHistoryEntry(row, nowIso());
-                if (!historyEntry) {
-                    continue;
-                }
-                await friendLogRepository.deleteFriendLogCurrentArray(
-                    normalizedUserId,
-                    [friendId],
-                    { historyEntries: [historyEntry] }
-                );
-            }
-        }
-
         if (!isCurrentBootstrapTarget(normalizedUserId, endpoint, websocket)) {
             return;
         }
@@ -1102,30 +827,14 @@ function startFriendRosterBackgroundTasks({
     endpoint,
     websocket,
     currentUserSnapshot,
-    fastFriendsById,
-    detail,
-    preserveLoadedState
+    fastFriendsById
 }: {
     normalizedUserId: string;
     endpoint: string;
     websocket: string;
     currentUserSnapshot: unknown;
     fastFriendsById: Record<string, FriendRecord>;
-    detail: string;
-    preserveLoadedState: boolean;
 }) {
-    if (!preserveLoadedState) {
-        void runFriendRosterBackgroundSupplements({
-            normalizedUserId,
-            endpoint,
-            websocket,
-            currentUserSnapshot,
-            fastFriendsById,
-            detail
-        }).catch((error) => {
-            console.warn('Friend roster background supplement failed:', error);
-        });
-    }
     void runFriendLogStartupReconciliation({
         normalizedUserId,
         endpoint,
@@ -1217,7 +926,8 @@ async function runFriendBootstrap({
             userId: normalizedUserId,
             endpoint: normalizedEndpoint,
             websocket: realtimeWebsocket,
-            currentUserSnapshot: currentSnapshot
+            currentUserSnapshot: currentSnapshot,
+            isFirstLoad: !preserveLoadedState
         })
         .catch((error: unknown) => {
             notifyRuntimeVrchatAuthFailure(
@@ -1282,15 +992,15 @@ async function runFriendBootstrap({
     });
     useSessionStore.getState().setFriendsLoaded(true);
     syncStartupServicesTask([detail]);
-    startFriendRosterBackgroundTasks({
-        normalizedUserId,
-        endpoint: normalizedEndpoint,
-        websocket: realtimeWebsocket,
-        currentUserSnapshot: currentSnapshot,
-        fastFriendsById: friendsById,
-        detail,
-        preserveLoadedState
-    });
+    if (!preserveLoadedState) {
+        startFriendRosterBackgroundTasks({
+            normalizedUserId,
+            endpoint: normalizedEndpoint,
+            websocket: realtimeWebsocket,
+            currentUserSnapshot: currentSnapshot,
+            fastFriendsById: friendsById
+        });
+    }
 
     return {
         userId: normalizedUserId,

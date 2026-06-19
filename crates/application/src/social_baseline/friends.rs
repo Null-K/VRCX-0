@@ -583,10 +583,17 @@ pub async fn build_friend_roster_baseline(
         return Ok(stale_friend_output(user_id, String::new()));
     }
 
-    let suspicious_ids =
+    let mut refetch_ids =
         collect_suspicious_friend_ids(&expected_ids, &state_by_id, &fetched_friends_by_id);
-    if !suspicious_ids.is_empty() {
-        let repaired = refetch_users_concurrent(&deps, &input.endpoint, suspicious_ids).await;
+    if input.is_first_load {
+        for friend_id in &expected_ids {
+            if !fetched_friends_by_id.contains_key(friend_id) {
+                refetch_ids.push(friend_id.clone());
+            }
+        }
+    }
+    if !refetch_ids.is_empty() {
+        let repaired = refetch_users_concurrent(&deps, &input.endpoint, refetch_ids).await;
         for (repaired_id, user) in repaired {
             let repaired_bucket = normalize_state_bucket(&object_field_string(&user, &["state"]));
             let Some(mut profile) = RemoteFriendProfile::from_raw(user, None) else {

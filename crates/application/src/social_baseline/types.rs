@@ -34,6 +34,8 @@ pub struct SocialFriendRosterBaselineInput {
     pub websocket: String,
     #[serde(default)]
     pub current_user_snapshot: RawJson,
+    #[serde(default)]
+    pub is_first_load: bool,
 }
 
 #[derive(Debug, Serialize, specta::Type)]

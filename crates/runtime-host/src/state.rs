@@ -1127,6 +1127,7 @@ impl RuntimeHostState {
                 endpoint: session.endpoint.clone(),
                 websocket: session.websocket.clone(),
                 current_user_snapshot: RawJson::from(session.current_user.clone()),
+                is_first_load: true,
             },
         )
         .await?;
@@ -2444,6 +2445,7 @@ async fn run_background_social_baseline_refresh(
             endpoint: session.endpoint.clone(),
             websocket: session.websocket.clone(),
             current_user_snapshot: RawJson::from(session.current_user_snapshot.clone()),
+            is_first_load: false,
         },
     )
     .await;

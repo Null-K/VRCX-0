@@ -103,10 +103,6 @@ describe('friendBootstrapService startup seed and reconciliation', () => {
             status: 200,
             data: {}
         });
-        serviceMocks.vrchatFriendStatusGet.mockResolvedValue({
-            status: 200,
-            data: { isFriend: true }
-        });
         serviceMocks.socialFriendRosterBaselineGet.mockResolvedValue({
             stale: false,
             count: 0,
@@ -248,13 +244,12 @@ describe('friendBootstrapService startup seed and reconciliation', () => {
         expect(useSessionStore.getState().isFriendsLoaded).toBe(true);
     });
 
-    it('marks friends loaded after the fast roster snapshot before background supplements finish', async () => {
+    it('marks friends loaded after the fast roster snapshot', async () => {
         const { useFriendRosterStore } =
             await import('@/state/friendRosterStore');
         const { useSessionStore } = await import('@/state/sessionStore');
         const { bootstrapFriendRoster } =
             await import('./friendBootstrapService');
-        const userGet = deferred<Record<string, any>>();
         serviceMocks.socialFriendRosterBaselineGet.mockResolvedValue({
             stale: false,
             count: 2,
@@ -278,7 +273,6 @@ describe('friendBootstrapService startup seed and reconciliation', () => {
                 }
             }
         });
-        serviceMocks.vrchatUserGet.mockReturnValue(userGet.promise);
 
         await bootstrapFriendRoster({
             userId: 'usr_self',
@@ -307,126 +301,6 @@ describe('friendBootstrapService startup seed and reconciliation', () => {
                 }
             }
         });
-        expect(serviceMocks.vrchatUserGet).toHaveBeenCalledWith({
-            endpoint: 'https://api.example.test',
-            userId: 'usr_traveling'
-        });
-        expect(serviceMocks.vrchatFriendStatusGet).not.toHaveBeenCalled();
-
-        userGet.resolve({
-            status: 200,
-            data: {
-                id: 'usr_traveling',
-                displayName: 'Traveling Fresh',
-                location: 'wrld_fresh:456'
-            }
-        });
-        await vi.waitFor(() => {
-            expect(serviceMocks.vrchatUserGet).toHaveBeenCalledWith({
-                endpoint: 'https://api.example.test',
-                userId: 'usr_missing'
-            });
-        });
-    });
-
-    it('reconciles startup friend history after the fast roster without blocking loaded state', async () => {
-        const { useSessionStore } = await import('@/state/sessionStore');
-        const { bootstrapFriendRoster } =
-            await import('./friendBootstrapService');
-        serviceMocks.getFriendLogCurrent.mockResolvedValue([
-            {
-                userId: 'usr_existing',
-                displayName: 'Existing Friend',
-                trustLevel: 'Known User',
-                friendNumber: 1
-            },
-            {
-                userId: 'usr_removed',
-                displayName: 'Removed Friend',
-                trustLevel: 'Visitor',
-                friendNumber: 2
-            }
-        ]);
-        serviceMocks.socialFriendRosterBaselineGet.mockResolvedValue({
-            stale: false,
-            count: 2,
-            detail: 'fast roster',
-            snapshot: {
-                friendsById: {
-                    usr_existing: {
-                        id: 'usr_existing',
-                        displayName: 'Existing Friend',
-                        stateBucket: 'online'
-                    },
-                    usr_new: {
-                        id: 'usr_new',
-                        displayName: 'New Friend',
-                        stateBucket: 'offline',
-                        tags: ['system_trust_known']
-                    }
-                }
-            }
-        });
-        serviceMocks.vrchatFriendStatusGet.mockResolvedValue({
-            status: 200,
-            data: { isFriend: false }
-        });
-
-        await bootstrapFriendRoster({
-            userId: 'usr_self',
-            endpoint: 'https://api.example.test',
-            currentUserSnapshot: {
-                id: 'usr_self',
-                friends: ['usr_existing', 'usr_new'],
-                offlineFriends: ['usr_new'],
-                activeFriends: [],
-                onlineFriends: ['usr_existing']
-            }
-        });
-
-        await vi.waitFor(() => {
-            expect(serviceMocks.upsertFriendLogCurrent).toHaveBeenCalledWith(
-                'usr_self',
-                expect.objectContaining({
-                    userId: 'usr_new',
-                    displayName: 'New Friend'
-                }),
-                expect.objectContaining({
-                    historyEntry: expect.objectContaining({
-                        type: 'Friend',
-                        userId: 'usr_new',
-                        displayName: 'New Friend'
-                    })
-                })
-            );
-        });
-        expect(serviceMocks.upsertFriendLogCurrent).not.toHaveBeenCalledWith(
-            'usr_self',
-            expect.objectContaining({ userId: 'usr_existing' }),
-            expect.anything()
-        );
-        expect(serviceMocks.vrchatFriendStatusGet).toHaveBeenCalledWith({
-            endpoint: 'https://api.example.test',
-            userId: 'usr_removed'
-        });
-        await vi.waitFor(() => {
-            expect(
-                serviceMocks.deleteFriendLogCurrentArray
-            ).toHaveBeenCalledWith(
-                'usr_self',
-                ['usr_removed'],
-                expect.objectContaining({
-                    historyEntries: [
-                        expect.objectContaining({
-                            type: 'Unfriend',
-                            userId: 'usr_removed',
-                            displayName: 'Removed Friend'
-                        })
-                    ]
-                })
-            );
-        });
-        expect(useSessionStore.getState().isFriendsLoaded).toBe(true);
     });
 
     it('initializes friend log current in the background without creating friend history spam', async () => {
@@ -487,57 +361,6 @@ describe('friendBootstrapService startup seed and reconciliation', () => {
             'friendLogInit_usr_self',
             true
         );
-    });
-
-    it('does not write startup friend history after the bootstrap target changes', async () => {
-        const { useRuntimeStore } = await import('@/state/runtimeStore');
-        const { bootstrapFriendRoster } =
-            await import('./friendBootstrapService');
-        const backgroundRows = deferred<Record<string, any>[]>();
-        serviceMocks.getFriendLogCurrent
-            .mockResolvedValueOnce([])
-            .mockReturnValueOnce(backgroundRows.promise);
-        serviceMocks.socialFriendRosterBaselineGet.mockResolvedValue({
-            stale: false,
-            count: 1,
-            detail: 'fast roster',
-            snapshot: {
-                friendsById: {
-                    usr_new: {
-                        id: 'usr_new',
-                        displayName: 'New Friend',
-                        stateBucket: 'offline'
-                    }
-                }
-            }
-        });
-
-        await bootstrapFriendRoster({
-            userId: 'usr_self',
-            endpoint: 'https://api.example.test',
-            currentUserSnapshot: {
-                id: 'usr_self',
-                friends: ['usr_new'],
-                offlineFriends: ['usr_new'],
-                activeFriends: [],
-                onlineFriends: []
-            }
-        });
-        await vi.waitFor(() => {
-            expect(serviceMocks.getFriendLogCurrent).toHaveBeenCalledTimes(2);
-        });
-
-        useRuntimeStore.getState().setAuthBootstrap({
-            currentUserId: 'usr_other',
-            currentUserEndpoint: 'https://api.example.test',
-            currentUserSnapshot: { id: 'usr_other' }
-        });
-        backgroundRows.resolve([]);
-        await Promise.resolve();
-        await Promise.resolve();
-
-        expect(serviceMocks.upsertFriendLogCurrent).not.toHaveBeenCalled();
-        expect(serviceMocks.setConfigBool).not.toHaveBeenCalled();
     });
 
     it('keeps the seeded roster visible when the Rust baseline fails', async () => {
