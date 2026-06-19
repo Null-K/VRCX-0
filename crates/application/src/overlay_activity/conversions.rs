@@ -234,6 +234,10 @@ fn notification_candidate(value: &Value) -> Option<OverlayActivityCandidate> {
         string_field(value, "userId"),
         string_field(value, "receiverUserId"),
     ]);
+    let actor_display_name = notification_actor_display_name(value);
+    if has_unresolved_direct_actor(&activity_type, &actor_user_id, &actor_display_name) {
+        return None;
+    }
     let source_id = if id.trim().is_empty() {
         format!(
             "notification:{activity_type}:{actor_user_id}:{created_at}:{}",
@@ -247,14 +251,59 @@ fn notification_candidate(value: &Value) -> Option<OverlayActivityCandidate> {
         activity_type,
         created_at,
         actor_user_id,
-        actor_display_name: first_non_empty([
-            string_field(value, "senderUsername"),
-            string_field(value, "senderDisplayName"),
-            string_field(value, "displayName"),
-        ]),
+        actor_display_name,
         current_instance: false,
         payload: value.clone(),
     })
+}
+
+fn notification_actor_display_name(value: &Value) -> String {
+    first_non_empty([
+        string_field(value, "senderDisplayName"),
+        string_field(value, "displayName"),
+        string_field(value, "senderUsername"),
+        nested_string(value, &["details", "senderDisplayName"]),
+        nested_string(value, &["details", "displayName"]),
+        nested_string(value, &["data", "senderDisplayName"]),
+        nested_string(value, &["data", "displayName"]),
+    ])
+}
+
+fn has_unresolved_direct_actor(
+    activity_type: &str,
+    actor_user_id: &str,
+    actor_display_name: &str,
+) -> bool {
+    if !matches!(
+        activity_type,
+        "invite"
+            | "requestInvite"
+            | "inviteResponse"
+            | "requestInviteResponse"
+            | "friendRequest"
+            | "boop"
+    ) {
+        return false;
+    }
+    let display_name = actor_display_name.trim();
+    display_name.is_empty()
+        || display_name == actor_user_id.trim()
+        || display_name.starts_with("usr_")
+}
+
+fn nested_string(value: &Value, path: &[&str]) -> String {
+    let mut current = value;
+    for key in path {
+        let Some(next) = current.get(key) else {
+            return String::new();
+        };
+        current = next;
+    }
+    current
+        .as_str()
+        .map(str::trim)
+        .map(ToString::to_string)
+        .unwrap_or_default()
 }
 
 fn stable_json_hash(value: &Value) -> String {

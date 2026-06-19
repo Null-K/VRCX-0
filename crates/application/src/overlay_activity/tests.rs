@@ -165,6 +165,63 @@ fn notification_projection_uses_sender_as_actor() {
 }
 
 #[test]
+fn notification_projection_skips_unresolved_direct_actor_delivery() {
+    let (runtime, sink) = webhook_only_invite_runtime();
+    let projection = RealtimeNotificationProjection {
+        upserts: vec![RealtimeNotificationUpsert {
+            notification: json!({
+                "id": "notification-1",
+                "type": "invite",
+                "createdAt": chrono::Utc::now().to_rfc3339(),
+                "senderUserId": "usr_sender"
+            }),
+            insert_defaults: None,
+            notify_menu: true,
+            deliver_runtime: true,
+            run_automation: true,
+        }],
+        ..RealtimeNotificationProjection::default()
+    };
+
+    runtime.ingest_notification_projection(&projection);
+
+    assert!(runtime.snapshot().entries.is_empty());
+    assert!(sink.take_deliveries().is_empty());
+}
+
+#[test]
+fn notification_projection_uses_nested_sender_display_name() {
+    let (runtime, sink) = webhook_only_invite_runtime();
+    let projection = RealtimeNotificationProjection {
+        upserts: vec![RealtimeNotificationUpsert {
+            notification: json!({
+                "id": "notification-1",
+                "type": "invite",
+                "createdAt": chrono::Utc::now().to_rfc3339(),
+                "senderUserId": "usr_sender",
+                "details": {
+                    "senderDisplayName": "Sender"
+                }
+            }),
+            insert_defaults: None,
+            notify_menu: true,
+            deliver_runtime: true,
+            run_automation: true,
+        }],
+        ..RealtimeNotificationProjection::default()
+    };
+
+    let entries = runtime.ingest_notification_projection(&projection);
+
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].actor_display_name, "Sender");
+    let deliveries = sink.take_deliveries();
+    assert_eq!(deliveries.len(), 1);
+    assert!(deliveries[0].webhook);
+    assert_eq!(deliveries[0].entry.actor_display_name, "Sender");
+}
+
+#[test]
 fn snapshot_marks_favorite_relation_before_friend_relation() {
     let runtime = OverlayActivityRuntime::with_filters(OverlayActivityFilters::from_json(json!({
         "version": 1,
@@ -605,4 +662,18 @@ fn candidate(activity_type: &str, user_id: &str) -> OverlayActivityCandidate {
         current_instance: false,
         payload: json!({}),
     }
+}
+
+fn webhook_only_invite_runtime() -> (OverlayActivityRuntime, TestOverlayActivitySink) {
+    let runtime = OverlayActivityRuntime::with_filters(OverlayActivityFilters::from_json(json!({
+        "version": 1,
+        "wrist": { "types": { "invite": { "scope": "off", "favoriteGroupKeys": "all" } } },
+        "desktop": { "types": { "invite": { "scope": "off", "favoriteGroupKeys": "all" } } },
+        "vr": { "types": { "invite": { "scope": "off", "favoriteGroupKeys": "all" } } },
+        "webhook": { "types": { "invite": { "scope": "on", "favoriteGroupKeys": "all" } } }
+    })));
+    let sink = TestOverlayActivitySink::default();
+    runtime.set_sink(sink.clone());
+    runtime.set_delivery_armed(true);
+    (runtime, sink)
 }
