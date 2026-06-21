@@ -40,6 +40,15 @@ pub fn get_friend_changes(
     let limit = clamped_optional_limit(input.limit, 200, 500);
     let mut sql = format!("{select_sql} FROM {table_name} WHERE 1 = 1");
     let mut params = ParamsBuilder::new().set("limit", limit);
+    if let Some(target_user_id) = input
+        .target_user_id
+        .as_deref()
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+    {
+        sql.push_str(" AND user_id = @target_user_id");
+        params = params.set("target_user_id", target_user_id);
+    }
     append_time_window_filter(&mut sql, &mut params, &input.time_window, "created_at");
     sql.push_str(" ORDER BY created_at DESC, id DESC LIMIT @limit");
 

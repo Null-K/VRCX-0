@@ -37,7 +37,7 @@ pub(crate) fn worlds_visited_caveats() -> Vec<String> {
     ]
 }
 
-pub(crate) fn favorite_world_local_caveats() -> Vec<String> {
+pub(crate) fn favorite_local_caveats() -> Vec<String> {
     vec!["This writes only VRCX-0 local favorites and does not change the VRChat account.".into()]
 }
 
@@ -45,6 +45,7 @@ pub(crate) fn social_graph_caveats() -> Vec<String> {
     vec![
         "Social graph edges describe friend relationship data, not co-play or co-presence.".into(),
         "Only mutual graph snapshots that VRCX-0 has fetched are represented.".into(),
+        "Mutual data is fetched on demand and breaks when a friend opts out of Shared Connections; use refresh_mutual_graph to update.".into(),
     ]
 }
 
@@ -61,6 +62,10 @@ pub(crate) fn invite_history_caveats() -> Vec<String> {
         "Invite history is based on notifications observed by this VRCX-0 profile.".into(),
         "Sent invite coverage depends on whether the local notification row includes a receiver_user_id.".into(),
     ]
+}
+
+pub(crate) fn friend_log_caveats() -> Vec<String> {
+    vec!["Friend log is observed relationship events for this profile.".into()]
 }
 
 pub(crate) fn friend_changes_caveats() -> Vec<String> {

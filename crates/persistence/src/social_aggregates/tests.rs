@@ -176,6 +176,63 @@ fn friend_activity_pattern_counts_online_events_by_hour() {
 }
 
 #[test]
+fn friend_log_applies_filters_limit_and_rejects_unknown_types() {
+    let (_dir, db) = test_db("friend-log");
+    ensure_realtime_tables(&db, "usrself").unwrap();
+    db.execute_non_query(
+        "INSERT INTO usrself_friend_log_history
+            (created_at, type, user_id, display_name, previous_display_name, trust_level, previous_trust_level, friend_number)
+         VALUES
+            ('2026-06-01T10:00:00Z', 'Friend', 'usr_alice', 'Alice', '', 'Known', '', 1),
+            ('2026-06-02T10:00:00Z', 'Friend', 'usr_bob', 'Bob', '', 'Known', '', 2),
+            ('2026-06-03T10:00:00Z', 'TrustLevel', 'usr_alice', 'Alice', '', 'Trusted', 'Known', 1),
+            ('2026-06-04T10:00:00Z', 'DisplayName', 'usr_alice', 'Alice New', 'Alice', 'Trusted', 'Trusted', 1)",
+        &Default::default(),
+    )
+    .unwrap();
+
+    let output = get_friend_log(
+        &db,
+        FriendLogInput {
+            owner_user_id: "usr_self".into(),
+            target_user_id: Some("usr_alice".into()),
+            types: vec!["Friend".into(), "TrustLevel".into()],
+            time_window: TimeWindow {
+                from: Some("2026-06-01T00:00:00Z".into()),
+                to: Some("2026-06-03T23:59:59Z".into()),
+            },
+            limit: Some(1),
+        },
+    )
+    .unwrap();
+
+    assert_eq!(output.rows.len(), 1);
+    assert_eq!(output.rows[0].kind, "TrustLevel");
+    assert_eq!(output.rows[0].user_id, "usr_alice");
+    assert_eq!(
+        get_friend_log_first_created_at(&db, "usr_self", "usr_alice", "Friend").unwrap(),
+        Some("2026-06-01T10:00:00Z".into())
+    );
+    assert!(output
+        .caveats
+        .iter()
+        .any(|caveat| caveat.contains("relationship events")));
+
+    let error = get_friend_log(
+        &db,
+        FriendLogInput {
+            owner_user_id: "usr_self".into(),
+            target_user_id: None,
+            types: vec!["Block".into()],
+            time_window: TimeWindow::all(),
+            limit: None,
+        },
+    )
+    .expect_err("unknown type should be rejected");
+    assert!(matches!(error, crate::Error::InvalidData(message) if message.contains("Block")));
+}
+
+#[test]
 fn search_worlds_visited_returns_recent_world_candidates() {
     let (_dir, db) = test_db("worlds-visited");
     create_game_log_tables(&db);
@@ -237,6 +294,23 @@ fn social_graph_uses_mutual_graph_edges_without_implying_coplay() {
         &Default::default(),
     )
     .unwrap();
+    db.execute_non_query(
+        "INSERT INTO usrself_mutual_graph_meta (friend_id, last_fetched_at, opted_out)
+             VALUES
+                ('usr_a', '2026-06-01T10:00:00Z', 0),
+                ('usr_b', '2026-06-02T11:00:00Z', 0),
+                ('usr_opted', '2026-06-03T12:00:00Z', 1)",
+        &Default::default(),
+    )
+    .unwrap();
+    db.execute_non_query(
+        "INSERT INTO usrself_friend_log_current (user_id, display_name, trust_level, friend_number)
+             VALUES
+                ('usr_a', 'Alice', 'Trusted', 1),
+                ('usr_b', 'Bob', 'Known', 2)",
+        &Default::default(),
+    )
+    .unwrap();
 
     let output = get_social_graph(
         &db,
@@ -250,47 +324,76 @@ fn social_graph_uses_mutual_graph_edges_without_implying_coplay() {
 
     assert_eq!(output.nodes.len(), 2);
     assert_eq!(output.edges.len(), 1);
+    let alice = output
+        .nodes
+        .iter()
+        .find(|node| node.user_id == "usr_a")
+        .unwrap();
+    assert_eq!(alice.display_name, "Alice");
+    assert_eq!(output.fetched_friends, 2);
+    assert_eq!(output.opted_out_friends, 1);
+    assert_eq!(
+        output.oldest_fetched_at,
+        Some("2026-06-01T10:00:00Z".into())
+    );
+    assert_eq!(
+        output.newest_fetched_at,
+        Some("2026-06-02T11:00:00Z".into())
+    );
     assert!(output
         .caveats
         .iter()
         .any(|caveat| caveat.contains("friend relationship")));
+    assert!(output
+        .caveats
+        .iter()
+        .any(|caveat| caveat.contains("refresh_mutual_graph")));
 }
 
 #[test]
-fn favorite_world_local_dry_run_does_not_write() {
-    let (_dir, db) = test_db("favorite-world-dry-run");
+fn favorite_local_supports_kind_action_and_dry_run() {
+    let (_dir, db) = test_db("favorite-local-dry-run");
 
-    let output = favorite_world_local(
-        &db,
-        FavoriteWorldLocalInput {
-            world_id: "wrld_parkour".into(),
-            group: "AI Picks".into(),
-            dry_run: true,
-        },
-    )
-    .unwrap();
+    let output = favorite_local(&db, favorite_friend_input("add", true)).unwrap();
 
     assert!(output.dry_run);
-    assert_eq!(output.world_id, "wrld_parkour");
-    assert!(crate::favorites::favorite_list(&db, "world".into())
+    assert_eq!(output.kind, "friend");
+    assert_eq!(output.entity_id, "usr_alice");
+    assert_eq!(output.action, "add");
+    assert!(crate::favorites::favorite_list(&db, "friend".into())
         .unwrap()
         .is_empty());
 
-    favorite_world_local(
-        &db,
-        FavoriteWorldLocalInput {
-            world_id: "wrld_parkour".into(),
-            group: "AI Picks".into(),
-            dry_run: false,
-        },
-    )
-    .unwrap();
+    favorite_local(&db, favorite_friend_input("add", false)).unwrap();
     assert_eq!(
-        crate::favorites::favorite_list(&db, "world".into())
+        crate::favorites::favorite_list(&db, "friend".into())
             .unwrap()
             .len(),
         1
     );
+
+    favorite_local(&db, favorite_friend_input("remove", true)).unwrap();
+    assert_eq!(
+        crate::favorites::favorite_list(&db, "friend".into())
+            .unwrap()
+            .len(),
+        1
+    );
+
+    favorite_local(&db, favorite_friend_input("remove", false)).unwrap();
+    assert!(crate::favorites::favorite_list(&db, "friend".into())
+        .unwrap()
+        .is_empty());
+}
+
+fn favorite_friend_input(action: &str, dry_run: bool) -> FavoriteLocalInput {
+    FavoriteLocalInput {
+        kind: "friend".into(),
+        entity_id: "usr_alice".into(),
+        group: "AI Picks".into(),
+        action: action.into(),
+        dry_run,
+    }
 }
 
 #[test]
@@ -438,7 +541,8 @@ fn friend_changes_returns_recent_status_events_by_friend() {
              VALUES
                 ('2026-06-01T20:00:00Z', 'usr_alice', 'Alice', 'join me', 'Open', 'active', 'Busy'),
                 ('2026-06-02T20:00:00Z', 'usr_alice', 'Alice', 'active', 'Back later', 'join me', 'Open'),
-                ('2026-06-03T20:00:00Z', 'usr_bob', 'Bob', 'ask me', '', 'active', '')",
+                ('2026-06-03T20:00:00Z', 'usr_bob', 'Bob', 'ask me', '', 'active', ''),
+                ('2026-06-04T20:00:00Z', 'usr_alice', 'Alice', 'join me', 'Again', 'active', 'Back later')",
             &Default::default(),
         )
         .unwrap();
@@ -447,6 +551,7 @@ fn friend_changes_returns_recent_status_events_by_friend() {
         &db,
         FriendChangesInput {
             owner_user_id: "usr_self".into(),
+            target_user_id: None,
             time_window: TimeWindow::all(),
             kind: FriendChangeKind::Status,
             limit: Some(10),
@@ -456,15 +561,29 @@ fn friend_changes_returns_recent_status_events_by_friend() {
 
     assert_eq!(output.rows.len(), 2);
     assert_eq!(output.rows[0].user_id, "usr_alice");
-    assert_eq!(output.rows[0].change_count, 2);
+    assert_eq!(output.rows[0].change_count, 3);
     assert_eq!(
         output.rows[0].recent_events[0].changed_at,
-        "2026-06-02T20:00:00Z"
+        "2026-06-04T20:00:00Z"
     );
     assert_eq!(
         output.rows[0].recent_events[0].kind,
         FriendChangeKind::Status
     );
+
+    let bob = get_friend_changes(
+        &db,
+        FriendChangesInput {
+            owner_user_id: "usr_self".into(),
+            target_user_id: Some("usr_bob".into()),
+            time_window: TimeWindow::all(),
+            kind: FriendChangeKind::Status,
+            limit: Some(1),
+        },
+    )
+    .unwrap();
+    assert_eq!(bob.rows.len(), 1);
+    assert_eq!(bob.rows[0].user_id, "usr_bob");
 }
 
 #[test]

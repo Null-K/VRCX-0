@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use vrcx_0_application::{RealtimeHostRuntime, RuntimeDiagnostics, RuntimeSyncEngine, WebClient};
+use vrcx_0_application::{
+    MutualGraphFetchRuntime, RealtimeHostRuntime, RuntimeDiagnostics, RuntimeSyncEngine,
+    TaskSupervisor, WebClient,
+};
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
 use vrcx_0_runtime_host::RuntimeHostState;
@@ -13,6 +16,8 @@ pub struct McpRuntime {
     pub(crate) sync: RuntimeSyncEngine,
     pub(crate) realtime_runtime: Arc<RealtimeHostRuntime>,
     pub(crate) config: ConfigRepository,
+    pub(crate) mutual_graph_fetch: MutualGraphFetchRuntime,
+    pub(crate) tasks: TaskSupervisor,
 }
 
 impl McpRuntime {
@@ -24,6 +29,8 @@ impl McpRuntime {
             sync: state.runtime_context.sync.clone(),
             realtime_runtime: Arc::clone(&state.realtime_runtime),
             config: state.runtime_context.config.clone(),
+            mutual_graph_fetch: state.runtime_context.mutual_graph_fetch.clone(),
+            tasks: state.runtime_context.tasks.clone(),
         }
     }
 

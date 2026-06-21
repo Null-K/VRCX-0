@@ -3,11 +3,11 @@ use crate::database::DatabaseService;
 use crate::favorites;
 use crate::Error;
 
-use super::caveats::{favorite_world_local_caveats, worlds_visited_caveats};
+use super::caveats::{favorite_local_caveats, worlds_visited_caveats};
 use super::helpers::{append_time_window_filter, millis_to_minutes};
 use super::types::{
-    FavoriteWorldLocalInput, FavoriteWorldOutput, SearchWorldsVisitedInput,
-    SearchWorldsVisitedOutput, VisitedWorldRow,
+    FavoriteLocalInput, FavoriteOutput, SearchWorldsVisitedInput, SearchWorldsVisitedOutput,
+    VisitedWorldRow,
 };
 
 pub fn search_worlds_visited(
@@ -43,35 +43,102 @@ pub fn search_worlds_visited(
     })
 }
 
-pub fn favorite_world_local(
+pub fn favorite_local(
     db: &DatabaseService,
-    input: FavoriteWorldLocalInput,
-) -> Result<FavoriteWorldOutput, Error> {
-    let world_id = input.world_id.trim().to_string();
+    input: FavoriteLocalInput,
+) -> Result<FavoriteOutput, Error> {
+    let kind = input.kind.trim().to_ascii_lowercase();
+    let entity_id = input.entity_id.trim().to_string();
     let group = input.group.trim().to_string();
-    if world_id.is_empty() {
-        return Err(Error::InvalidData(
-            "favorite world requires world_id".into(),
-        ));
+    let action = FavoriteAction::parse(&input.action)?;
+    if kind.is_empty() {
+        return Err(Error::InvalidData("favorite requires kind".into()));
     }
-    if !world_id.starts_with("wrld_") {
+    let Some(expected_prefix) = favorite_entity_prefix(&kind) else {
         return Err(Error::InvalidData(
-            "favorite world_id must be a VRChat world id (wrld_...)".into(),
+            "favorite kind must be world, friend, or avatar".into(),
         ));
+    };
+    if entity_id.is_empty() {
+        return Err(Error::InvalidData("favorite requires entity_id".into()));
+    }
+    if !entity_id.starts_with(expected_prefix) {
+        return Err(Error::InvalidData(format!(
+            "favorite {kind} entity_id must start with {expected_prefix}"
+        )));
     }
     if group.is_empty() {
-        return Err(Error::InvalidData("favorite world requires group".into()));
+        return Err(Error::InvalidData("favorite requires group".into()));
     }
     let affected_rows = if input.dry_run {
         0
     } else {
-        favorites::favorite_add(db, "world".into(), world_id.clone(), group.clone())?
+        action.apply(db, &kind, &entity_id, &group)?
     };
-    Ok(FavoriteWorldOutput {
-        world_id,
+    Ok(FavoriteOutput {
+        kind,
+        entity_id,
         group,
+        action: action.as_str().into(),
         dry_run: input.dry_run,
         affected_rows,
-        caveats: favorite_world_local_caveats(),
+        caveats: favorite_local_caveats(),
     })
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum FavoriteAction {
+    Add,
+    Remove,
+}
+
+impl FavoriteAction {
+    fn parse(value: &str) -> Result<Self, Error> {
+        match value.trim().to_ascii_lowercase().as_str() {
+            "add" => Ok(Self::Add),
+            "remove" => Ok(Self::Remove),
+            _ => Err(Error::InvalidData(
+                "favorite action must be add or remove".into(),
+            )),
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Add => "add",
+            Self::Remove => "remove",
+        }
+    }
+
+    fn apply(
+        self,
+        db: &DatabaseService,
+        kind: &str,
+        entity_id: &str,
+        group: &str,
+    ) -> Result<i64, Error> {
+        match self {
+            Self::Add => favorites::favorite_add(
+                db,
+                kind.to_string(),
+                entity_id.to_string(),
+                group.to_string(),
+            ),
+            Self::Remove => favorites::favorite_remove(
+                db,
+                kind.to_string(),
+                entity_id.to_string(),
+                group.to_string(),
+            ),
+        }
+    }
+}
+
+fn favorite_entity_prefix(kind: &str) -> Option<&'static str> {
+    match kind {
+        "world" => Some("wrld_"),
+        "friend" => Some("usr_"),
+        "avatar" => Some("avtr_"),
+        _ => None,
+    }
 }

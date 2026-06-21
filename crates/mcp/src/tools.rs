@@ -1,13 +1,17 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
+use chrono::{DateTime, Datelike, Duration, Utc};
 use rmcp::handler::server::wrapper::Parameters;
 use rmcp::model::CallToolResult;
 use rmcp::{schemars, tool, tool_router};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use vrcx_0_application::vrchat_api::{self, favorites::favorite_add_input, VrchatScope};
+use vrcx_0_application::{MutualGraphFetchStartInput, MutualGraphFetchStatus};
 use vrcx_0_core::location::parse_location;
-use vrcx_0_persistence::social_aggregates;
+use vrcx_0_persistence::{
+    activity, favorites, friends, local_moderation, memos, mutual_graph, social_aggregates,
+};
 
 use crate::config::MCP_ALLOW_VRCHAT_WRITES_CONFIG_KEY;
 use crate::runtime::McpRuntime;
@@ -81,29 +85,93 @@ impl VrcxMcpServer {
         structured_result(self.get_online_friends_output(input))
     }
 
-    #[tool(description = "Write a world favorite into VRCX-0 local favorites only.")]
-    async fn favorite_world_local(
+    #[tool(
+        description = "Add or remove a VRCX-0 local favorite for a world, friend, or avatar; dry_run defaults to true."
+    )]
+    async fn favorite_local(
         &self,
-        Parameters(input): Parameters<FavoriteWorldLocalParams>,
+        Parameters(input): Parameters<FavoriteLocalParams>,
     ) -> Result<CallToolResult, String> {
-        social_aggregates_result(social_aggregates::favorite_world_local(
+        social_aggregates_result(social_aggregates::favorite_local(
             self.runtime.db.as_ref(),
-            social_aggregates::FavoriteWorldLocalInput {
-                world_id: input.world_id,
+            social_aggregates::FavoriteLocalInput {
+                kind: input.kind,
+                entity_id: input.entity_id,
                 group: input.group,
+                action: input.action.unwrap_or_else(|| "add".into()),
                 dry_run: input.dry_run.unwrap_or(true),
             },
         ))
     }
 
     #[tool(
-        description = "Add a world favorite to the signed-in VRChat account; dry_run defaults to true."
+        description = "Add a world, friend, or avatar favorite to the signed-in VRChat account; dry_run defaults to true."
     )]
-    async fn favorite_world_vrchat(
+    async fn favorite_vrchat(
         &self,
-        Parameters(input): Parameters<FavoriteWorldVrchatParams>,
+        Parameters(input): Parameters<FavoriteVrchatParams>,
     ) -> Result<CallToolResult, String> {
-        structured_result(self.favorite_world_vrchat_output(input).await?)
+        structured_result(self.favorite_vrchat_output(input).await?)
+    }
+
+    #[tool(description = "List VRCX-0 local favorites for worlds, friends, or avatars.")]
+    async fn get_favorites(
+        &self,
+        Parameters(input): Parameters<GetFavoritesParams>,
+    ) -> Result<CallToolResult, String> {
+        structured_result(self.get_favorites_output(input)?)
+    }
+
+    #[tool(description = "Return observed friend relationship events for this profile.")]
+    async fn get_friend_log(
+        &self,
+        Parameters(input): Parameters<FriendLogParams>,
+    ) -> Result<CallToolResult, String> {
+        let owner_user_id = require_current_user_id(&self.runtime)?;
+        structured_result(self.get_friend_log_output(owner_user_id, input)?)
+    }
+
+    #[tool(description = "Read private local friend notes; note text is returned to the AI.")]
+    async fn get_friend_note(
+        &self,
+        Parameters(input): Parameters<FriendNoteParams>,
+    ) -> Result<CallToolResult, String> {
+        structured_result(self.get_friend_note_output(input)?)
+    }
+
+    #[tool(description = "Save a private local friend note; dry_run defaults to true.")]
+    async fn set_friend_note(
+        &self,
+        Parameters(input): Parameters<SetFriendNoteParams>,
+    ) -> Result<CallToolResult, String> {
+        structured_result(self.set_friend_note_output(input)?)
+    }
+
+    #[tool(description = "Return aggregated activity for the current VRCX-0 profile.")]
+    async fn get_my_activity(
+        &self,
+        Parameters(input): Parameters<MyActivityParams>,
+    ) -> Result<CallToolResult, String> {
+        let owner_user_id = require_current_user_id(&self.runtime)?;
+        structured_result(self.get_my_activity_output(owner_user_id, input)?)
+    }
+
+    #[tool(description = "Return a combined local profile summary for one friend.")]
+    async fn get_friend_profile(
+        &self,
+        Parameters(input): Parameters<FriendProfileParams>,
+    ) -> Result<CallToolResult, String> {
+        let owner_user_id = require_current_user_id(&self.runtime)?;
+        structured_result(self.get_friend_profile_output(owner_user_id, input)?)
+    }
+
+    #[tool(description = "Refresh stale mutual-friend graph data with throttled VRChat API reads.")]
+    async fn refresh_mutual_graph(
+        &self,
+        Parameters(input): Parameters<RefreshMutualGraphParams>,
+    ) -> Result<CallToolResult, String> {
+        let owner_user_id = require_current_user_id(&self.runtime)?;
+        structured_result(self.refresh_mutual_graph_output(owner_user_id, input)?)
     }
 
     #[tool(description = "Return mutual-friend graph edges and connection degrees.")]
@@ -166,6 +234,7 @@ impl VrcxMcpServer {
             self.runtime.db.as_ref(),
             social_aggregates::FriendChangesInput {
                 owner_user_id,
+                target_user_id: None,
                 time_window: input.time_window.into(),
                 kind: input.kind.into(),
                 limit: input.limit,
@@ -239,22 +308,465 @@ impl VrcxMcpServer {
         }
     }
 
-    async fn favorite_world_vrchat_output(
+    fn get_favorites_output(&self, input: GetFavoritesParams) -> Result<FavoritesOutput, String> {
+        let kind = normalize_favorite_kind(&input.kind)?;
+        let rows = favorites::favorite_list(self.runtime.db.as_ref(), kind.clone())
+            .map_err(map_persistence_error)?
+            .into_iter()
+            .filter_map(|row| favorite_row_from_value(&kind, &row))
+            .collect();
+        Ok(FavoritesOutput {
+            rows,
+            caveats: vec![
+                "Favorites are VRCX-0 local favorite rows and may differ from remote VRChat favorites until synced."
+                    .into(),
+            ],
+        })
+    }
+
+    fn get_friend_log_output(
         &self,
-        input: FavoriteWorldVrchatParams,
-    ) -> Result<FavoriteWorldVrchatOutput, String> {
-        let world_id = input.world_id.trim().to_string();
+        owner_user_id: String,
+        input: FriendLogParams,
+    ) -> Result<social_aggregates::FriendLogOutput, String> {
+        social_aggregates::get_friend_log(
+            self.runtime.db.as_ref(),
+            social_aggregates::FriendLogInput {
+                owner_user_id,
+                target_user_id: input.target_user_id,
+                types: input.types.unwrap_or_default(),
+                time_window: input.time_window.unwrap_or_default().into(),
+                limit: input.limit,
+            },
+        )
+        .map_err(map_persistence_error)
+    }
+
+    fn get_friend_note_output(&self, input: FriendNoteParams) -> Result<FriendNoteOutput, String> {
+        let rows = match normalize_optional_text(input.user_id) {
+            Some(user_id) => memos::memo_get_user(self.runtime.db.as_ref(), user_id)
+                .map_err(map_persistence_error)?
+                .into_iter()
+                .map(FriendNoteRow::from)
+                .collect(),
+            None => memos::memo_list_users(self.runtime.db.as_ref())
+                .map_err(map_persistence_error)?
+                .into_iter()
+                .map(FriendNoteRow::from)
+                .collect(),
+        };
+        Ok(FriendNoteOutput {
+            rows,
+            caveats: friend_note_caveats(),
+        })
+    }
+
+    fn set_friend_note_output(
+        &self,
+        input: SetFriendNoteParams,
+    ) -> Result<SetFriendNoteOutput, String> {
+        let user_id = input.user_id.trim().to_string();
+        if user_id.is_empty() {
+            return Err("set_friend_note requires userId".into());
+        }
+        if !user_id.starts_with("usr_") {
+            return Err("set_friend_note userId must be a VRChat user id (usr_...)".into());
+        }
+        let note = input.note;
+        let dry_run = input.dry_run.unwrap_or(true);
+        if dry_run {
+            return Ok(SetFriendNoteOutput {
+                user_id,
+                memo: note,
+                edited_at: String::new(),
+                dry_run: true,
+                caveats: friend_note_caveats(),
+            });
+        }
+        let saved = memos::memo_save_user(self.runtime.db.as_ref(), user_id, note)
+            .map_err(map_persistence_error)?;
+        Ok(SetFriendNoteOutput {
+            user_id: saved.entity_id,
+            memo: saved.memo,
+            edited_at: saved.edited_at,
+            dry_run: false,
+            caveats: friend_note_caveats(),
+        })
+    }
+
+    fn get_my_activity_output(
+        &self,
+        owner_user_id: String,
+        input: MyActivityParams,
+    ) -> Result<MyActivityOutput, String> {
+        let time_window = input.time_window.unwrap_or_default().into();
+        let bounds = time_window_bounds_ms(&time_window)?;
+        let sessions = activity::activity_sessions_get(self.runtime.db.as_ref(), owner_user_id)
+            .map_err(map_persistence_error)?;
+        let mut session_count = 0usize;
+        let mut total_ms = 0i64;
+        let mut longest_ms = 0i64;
+        let mut by_weekday = BTreeMap::new();
+        for session in sessions {
+            let start = bounds
+                .from
+                .map_or(session.start, |from| session.start.max(from));
+            let end = bounds.to.map_or(session.end, |to| session.end.min(to));
+            if end <= start {
+                continue;
+            }
+            session_count += 1;
+            let duration_ms = end - start;
+            total_ms += duration_ms;
+            longest_ms = longest_ms.max(duration_ms);
+            if let Some(start_at) = DateTime::<Utc>::from_timestamp_millis(start) {
+                *by_weekday
+                    .entry(start_at.weekday().to_string())
+                    .or_insert(0) += duration_ms / 60_000;
+            }
+        }
+        let total_minutes = total_ms / 60_000;
+        Ok(MyActivityOutput {
+            total_minutes,
+            session_count,
+            avg_session_minutes: if session_count == 0 {
+                0
+            } else {
+                total_minutes / session_count as i64
+            },
+            longest_session_minutes: longest_ms / 60_000,
+            by_weekday,
+            caveats: vec![
+                "Activity sessions are derived from this profile's local VRCX-0 activity cache."
+                    .into(),
+            ],
+        })
+    }
+
+    fn get_friend_profile_output(
+        &self,
+        owner_user_id: String,
+        input: FriendProfileParams,
+    ) -> Result<FriendProfileOutput, String> {
+        let user_id = input.user_id.trim().to_string();
+        if user_id.is_empty() {
+            return Err("get_friend_profile requires userId".into());
+        }
+        let time_window_params = input.time_window.unwrap_or_default();
+        let time_window: social_aggregates::TimeWindow = time_window_params.clone().into();
+        let current = self
+            .runtime
+            .realtime_runtime
+            .friend_snapshot()
+            .and_then(|snapshot| snapshot.friends_by_id.get(&user_id).cloned())
+            .map(|friend| {
+                let parsed = parse_location(&friend.location);
+                let display_name = friend.display_name_or_id();
+                FriendProfileCurrent {
+                    user_id: friend.id,
+                    display_name,
+                    state: friend.state_bucket,
+                    location: friend.location,
+                    world_id: parsed.world_id,
+                    status: friend.status,
+                    status_description: friend.status_description,
+                    bio: friend.bio,
+                    platform: if friend.platform.is_empty() {
+                        friend.last_platform
+                    } else {
+                        friend.platform
+                    },
+                    current_avatar_name: friend.current_avatar_name,
+                }
+            });
+        let note = memos::memo_get_user(self.runtime.db.as_ref(), user_id.clone())
+            .map_err(map_persistence_error)?
+            .map(FriendNoteRow::from);
+        let moderation = local_moderation::local_moderation_get(
+            self.runtime.db.as_ref(),
+            owner_user_id.clone(),
+            user_id.clone(),
+        )
+        .map_err(map_persistence_error)?
+        .map(FriendModerationStatus::from);
+        let relationship =
+            self.friend_relationship_profile(&owner_user_id, &user_id, time_window_params.clone())?;
+        let copresence = social_aggregates::get_copresence_summary(
+            self.runtime.db.as_ref(),
+            social_aggregates::CopresenceSummaryInput {
+                time_window: time_window.clone(),
+                group_by: social_aggregates::CopresenceGroupBy::Friend,
+                min_minutes: None,
+                owner_user_id: Some(owner_user_id.clone()),
+                friends_only: false,
+            },
+        )
+        .map_err(map_persistence_error)?
+        .rows
+        .into_iter()
+        .find(|row| row.user_id == user_id);
+        let activity_pattern = social_aggregates::get_friend_activity_pattern(
+            self.runtime.db.as_ref(),
+            social_aggregates::FriendActivityPatternInput {
+                owner_user_id: owner_user_id.clone(),
+                user_id: Some(user_id.clone()),
+                time_window: time_window.clone(),
+                bucket: social_aggregates::ActivityBucket::HourOfDay,
+            },
+        )
+        .map_err(map_persistence_error)?
+        .rows
+        .into_iter()
+        .next();
+        let recent_changes = self.friend_profile_changes(&owner_user_id, &user_id, time_window)?;
+        let latest_bio = latest_bio_from_changes(&recent_changes);
+        let current = match current {
+            Some(mut current) => {
+                if current.bio.trim().is_empty() {
+                    if let Some(bio) = latest_bio {
+                        current.bio = bio;
+                    }
+                }
+                Some(current)
+            }
+            None => fallback_friend_profile_current(&user_id, &relationship, latest_bio),
+        };
+        Ok(FriendProfileOutput {
+            user_id: user_id.clone(),
+            current,
+            relationship,
+            note,
+            moderation,
+            copresence,
+            activity_pattern,
+            recent_changes,
+            favorite_groups: self.friend_favorite_groups(&user_id)?,
+            caveats: vec![
+                "Friend profile combines local VRCX-0 observations and current realtime memory; missing fields mean unobserved or not loaded.".into(),
+                "When realtime friend memory is unavailable, current uses the latest observed local profile fields where possible.".into(),
+                "Moderation status is read-only here; MCP does not execute block or mute actions.".into(),
+            ],
+        })
+    }
+
+    fn refresh_mutual_graph_output(
+        &self,
+        owner_user_id: String,
+        input: RefreshMutualGraphParams,
+    ) -> Result<RefreshMutualGraphOutput, String> {
+        let status = self.runtime.mutual_graph_fetch.status();
+        if is_active_fetch_status(&status.status) {
+            return Ok(RefreshMutualGraphOutput::from_status(
+                false,
+                "already running",
+                0,
+                status,
+            ));
+        }
+        let snapshot = self
+            .runtime
+            .realtime_runtime
+            .friend_snapshot()
+            .ok_or_else(|| {
+                "refresh_mutual_graph requires a loaded realtime friend snapshot".to_string()
+            })?;
+        let graph = mutual_graph::mutual_graph_snapshot_get(
+            self.runtime.db.as_ref(),
+            owner_user_id.clone(),
+        )
+        .map_err(map_persistence_error)?;
+        let freshness = mutual_graph_freshness(&graph.meta);
+        let meta_by_friend_id = graph
+            .meta
+            .into_iter()
+            .map(|meta| (meta.friend_id.clone(), meta))
+            .collect::<HashMap<_, _>>();
+        let force = input.force.unwrap_or(false);
+        let max_age_hours = input.max_age_hours.unwrap_or(24).max(1) as i64;
+        let stale_after = Utc::now() - Duration::hours(max_age_hours);
+        let friend_ids = snapshot
+            .friends_by_id
+            .keys()
+            .filter(|friend_id| {
+                let meta = meta_by_friend_id.get(*friend_id);
+                if meta.is_some_and(|meta| meta.opted_out) {
+                    return false;
+                }
+                force || meta.is_none_or(|meta| is_stale_mutual_meta(meta, stale_after))
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        if friend_ids.is_empty() {
+            return Ok(RefreshMutualGraphOutput {
+                refreshed: false,
+                reason: if force {
+                    "no eligible friends"
+                } else {
+                    "already fresh"
+                }
+                .into(),
+                selected_friend_count: 0,
+                status: self.runtime.mutual_graph_fetch.status(),
+                fetched_friends: freshness.fetched_friends,
+                opted_out_friends: freshness.opted_out_friends,
+                newest_fetched_at: freshness.newest_fetched_at,
+                oldest_fetched_at: freshness.oldest_fetched_at,
+                caveats: mutual_graph_refresh_caveats(),
+            });
+        }
+        let status = self
+            .runtime
+            .mutual_graph_fetch
+            .start(
+                MutualGraphFetchStartInput {
+                    owner_user_id,
+                    endpoint: self.runtime.current_endpoint(),
+                    friend_ids: friend_ids.clone(),
+                },
+                self.runtime.db.clone(),
+                self.runtime.web.clone(),
+                self.runtime.tasks.clone(),
+            )
+            .map_err(|error| error.to_string())?;
+        Ok(RefreshMutualGraphOutput {
+            refreshed: true,
+            reason: "started".into(),
+            selected_friend_count: friend_ids.len(),
+            status,
+            fetched_friends: freshness.fetched_friends,
+            opted_out_friends: freshness.opted_out_friends,
+            newest_fetched_at: freshness.newest_fetched_at,
+            oldest_fetched_at: freshness.oldest_fetched_at,
+            caveats: mutual_graph_refresh_caveats(),
+        })
+    }
+
+    fn friend_relationship_profile(
+        &self,
+        owner_user_id: &str,
+        user_id: &str,
+        time_window: TimeWindowParams,
+    ) -> Result<FriendRelationshipProfile, String> {
+        let current =
+            friends::friend_log_current_list(self.runtime.db.as_ref(), owner_user_id.to_string())
+                .map_err(map_persistence_error)?
+                .into_iter()
+                .find(|row| row.user_id == user_id);
+        let log = self.get_friend_log_output(
+            owner_user_id.to_string(),
+            FriendLogParams {
+                target_user_id: Some(user_id.to_string()),
+                types: None,
+                time_window: Some(time_window),
+                limit: Some(100),
+            },
+        )?;
+        let friended_at = social_aggregates::get_friend_log_first_created_at(
+            self.runtime.db.as_ref(),
+            owner_user_id,
+            user_id,
+            "Friend",
+        )
+        .map_err(map_persistence_error)?;
+        let display_name_changes = log
+            .rows
+            .iter()
+            .filter(|row| row.kind == "DisplayName")
+            .take(5)
+            .cloned()
+            .collect();
+        let trust_changes = log
+            .rows
+            .iter()
+            .filter(|row| row.kind == "TrustLevel")
+            .take(5)
+            .cloned()
+            .collect();
+        Ok(FriendRelationshipProfile {
+            is_current_friend: current.is_some(),
+            display_name: current
+                .as_ref()
+                .map(|row| row.display_name.clone())
+                .unwrap_or_default(),
+            trust_level: current
+                .as_ref()
+                .map(|row| row.trust_level.clone())
+                .unwrap_or_default(),
+            friend_number: current.as_ref().map(|row| row.friend_number),
+            friended_at,
+            recent_events: log.rows.into_iter().take(10).collect(),
+            display_name_changes,
+            trust_changes,
+        })
+    }
+
+    fn friend_profile_changes(
+        &self,
+        owner_user_id: &str,
+        user_id: &str,
+        time_window: social_aggregates::TimeWindow,
+    ) -> Result<Vec<FriendProfileChangeSummary>, String> {
+        let mut rows = Vec::new();
+        for kind in [
+            social_aggregates::FriendChangeKind::Status,
+            social_aggregates::FriendChangeKind::Avatar,
+            social_aggregates::FriendChangeKind::Bio,
+        ] {
+            let output = social_aggregates::get_friend_changes(
+                self.runtime.db.as_ref(),
+                social_aggregates::FriendChangesInput {
+                    owner_user_id: owner_user_id.to_string(),
+                    target_user_id: Some(user_id.to_string()),
+                    time_window: time_window.clone(),
+                    kind: kind.clone(),
+                    limit: Some(200),
+                },
+            )
+            .map_err(map_persistence_error)?;
+            if let Some(row) = output.rows.into_iter().find(|row| row.user_id == user_id) {
+                rows.push(FriendProfileChangeSummary {
+                    kind: friend_change_kind_name(&kind).into(),
+                    change_count: row.change_count,
+                    last_changed_at: row.last_changed_at,
+                    recent_events: row.recent_events,
+                });
+            }
+        }
+        Ok(rows)
+    }
+
+    fn friend_favorite_groups(&self, user_id: &str) -> Result<Vec<String>, String> {
+        let mut groups = favorites::favorite_list(self.runtime.db.as_ref(), "friend".into())
+            .map_err(map_persistence_error)?
+            .into_iter()
+            .filter(|row| row.get("userId").and_then(Value::as_str) == Some(user_id))
+            .filter_map(|row| {
+                row.get("groupName")
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+            })
+            .filter(|group| !group.trim().is_empty())
+            .collect::<Vec<_>>();
+        groups.sort();
+        groups.dedup();
+        Ok(groups)
+    }
+
+    async fn favorite_vrchat_output(
+        &self,
+        input: FavoriteVrchatParams,
+    ) -> Result<FavoriteVrchatOutput, String> {
+        let kind = normalize_favorite_kind(&input.kind)?;
+        let entity_id = input.entity_id.trim().to_string();
         let tags = input.tags.trim().to_string();
-        if world_id.is_empty() {
-            return Err("favorite_world_vrchat requires world_id".into());
+        if entity_id.is_empty() {
+            return Err("favorite_vrchat requires entityId".into());
         }
-        if !world_id.starts_with("wrld_") {
-            return Err(
-                "favorite_world_vrchat world_id must be a VRChat world id (wrld_...)".into(),
-            );
-        }
+        validate_favorite_entity_id(&kind, &entity_id)?;
         if tags.is_empty() {
-            return Err("favorite_world_vrchat requires tags such as worlds1".into());
+            return Err(
+                "favorite_vrchat requires tags such as worlds1, group_0, or avatars1".into(),
+            );
         }
         let requested_write = !input.dry_run.unwrap_or(true);
         let writes_allowed = self
@@ -263,8 +775,9 @@ impl VrcxMcpServer {
             .get_bool(MCP_ALLOW_VRCHAT_WRITES_CONFIG_KEY, false)
             .unwrap_or(false);
         if !requested_write || !writes_allowed {
-            return Ok(FavoriteWorldVrchatOutput {
-                world_id,
+            return Ok(FavoriteVrchatOutput {
+                kind,
+                entity_id,
                 tags,
                 dry_run: true,
                 status: None,
@@ -275,21 +788,22 @@ impl VrcxMcpServer {
 
         let endpoint = self.runtime.current_endpoint();
         let (_, _, request) =
-            favorite_add_input(endpoint, "world".into(), world_id.clone(), tags.clone())
+            favorite_add_input(endpoint, kind.clone(), entity_id.clone(), tags.clone())
                 .map_err(|error| error.to_string())?;
         let response = vrchat_api::execute_api_command(
             self.runtime.web.as_ref(),
             self.runtime.db.as_ref(),
             &self.runtime.diagnostics,
             &self.runtime.sync,
-            "mcp__favorite_world_vrchat",
+            "mcp__favorite_vrchat",
             request,
             VrchatScope::Vrchat,
         )
         .await
         .map_err(|error| error.to_string())?;
-        Ok(FavoriteWorldVrchatOutput {
-            world_id,
+        Ok(FavoriteVrchatOutput {
+            kind,
+            entity_id,
             tags,
             dry_run: false,
             status: Some(response.status),
@@ -299,7 +813,7 @@ impl VrcxMcpServer {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
+#[derive(Clone, Debug, Default, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
 struct TimeWindowParams {
     from: Option<String>,
@@ -423,18 +937,70 @@ struct OnlineFriendsParams {
 
 #[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
-struct FavoriteWorldLocalParams {
-    world_id: String,
+struct FavoriteLocalParams {
+    kind: String,
+    entity_id: String,
     group: String,
+    action: Option<String>,
     dry_run: Option<bool>,
 }
 
 #[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
 #[serde(rename_all = "camelCase")]
-struct FavoriteWorldVrchatParams {
-    world_id: String,
+struct FavoriteVrchatParams {
+    kind: String,
+    entity_id: String,
     tags: String,
     dry_run: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+struct GetFavoritesParams {
+    kind: String,
+}
+
+#[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+struct FriendLogParams {
+    target_user_id: Option<String>,
+    types: Option<Vec<String>>,
+    time_window: Option<TimeWindowParams>,
+    limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+struct FriendNoteParams {
+    user_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+struct SetFriendNoteParams {
+    user_id: String,
+    note: String,
+    dry_run: Option<bool>,
+}
+
+#[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+struct MyActivityParams {
+    time_window: Option<TimeWindowParams>,
+}
+
+#[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+struct FriendProfileParams {
+    user_id: String,
+    time_window: Option<TimeWindowParams>,
+}
+
+#[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
+#[serde(rename_all = "camelCase")]
+struct RefreshMutualGraphParams {
+    force: Option<bool>,
+    max_age_hours: Option<u32>,
 }
 
 #[derive(Clone, Debug, Deserialize, schemars::JsonSchema)]
@@ -493,13 +1059,398 @@ struct OnlineFriendRow {
 
 #[derive(Clone, Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-struct FavoriteWorldVrchatOutput {
-    world_id: String,
+struct FavoritesOutput {
+    rows: Vec<FavoriteRow>,
+    caveats: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FavoriteRow {
+    kind: String,
+    entity_id: String,
+    group: String,
+    created_at: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FavoriteVrchatOutput {
+    kind: String,
+    entity_id: String,
     tags: String,
     dry_run: bool,
     status: Option<i32>,
     response: Option<Value>,
     caveats: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FriendNoteOutput {
+    rows: Vec<FriendNoteRow>,
+    caveats: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FriendNoteRow {
+    user_id: String,
+    memo: String,
+    edited_at: String,
+}
+
+impl From<memos::UserMemoOutput> for FriendNoteRow {
+    fn from(value: memos::UserMemoOutput) -> Self {
+        Self {
+            user_id: value.user_id,
+            memo: value.memo,
+            edited_at: value.edited_at,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct SetFriendNoteOutput {
+    user_id: String,
+    memo: String,
+    edited_at: String,
+    dry_run: bool,
+    caveats: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct MyActivityOutput {
+    total_minutes: i64,
+    session_count: usize,
+    avg_session_minutes: i64,
+    longest_session_minutes: i64,
+    by_weekday: BTreeMap<String, i64>,
+    caveats: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FriendProfileOutput {
+    user_id: String,
+    current: Option<FriendProfileCurrent>,
+    relationship: FriendRelationshipProfile,
+    note: Option<FriendNoteRow>,
+    moderation: Option<FriendModerationStatus>,
+    copresence: Option<social_aggregates::CopresenceSummaryRow>,
+    activity_pattern: Option<social_aggregates::FriendActivityPatternRow>,
+    recent_changes: Vec<FriendProfileChangeSummary>,
+    favorite_groups: Vec<String>,
+    caveats: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FriendProfileCurrent {
+    user_id: String,
+    display_name: String,
+    state: String,
+    location: String,
+    world_id: String,
+    status: String,
+    status_description: String,
+    bio: String,
+    platform: String,
+    current_avatar_name: String,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FriendRelationshipProfile {
+    is_current_friend: bool,
+    display_name: String,
+    trust_level: String,
+    friend_number: Option<i64>,
+    friended_at: Option<String>,
+    recent_events: Vec<social_aggregates::FriendLogRow>,
+    display_name_changes: Vec<social_aggregates::FriendLogRow>,
+    trust_changes: Vec<social_aggregates::FriendLogRow>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FriendModerationStatus {
+    user_id: String,
+    updated_at: String,
+    display_name: String,
+    block: bool,
+    mute: bool,
+}
+
+impl From<local_moderation::LocalModerationOutput> for FriendModerationStatus {
+    fn from(value: local_moderation::LocalModerationOutput) -> Self {
+        Self {
+            user_id: value.user_id,
+            updated_at: value.updated_at,
+            display_name: value.display_name,
+            block: value.block,
+            mute: value.mute,
+        }
+    }
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct FriendProfileChangeSummary {
+    kind: String,
+    change_count: i64,
+    last_changed_at: String,
+    recent_events: Vec<social_aggregates::FriendChangeEvent>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RefreshMutualGraphOutput {
+    refreshed: bool,
+    reason: String,
+    selected_friend_count: usize,
+    status: MutualGraphFetchStatus,
+    fetched_friends: usize,
+    opted_out_friends: usize,
+    newest_fetched_at: Option<String>,
+    oldest_fetched_at: Option<String>,
+    caveats: Vec<String>,
+}
+
+impl RefreshMutualGraphOutput {
+    fn from_status(
+        refreshed: bool,
+        reason: impl Into<String>,
+        selected_friend_count: usize,
+        status: MutualGraphFetchStatus,
+    ) -> Self {
+        Self {
+            refreshed,
+            reason: reason.into(),
+            selected_friend_count,
+            status,
+            fetched_friends: 0,
+            opted_out_friends: 0,
+            newest_fetched_at: None,
+            oldest_fetched_at: None,
+            caveats: mutual_graph_refresh_caveats(),
+        }
+    }
+}
+
+struct TimeWindowBoundsMs {
+    from: Option<i64>,
+    to: Option<i64>,
+}
+
+struct MutualGraphFreshness {
+    fetched_friends: usize,
+    opted_out_friends: usize,
+    newest_fetched_at: Option<String>,
+    oldest_fetched_at: Option<String>,
+}
+
+fn normalize_favorite_kind(kind: &str) -> Result<String, String> {
+    let kind = kind.trim().to_ascii_lowercase();
+    if favorite_kind_metadata(&kind).is_some() {
+        Ok(kind)
+    } else {
+        Err("favorite kind must be world, friend, or avatar".into())
+    }
+}
+
+fn validate_favorite_entity_id(kind: &str, entity_id: &str) -> Result<(), String> {
+    let metadata =
+        favorite_kind_metadata(kind).ok_or("favorite kind must be world, friend, or avatar")?;
+    if entity_id.starts_with(metadata.entity_id_prefix) {
+        Ok(())
+    } else {
+        Err(format!(
+            "favorite_vrchat {kind} entityId must start with {}",
+            metadata.entity_id_prefix
+        ))
+    }
+}
+
+fn favorite_row_from_value(kind: &str, row: &Value) -> Option<FavoriteRow> {
+    let metadata = favorite_kind_metadata(kind)?;
+    let entity_id = row
+        .get(metadata.entity_id_key)
+        .and_then(Value::as_str)?
+        .to_string();
+    Some(FavoriteRow {
+        kind: kind.to_string(),
+        entity_id,
+        group: row
+            .get("groupName")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string(),
+        created_at: row
+            .get("created_at")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .to_string(),
+    })
+}
+
+struct FavoriteKindMetadata {
+    entity_id_key: &'static str,
+    entity_id_prefix: &'static str,
+}
+
+fn favorite_kind_metadata(kind: &str) -> Option<FavoriteKindMetadata> {
+    match kind {
+        "world" => Some(FavoriteKindMetadata {
+            entity_id_key: "worldId",
+            entity_id_prefix: "wrld_",
+        }),
+        "friend" => Some(FavoriteKindMetadata {
+            entity_id_key: "userId",
+            entity_id_prefix: "usr_",
+        }),
+        "avatar" => Some(FavoriteKindMetadata {
+            entity_id_key: "avatarId",
+            entity_id_prefix: "avtr_",
+        }),
+        _ => None,
+    }
+}
+
+fn normalize_optional_text(value: Option<String>) -> Option<String> {
+    value
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+fn friend_note_caveats() -> Vec<String> {
+    vec!["Notes are your private local memos; reading them sends their text to the AI.".into()]
+}
+
+fn time_window_bounds_ms(
+    time_window: &social_aggregates::TimeWindow,
+) -> Result<TimeWindowBoundsMs, String> {
+    Ok(TimeWindowBoundsMs {
+        from: time_window
+            .from
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(parse_rfc3339_ms)
+            .transpose()?,
+        to: time_window
+            .to
+            .as_deref()
+            .map(str::trim)
+            .filter(|value| !value.is_empty())
+            .map(parse_rfc3339_ms)
+            .transpose()?,
+    })
+}
+
+fn parse_rfc3339_ms(value: &str) -> Result<i64, String> {
+    DateTime::parse_from_rfc3339(value)
+        .map(|value| value.timestamp_millis())
+        .map_err(|error| format!("invalid RFC3339 time '{value}': {error}"))
+}
+
+fn mutual_graph_freshness(meta: &[mutual_graph::MutualGraphMetaOutput]) -> MutualGraphFreshness {
+    let mut freshness = MutualGraphFreshness {
+        fetched_friends: 0,
+        opted_out_friends: 0,
+        newest_fetched_at: None,
+        oldest_fetched_at: None,
+    };
+    for row in meta {
+        if row.opted_out {
+            freshness.opted_out_friends += 1;
+            continue;
+        }
+        if row.last_fetched_at.trim().is_empty() {
+            continue;
+        }
+        freshness.fetched_friends += 1;
+        freshness.newest_fetched_at = Some(match freshness.newest_fetched_at {
+            Some(current) => current.max(row.last_fetched_at.clone()),
+            None => row.last_fetched_at.clone(),
+        });
+        freshness.oldest_fetched_at = Some(match freshness.oldest_fetched_at {
+            Some(current) => current.min(row.last_fetched_at.clone()),
+            None => row.last_fetched_at.clone(),
+        });
+    }
+    freshness
+}
+
+fn is_stale_mutual_meta(
+    meta: &mutual_graph::MutualGraphMetaOutput,
+    stale_after: DateTime<Utc>,
+) -> bool {
+    DateTime::parse_from_rfc3339(&meta.last_fetched_at)
+        .map(|value| value.with_timezone(&Utc) < stale_after)
+        .unwrap_or(true)
+}
+
+fn is_active_fetch_status(status: &str) -> bool {
+    matches!(status, "running" | "cancelling")
+}
+
+fn mutual_graph_refresh_caveats() -> Vec<String> {
+    vec![
+        "This triggers throttled VRChat API reads and updates only local mutual graph snapshots.".into(),
+        "Large friend lists can take a long time; friends who opt out of Shared Connections are skipped.".into(),
+    ]
+}
+
+fn friend_change_kind_name(kind: &social_aggregates::FriendChangeKind) -> &'static str {
+    match kind {
+        social_aggregates::FriendChangeKind::Status => "status",
+        social_aggregates::FriendChangeKind::Avatar => "avatar",
+        social_aggregates::FriendChangeKind::Bio => "bio",
+    }
+}
+
+fn latest_bio_from_changes(rows: &[FriendProfileChangeSummary]) -> Option<String> {
+    rows.iter()
+        .find(|row| row.kind == "bio")
+        .and_then(|row| row.recent_events.first())
+        .map(|event| event.new_value.clone())
+        .filter(|value| !value.trim().is_empty())
+}
+
+fn fallback_friend_profile_current(
+    user_id: &str,
+    relationship: &FriendRelationshipProfile,
+    bio: Option<String>,
+) -> Option<FriendProfileCurrent> {
+    let bio = bio.unwrap_or_default();
+    if relationship.display_name.trim().is_empty() && bio.trim().is_empty() {
+        return None;
+    }
+    Some(FriendProfileCurrent {
+        user_id: user_id.to_string(),
+        display_name: relationship.display_name.clone(),
+        state: String::new(),
+        location: String::new(),
+        world_id: String::new(),
+        status: String::new(),
+        status_description: String::new(),
+        bio,
+        platform: String::new(),
+        current_avatar_name: String::new(),
+    })
+}
+
+fn map_persistence_error(error: vrcx_0_persistence::Error) -> String {
+    match error {
+        vrcx_0_persistence::Error::InvalidData(message) => message,
+        other => {
+            tracing::warn!("MCP persistence query failed: {other}");
+            "internal data error while reading local VRCX-0 data".into()
+        }
+    }
 }
 
 fn structured_result(value: impl Serialize) -> Result<CallToolResult, String> {

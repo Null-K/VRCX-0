@@ -135,6 +135,12 @@ pub struct SocialGraphInput {
 pub struct SocialGraphOutput {
     pub nodes: Vec<SocialGraphNode>,
     pub edges: Vec<SocialGraphEdge>,
+    pub fetched_friends: usize,
+    pub opted_out_friends: usize,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub newest_fetched_at: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub oldest_fetched_at: Option<String>,
     pub caveats: Vec<String>,
 }
 
@@ -142,6 +148,7 @@ pub struct SocialGraphOutput {
 #[serde(rename_all = "camelCase")]
 pub struct SocialGraphNode {
     pub user_id: String,
+    pub display_name: String,
     pub connection_degree: usize,
 }
 
@@ -229,6 +236,39 @@ pub struct InviteHistoryRow {
     pub types: BTreeMap<String, i64>,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FriendLogInput {
+    pub owner_user_id: String,
+    #[serde(default)]
+    pub target_user_id: Option<String>,
+    #[serde(default)]
+    pub types: Vec<String>,
+    pub time_window: TimeWindow,
+    #[serde(default)]
+    pub limit: Option<i64>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FriendLogOutput {
+    pub rows: Vec<FriendLogRow>,
+    pub caveats: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
+#[serde(rename_all = "camelCase")]
+pub struct FriendLogRow {
+    pub created_at: String,
+    pub kind: String,
+    pub user_id: String,
+    pub display_name: String,
+    pub previous_display_name: String,
+    pub trust_level: String,
+    pub previous_trust_level: String,
+    pub friend_number: i64,
+}
+
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "camelCase")]
 pub enum FriendChangeKind {
@@ -242,6 +282,8 @@ pub enum FriendChangeKind {
 #[serde(rename_all = "camelCase")]
 pub struct FriendChangesInput {
     pub owner_user_id: String,
+    #[serde(default)]
+    pub target_user_id: Option<String>,
     pub time_window: TimeWindow,
     #[serde(default)]
     pub kind: FriendChangeKind,
@@ -277,18 +319,23 @@ pub struct FriendChangeEvent {
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct FavoriteWorldLocalInput {
-    pub world_id: String,
+pub struct FavoriteLocalInput {
+    pub kind: String,
+    pub entity_id: String,
     pub group: String,
+    #[serde(default = "default_add_action")]
+    pub action: String,
     #[serde(default = "default_true")]
     pub dry_run: bool,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, specta::Type)]
 #[serde(rename_all = "camelCase")]
-pub struct FavoriteWorldOutput {
-    pub world_id: String,
+pub struct FavoriteOutput {
+    pub kind: String,
+    pub entity_id: String,
     pub group: String,
+    pub action: String,
     pub dry_run: bool,
     pub affected_rows: i64,
     pub caveats: Vec<String>,
@@ -296,4 +343,8 @@ pub struct FavoriteWorldOutput {
 
 fn default_true() -> bool {
     true
+}
+
+fn default_add_action() -> String {
+    "add".into()
 }
