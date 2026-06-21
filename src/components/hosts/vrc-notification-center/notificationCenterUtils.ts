@@ -42,8 +42,11 @@ export function getNotificationMessage(notification: any) {
 
 export function getSenderName(notification: any) {
     return (
-        notification?.title ||
+        notification?.senderDisplayName ||
+        notification?.details?.senderDisplayName ||
+        notification?.data?.senderDisplayName ||
         notification?.senderUsername ||
+        notification?.title ||
         notification?.data?.groupName ||
         notification?.groupName ||
         notification?.details?.groupName ||
@@ -213,7 +216,7 @@ export function openSender(notification: any, t: any) {
     if (userId) {
         openUserDialog({
             userId,
-            title: notification?.senderUsername || undefined
+            title: getSenderName(notification) || undefined
         });
         return;
     }

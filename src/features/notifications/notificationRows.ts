@@ -55,6 +55,17 @@ export function getNotificationGroupColumnLabel(notification: any) {
     return explicitGroupLabel;
 }
 
+export function getNotificationSenderLabel(notification: any) {
+    return (
+        notification?.senderDisplayName ||
+        notification?.details?.senderDisplayName ||
+        notification?.data?.senderDisplayName ||
+        notification?.senderUsername ||
+        notification?.senderUserId ||
+        ''
+    );
+}
+
 export function matchesNotificationSearch(notification: any, search: any) {
     const query = String(search || '')
         .trim()
@@ -65,6 +76,7 @@ export function matchesNotificationSearch(notification: any, search: any) {
 
     return [
         notification.type,
+        notification.senderDisplayName,
         notification.senderUsername,
         notification.senderUserId,
         notification.title,

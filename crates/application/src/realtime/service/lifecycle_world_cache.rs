@@ -5,6 +5,12 @@ use vrcx_0_vrchat_client::worlds::world_get_input;
 
 const WORLD_NAME_FETCH_THROTTLE_MS: i64 = 600_000;
 
+pub(super) enum WorldNameFetchOutcome {
+    Found(String),
+    RetryableFailure,
+    PermanentFailure,
+}
+
 impl RealtimeHostRuntime {
     pub(super) async fn fetch_and_cache_world(
         &self,
@@ -18,8 +24,25 @@ impl RealtimeHostRuntime {
         if let Some(name) = lookup_cached_world_name(self.deps.db.as_ref(), &world_id) {
             return Some(name);
         }
+        match self.fetch_and_cache_world_once(endpoint, world_id).await {
+            WorldNameFetchOutcome::Found(name) => Some(name),
+            WorldNameFetchOutcome::RetryableFailure | WorldNameFetchOutcome::PermanentFailure => {
+                None
+            }
+        }
+    }
+
+    pub(super) async fn fetch_and_cache_world_once(
+        &self,
+        endpoint: String,
+        world_id: String,
+    ) -> WorldNameFetchOutcome {
+        let world_id = world_id.trim().to_string();
+        if world_id.is_empty() {
+            return WorldNameFetchOutcome::PermanentFailure;
+        }
         let Ok((_, request)) = world_get_input(endpoint, world_id.clone()) else {
-            return None;
+            return WorldNameFetchOutcome::PermanentFailure;
         };
         let response = match self
             .deps
@@ -30,7 +53,7 @@ impl RealtimeHostRuntime {
             Ok(response) => response,
             Err(error) => {
                 tracing::warn!(world_id = %world_id, "Realtime world lookup failed: {error}");
-                return None;
+                return WorldNameFetchOutcome::RetryableFailure;
             }
         };
         if !(200..=299).contains(&response.status) {
@@ -39,18 +62,21 @@ impl RealtimeHostRuntime {
                 status = response.status,
                 "Realtime world lookup returned non-success"
             );
-            return None;
+            if (500..600).contains(&response.status) {
+                return WorldNameFetchOutcome::RetryableFailure;
+            }
+            return WorldNameFetchOutcome::PermanentFailure;
         }
         let world = match serde_json::from_str::<Value>(&response.data) {
             Ok(value) => value,
             Err(error) => {
                 tracing::warn!(world_id = %world_id, "Realtime world lookup json failed: {error}");
-                return None;
+                return WorldNameFetchOutcome::PermanentFailure;
             }
         };
         let name = string_value(&world, "name");
         if !is_meaningful_world_name(&name) {
-            return None;
+            return WorldNameFetchOutcome::PermanentFailure;
         }
         let entry = CacheEntityInput {
             id: string_or_value(&world, "id", &world_id),
@@ -68,7 +94,7 @@ impl RealtimeHostRuntime {
         if let Err(error) = world_cache_upsert(self.deps.db.as_ref(), entry) {
             tracing::warn!(world_id = %world_id, "Realtime world cache upsert failed: {error}");
         }
-        Some(name)
+        WorldNameFetchOutcome::Found(name)
     }
 
     pub(super) fn schedule_world_name_warm(self: &Arc<Self>, world_ids: Vec<String>) {

@@ -93,7 +93,12 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
         if let Some(output) =
             apply_notification_ws_message(&session.user_id, &session.endpoint, generation, payload)
         {
-            self.runtime.apply_notification_output(output);
+            self.runtime.schedule_notification_output(
+                generation,
+                session_generation,
+                session.clone(),
+                output,
+            );
             return;
         }
 

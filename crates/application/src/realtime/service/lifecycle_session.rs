@@ -14,6 +14,7 @@ impl RealtimeHostRuntime {
             current_user: RealtimeCurrentUserRuntime::new(),
             user_cache: UserCacheRuntime::new(),
             user_query_cache: UserQueryCache::new(),
+            notification_apply_lock: Arc::new(tokio::sync::Mutex::new(())),
         }
     }
 
@@ -177,6 +178,22 @@ impl RealtimeHostRuntime {
                 .record_failure("realtimeNotifications", error.to_string()),
         }
         result.map(|_| ())
+    }
+
+    pub(super) fn is_notification_context_current(
+        &self,
+        generation: u64,
+        session_generation: u64,
+        session: &RealtimeSessionContext,
+    ) -> bool {
+        let state = match self.state.lock() {
+            Ok(state) => state,
+            Err(error) => {
+                tracing::warn!("realtime state lock failed: {error}");
+                return false;
+            }
+        };
+        self.is_message_current_locked(&state, generation, session_generation, session)
     }
 
     pub fn stop(&self, request: RealtimeStopRequest) {

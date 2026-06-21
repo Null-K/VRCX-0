@@ -14,6 +14,7 @@ import {
     getNotificationCreatedAt,
     getNotificationGroupColumnLabel,
     getNotificationMessage,
+    getNotificationSenderLabel,
     getResponseLabel
 } from '../notificationRows';
 import {
@@ -113,8 +114,7 @@ export function useNotificationColumns({
             },
             {
                 id: 'senderUsername',
-                accessorFn: (row: any) =>
-                    String(row?.senderUsername || row?.senderUserId || ''),
+                accessorFn: (row: any) => getNotificationSenderLabel(row),
                 meta: { label: t('table.notification.user') },
                 header: ({ column }: any) => (
                     <SortButton
@@ -124,6 +124,7 @@ export function useNotificationColumns({
                 ),
                 cell: ({ row }: any) => {
                     const notification = row.original;
+                    const senderLabel = getNotificationSenderLabel(notification);
                     if (
                         notification.senderUserId &&
                         !notification.senderUserId.startsWith('grp_')
@@ -136,14 +137,12 @@ export function useNotificationColumns({
                                 onClick={() =>
                                     onOpenUser({
                                         userId: notification.senderUserId,
-                                        title:
-                                            notification.senderUsername ||
-                                            undefined
+                                        title: senderLabel || undefined
                                     })
                                 }
                             >
                                 <span className="truncate">
-                                    {notification.senderUsername || 'User'}
+                                    {senderLabel || 'User'}
                                 </span>
                             </Button>
                         );
@@ -160,26 +159,26 @@ export function useNotificationColumns({
                                         userId,
                                         title:
                                             notification.linkText ||
-                                            notification.senderUsername ||
+                                            senderLabel ||
                                             undefined
                                     })
                                 }
                             >
                                 <span className="truncate">
                                     {notification.linkText ||
-                                        notification.senderUsername ||
+                                        senderLabel ||
                                         'User'}
                                 </span>
                             </Button>
                         );
                     }
                     if (
-                        notification.senderUsername &&
+                        senderLabel &&
                         !notification.senderUserId?.startsWith('grp_')
                     ) {
                         return (
                             <div className="max-w-48 truncate text-sm">
-                                {notification.senderUsername}
+                                {senderLabel}
                             </div>
                         );
                     }

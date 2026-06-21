@@ -6,15 +6,19 @@ mod tests {
 
     use serde_json::json;
     use vrcx_0_core::friends::FriendRecord;
+    use vrcx_0_persistence::cache_entities::CacheEntityInput;
+    use vrcx_0_persistence::notifications::{notification_list_query, NotificationListQueryInput};
+    use vrcx_0_persistence::realtime::NotificationV2Update;
     use vrcx_0_persistence::storage::StorageService;
+    use vrcx_0_persistence::worlds::world_cache_upsert;
     use vrcx_0_persistence::DatabaseService;
 
     use crate::overlay_activity::{
         OverlayActivityCandidate, OverlayActivityFilters, OverlayActivityRuntime,
     };
     use crate::{
-        HostSessionRuntime, RuntimeEventBus, RuntimeSnapshot, RuntimeSyncEngine, TaskSupervisor,
-        WebClient,
+        HostSessionRuntime, RealtimeNotificationUpsert, RuntimeEventBus, RuntimeSnapshot,
+        RuntimeSyncEngine, TaskSupervisor, WebClient,
     };
 
     use super::super::types::{
@@ -366,6 +370,266 @@ mod tests {
 
         assert_eq!(unresolved_world_ids, vec!["wrld_missing"]);
         assert_eq!(entries[0]["worldName"], "wrld_missing");
+        Ok(())
+    }
+
+    #[test]
+    fn notification_cache_hits_enrich_projection_and_persistence() -> Result<()> {
+        let (_dir, runtime, active_session) =
+            runtime_with_active_session("notification-cache-hit")?;
+        world_cache_upsert(
+            runtime.deps.db.as_ref(),
+            CacheEntityInput {
+                id: json!("wrld_cached"),
+                author_id: json!(null),
+                author_name: json!(null),
+                created_at: json!(null),
+                description: json!(null),
+                image_url: json!(null),
+                name: json!("Cached World"),
+                release_status: json!(null),
+                thumbnail_image_url: json!(null),
+                updated_at: json!(null),
+                version: json!(null),
+            },
+        )?;
+        runtime.ingest_user_facts(vec![json!({
+            "user": {
+                "id": "usr_sender",
+                "displayName": "Cached Sender"
+            },
+            "source": "test",
+            "isFriend": false
+        })]);
+        runtime.deps.event_bus.take_events_for_test();
+        let notification = json!({
+            "id": "notif-cache-hit",
+            "createdAt": "2026-06-21T00:00:00.000Z",
+            "type": "invite",
+            "senderUserId": "usr_sender",
+            "senderUsername": "usr_sender",
+            "message": "Join me",
+            "details": {
+                "worldId": "wrld_cached",
+                "worldName": "wrld_cached"
+            }
+        });
+
+        runtime.apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id.clone(),
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: notification.clone(),
+                    insert_defaults: None,
+                    notify_menu: true,
+                    deliver_runtime: true,
+                    run_automation: false,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_upserts: vec![notification],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
+
+        let events = runtime.deps.event_bus.take_events_for_test();
+        let projection = events
+            .iter()
+            .find(|event| event.name == "realtimeNotificationProjection")
+            .expect("cache-hit notification should emit a realtime projection");
+        let projected = &projection.payload["upserts"][0]["notification"];
+        assert_eq!(projected["senderDisplayName"], "Cached Sender");
+        assert_eq!(projected["senderUsername"], "Cached Sender");
+        assert_eq!(projected["details"]["worldName"], "Cached World");
+
+        let rows = notification_list_query(
+            runtime.deps.db.as_ref(),
+            NotificationListQueryInput {
+                user_id: active_session.user_id,
+                search: String::new(),
+                filters: Vec::new(),
+                per_table_limit: 10,
+                limit: 10,
+                include_unseen: false,
+            },
+        )?;
+        let row = rows
+            .iter()
+            .find(|row| row.id == "notif-cache-hit")
+            .expect("notification should be persisted");
+        assert_eq!(row.sender_username, "Cached Sender");
+        assert_eq!(row.details["worldName"], "Cached World");
+        Ok(())
+    }
+
+    #[test]
+    fn unresolved_person_location_notification_persists_without_runtime_projection() -> Result<()> {
+        let (_dir, runtime, active_session) =
+            runtime_with_active_session("notification-unresolved-basic")?;
+        let notification = json!({
+            "id": "notif-unresolved",
+            "createdAt": "2026-06-21T00:00:00.000Z",
+            "type": "invite",
+            "senderUserId": "usr_missing",
+            "senderUsername": "usr_missing",
+            "message": "Join me",
+            "details": {
+                "worldId": "wrld_missing",
+                "worldName": "wrld_missing"
+            }
+        });
+
+        runtime.apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id.clone(),
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: notification.clone(),
+                    insert_defaults: None,
+                    notify_menu: true,
+                    deliver_runtime: true,
+                    run_automation: true,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_upserts: vec![notification],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
+
+        let events = runtime.deps.event_bus.take_events_for_test();
+        assert!(
+            events
+                .iter()
+                .all(|event| event.name != "realtimeNotificationProjection"),
+            "unresolved notification should not be emitted to runtime/UI projection"
+        );
+
+        let rows = notification_list_query(
+            runtime.deps.db.as_ref(),
+            NotificationListQueryInput {
+                user_id: active_session.user_id,
+                search: String::new(),
+                filters: Vec::new(),
+                per_table_limit: 10,
+                limit: 10,
+                include_unseen: false,
+            },
+        )?;
+        let row = rows
+            .iter()
+            .find(|row| row.id == "notif-unresolved")
+            .expect("unresolved notification should still be persisted");
+        assert_eq!(row.sender_user_id, "usr_missing");
+        assert_eq!(row.sender_username, "");
+        assert_eq!(row.details["worldId"], "wrld_missing");
+        assert_eq!(row.details["worldName"], "");
+        assert!(
+            !runtime
+                .state
+                .lock()
+                .unwrap()
+                .world_name_fetches
+                .contains_key("wrld_missing"),
+            "notification resolver failures should not fall through to async world warm"
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn notification_v2_update_sanitizes_id_like_names_before_persistence() -> Result<()> {
+        let (_dir, runtime, active_session) =
+            runtime_with_active_session("notification-update-sanitize")?;
+        let initial = json!({
+            "id": "notif-update-sanitize",
+            "createdAt": "2026-06-21T00:00:00.000Z",
+            "type": "invite",
+            "senderUserId": "usr_sender",
+            "senderUsername": "Sender",
+            "message": "Join me",
+            "details": {
+                "worldId": "wrld_initial",
+                "worldName": "Initial World"
+            }
+        });
+        runtime.apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id.clone(),
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: initial.clone(),
+                    insert_defaults: None,
+                    notify_menu: false,
+                    deliver_runtime: false,
+                    run_automation: false,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_upserts: vec![initial],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
+        runtime.deps.event_bus.take_events_for_test();
+
+        let update = json!({
+            "id": "notif-update-sanitize",
+            "senderUserId": "usr_missing",
+            "senderUsername": "usr_missing",
+            "details": {
+                "worldId": "wrld_missing",
+                "worldName": "wrld_missing"
+            }
+        });
+        runtime.apply_notification_output(RealtimeNotificationOutput {
+            owner_user_id: active_session.user_id.clone(),
+            projection: RealtimeNotificationProjection {
+                generation: 7,
+                upserts: vec![RealtimeNotificationUpsert {
+                    notification: update.clone(),
+                    insert_defaults: Some(json!({
+                        "createdAt": "2026-06-21T00:01:00.000Z",
+                        "created_at": "2026-06-21T00:01:00.000Z",
+                        "seen": false
+                    })),
+                    notify_menu: false,
+                    deliver_runtime: false,
+                    run_automation: false,
+                }],
+                ..RealtimeNotificationProjection::default()
+            },
+            persistence: RealtimePersistenceBatch {
+                notification_v2_updates: vec![NotificationV2Update {
+                    id: "notif-update-sanitize".into(),
+                    updates: update,
+                    received_at: "2026-06-21T00:01:00.000Z".into(),
+                }],
+                ..RealtimePersistenceBatch::default()
+            },
+        });
+
+        let rows = notification_list_query(
+            runtime.deps.db.as_ref(),
+            NotificationListQueryInput {
+                user_id: active_session.user_id,
+                search: String::new(),
+                filters: Vec::new(),
+                per_table_limit: 10,
+                limit: 10,
+                include_unseen: false,
+            },
+        )?;
+        let row = rows
+            .iter()
+            .find(|row| row.id == "notif-update-sanitize")
+            .expect("notification update should be persisted");
+        assert_eq!(row.sender_user_id, "usr_missing");
+        assert_eq!(row.sender_username, "");
+        assert_eq!(row.details["worldId"], "wrld_missing");
+        assert_eq!(row.details["worldName"], "");
         Ok(())
     }
 

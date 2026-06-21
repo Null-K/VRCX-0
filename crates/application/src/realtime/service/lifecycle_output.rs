@@ -80,9 +80,13 @@ impl RealtimeHostRuntime {
         mut output: RealtimeNotificationOutput,
     ) {
         let mut projection = output.projection;
-        let mut world_name_fetch_ids = self.enrich_notification_world_names(&mut projection);
+        let _ = self.enrich_notification_world_names(&mut projection);
         self.enrich_notification_sender_names(&mut projection);
-        world_name_fetch_ids.extend(self.enrich_persistence_world_names(&mut output.persistence));
+        let _ = self.enrich_persistence_world_names(&mut output.persistence);
+        self.enrich_persistence_sender_names(&mut output.persistence);
+        output.projection = projection;
+        self.finalize_notification_output_for_delivery(&mut output);
+        let projection = self.visible_notification_projection(output.projection.clone());
         let persistence_attempted = !output.persistence.is_empty();
         match write_realtime_batch(&self.deps.db, &output.owner_user_id, &output.persistence) {
             Ok(counts) => {
@@ -101,14 +105,43 @@ impl RealtimeHostRuntime {
                     .record_failure("realtimeNotifications", error.to_string());
             }
         }
-        self.deps
-            .overlay_activity
-            .ingest_notification_projection(&projection);
-        self.deps
-            .event_bus
-            .emit_realtime_notification_projection(projection.clone());
-        self.schedule_invite_automation(&projection);
-        self.schedule_world_name_warm(world_name_fetch_ids);
+        if self.projection_has_visible_notification_work(&projection) {
+            self.deps
+                .overlay_activity
+                .ingest_notification_projection(&projection);
+            self.deps
+                .event_bus
+                .emit_realtime_notification_projection(projection.clone());
+            self.schedule_invite_automation(&projection);
+        }
+    }
+
+    pub(super) fn schedule_notification_output(
+        self: &Arc<Self>,
+        generation: u64,
+        session_generation: u64,
+        session: RealtimeSessionContext,
+        output: RealtimeNotificationOutput,
+    ) {
+        let runtime = Arc::clone(self);
+        self.deps.tasks.spawn(async move {
+            let _guard = runtime.notification_apply_lock.lock().await;
+            if !runtime.is_notification_context_current(generation, session_generation, &session) {
+                return;
+            }
+            let mut output = output;
+            if runtime.notification_output_needs_remote_resolution(&output) {
+                runtime.resolve_notification_output_names(&mut output).await;
+                if !runtime.is_notification_context_current(
+                    generation,
+                    session_generation,
+                    &session,
+                ) {
+                    return;
+                }
+            }
+            runtime.apply_notification_output(output);
+        });
     }
 
     pub(super) fn apply_current_user_output(&self, mut output: RealtimeCurrentUserOutput) {

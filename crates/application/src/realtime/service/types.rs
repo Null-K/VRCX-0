@@ -90,6 +90,7 @@ pub struct RealtimeHostRuntime {
     pub(super) current_user: RealtimeCurrentUserRuntime,
     pub(super) user_cache: UserCacheRuntime,
     pub(super) user_query_cache: UserQueryCache,
+    pub(super) notification_apply_lock: Arc<tokio::sync::Mutex<()>>,
 }
 
 pub(super) struct RealtimeHostRuntimeMessageSink {

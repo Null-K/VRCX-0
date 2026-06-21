@@ -42,8 +42,8 @@ use crate::realtime::{
     FriendBaselineResult, FriendProjection, PendingOfflineTimerAction,
     RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeFriendApplyResult,
     RealtimeFriendOutput, RealtimeInstanceClosedOutput, RealtimeNotificationOutput,
-    RealtimeNotificationProjection, RealtimeSessionContext, RealtimeTransportStartResult,
-    RealtimeWsStatusPayload,
+    RealtimeNotificationProjection, RealtimeNotificationUpsert, RealtimeSessionContext,
+    RealtimeTransportStartResult, RealtimeWsStatusPayload,
 };
 use crate::session::HostSessionRuntime;
 use crate::sync::RuntimeSyncEngine;
@@ -79,6 +79,8 @@ mod persistence;
 #[path = "types.rs"]
 mod types;
 
-use lifecycle_world_cache::{is_meaningful_world_name, lookup_cached_world_name};
+use lifecycle_world_cache::{
+    is_meaningful_world_name, lookup_cached_world_name, WorldNameFetchOutcome,
+};
 
 pub use types::{RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest};
