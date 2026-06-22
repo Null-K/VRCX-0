@@ -4,27 +4,28 @@ use std::sync::Arc;
 use std::time::Duration;
 
 use serde::Serialize;
-use tauri::http::{header::CONTENT_TYPE, Request, Response, StatusCode};
+use tauri::http::{Request, Response, StatusCode, header::CONTENT_TYPE};
 use tauri::menu::{CheckMenuItem, Menu, MenuItem};
 use tauri::{Emitter, Manager, WebviewWindowBuilder};
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_notification::NotificationExt;
+use tracing_subscriber::Layer;
 use tracing_subscriber::filter::LevelFilter;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
-use tracing_subscriber::Layer;
 
+use crate::error::AppError;
 use crate::localization::shell_locale::{
     self, AuthFailureNotificationLabels, BackgroundModeNotificationLabels, TrayLabels,
 };
 use crate::state::{AppState, BACKGROUND_MODE_RESUME_ROUTE_STORAGE_KEY};
 use vrcx_0_application::RuntimeEventSink;
-use vrcx_0_application::{format_runtime_output_event, RuntimeOutputLevel, RuntimeOutputMode};
-use vrcx_0_application::{BackendRuntimeMode, BackendRuntimePhase};
+use vrcx_0_application::{BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot};
+use vrcx_0_application::{RuntimeOutputLevel, RuntimeOutputMode, format_runtime_output_event};
 use vrcx_0_application::{RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle};
-use vrcx_0_host::host_capabilities::{is_host_capability_available, HostCapability};
-use vrcx_0_runtime_host::notification::DesktopNotifier;
+use vrcx_0_host::host_capabilities::{HostCapability, is_host_capability_available};
 use vrcx_0_runtime_host::RuntimeHostActions;
+use vrcx_0_runtime_host::notification::DesktopNotifier;
 
 const AUTH_FAILURE_NOTIFICATION_COOLDOWN: Duration = Duration::from_secs(5);
 
@@ -392,6 +393,38 @@ pub fn capture_background_resume_route(app: &tauri::AppHandle, state: &AppState)
     }
 }
 
+pub async fn start_background_mode_for_current_session(
+    app: &tauri::AppHandle,
+    state: &AppState,
+) -> Result<BackendRuntimeSnapshot, AppError> {
+    capture_background_resume_route(app, state);
+    let snapshot = match state
+        .start_backend_runtime(BackendRuntimeMode::Background)
+        .await
+    {
+        Ok(snapshot) => snapshot,
+        Err(error) => {
+            show_auth_failure_notification_after_backend_start_error(
+                app,
+                state,
+                &error.to_string(),
+            );
+            let _ = refresh_tray_menu(app, state);
+            return Err(error.into());
+        }
+    };
+    let current = state.snapshot_backend_runtime();
+    if snapshot.mode == BackendRuntimeMode::Background
+        && current.mode == BackendRuntimeMode::Background
+        && current.phase == BackendRuntimePhase::Running
+    {
+        show_background_mode_started_notification(app, state);
+        destroy_main_window_for_background_mode(app);
+    }
+    let _ = refresh_tray_menu(app, state);
+    Ok(snapshot)
+}
+
 pub fn restore_foreground_window_from_background_mode(
     app: &tauri::AppHandle,
     state: &AppState,
@@ -650,7 +683,7 @@ pub fn background_image_protocol_response(
 pub fn apply_linux_webkit_workaround() {
     #[cfg(target_os = "linux")]
     {
-        use webkit2gtk_nvidia_quirk::{apply_workaround_with_options, ApplyWorkaroundOptions};
+        use webkit2gtk_nvidia_quirk::{ApplyWorkaroundOptions, apply_workaround_with_options};
 
         if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
             tracing::info!("disabling WebKitGTK DMABUF renderer on Linux");
@@ -771,6 +804,30 @@ fn create_main_window(
 
 fn db_config_bool(state: &AppState, key: &str) -> Option<bool> {
     state.runtime_context.config().get_bool(key, false).ok()
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum AutostartWindowAction {
+    None,
+    Minimize,
+    HideToTray { start_background: bool },
+}
+
+fn autostart_window_action(
+    launched_from_autostart: bool,
+    start_minimized: bool,
+    close_to_tray: bool,
+    background_mode_enabled: bool,
+) -> AutostartWindowAction {
+    if !launched_from_autostart || !start_minimized {
+        return AutostartWindowAction::None;
+    }
+    if close_to_tray {
+        return AutostartWindowAction::HideToTray {
+            start_background: background_mode_enabled,
+        };
+    }
+    AutostartWindowAction::Minimize
 }
 
 fn disable_windows_default_context_menu(app: &tauri::AppHandle) {
@@ -917,24 +974,47 @@ fn sync_autostart_from_db(app: &tauri::App, state: &AppState) {
 }
 
 fn apply_autostart_window_state_if_needed(app: &tauri::App, state: &AppState) {
-    if state.launched_from_autostart
-        && state.storage.get("VRCX_StartAsMinimizedState").as_deref() == Some("true")
-    {
-        let close_to_tray = state.storage.get("VRCX_CloseToTray").as_deref() == Some("true");
-        if let Some(window) = app.get_webview_window("main") {
-            let window = window.clone();
-            tauri::async_runtime::spawn(async move {
-                tokio::time::sleep(Duration::from_millis(100)).await;
-                if close_to_tray {
-                    let _ = window.hide();
-                    let _ = window.set_skip_taskbar(true);
-                } else {
-                    let _ = window.set_skip_taskbar(false);
-                    let _ = window.minimize();
-                }
-            });
-        }
+    let action = autostart_window_action(
+        state.launched_from_autostart,
+        state.storage.get("VRCX_StartAsMinimizedState").as_deref() == Some("true"),
+        state.storage.get("VRCX_CloseToTray").as_deref() == Some("true"),
+        db_config_bool(state, "backgroundModeEnabled") == Some(true),
+    );
+    if action == AutostartWindowAction::None {
+        return;
     }
+    let Some(window) = app.get_webview_window("main") else {
+        return;
+    };
+    let window = window.clone();
+    let app_handle = app.handle().clone();
+    tauri::async_runtime::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(100)).await;
+        match action {
+            AutostartWindowAction::HideToTray { start_background } => {
+                let _ = window.hide();
+                let _ = window.set_skip_taskbar(true);
+                if start_background {
+                    let Some(state) = app_handle.try_state::<AppState>() else {
+                        return;
+                    };
+                    if let Err(error) =
+                        start_background_mode_for_current_session(&app_handle, &state).await
+                    {
+                        tracing::warn!(
+                            error = %error,
+                            "failed to start background mode from autostart"
+                        );
+                    }
+                }
+            }
+            AutostartWindowAction::Minimize => {
+                let _ = window.set_skip_taskbar(false);
+                let _ = window.minimize();
+            }
+            AutostartWindowAction::None => {}
+        }
+    });
 }
 
 fn start_host_services(app: &tauri::AppHandle, state: &AppState) {
@@ -1020,6 +1100,26 @@ mod tests {
         assert_eq!(
             auth_failure_notification_labels_for_language("ja").title,
             "VRChat ログインの有効期限が切れました"
+        );
+    }
+
+    #[test]
+    fn autostart_minimized_to_tray_starts_background_when_enabled() {
+        assert_eq!(
+            autostart_window_action(true, true, true, true),
+            AutostartWindowAction::HideToTray {
+                start_background: true
+            }
+        );
+    }
+
+    #[test]
+    fn autostart_minimized_to_tray_does_not_start_background_when_disabled() {
+        assert_eq!(
+            autostart_window_action(true, true, true, false),
+            AutostartWindowAction::HideToTray {
+                start_background: false
+            }
         );
     }
 }

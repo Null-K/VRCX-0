@@ -5,7 +5,7 @@ use tauri::{AppHandle, State};
 use crate::bootstrap;
 use crate::error::AppError;
 use crate::state::AppState;
-use vrcx_0_application::{BackendRuntimeMode, BackendRuntimePhase, BackendRuntimeSnapshot};
+use vrcx_0_application::{BackendRuntimeMode, BackendRuntimeSnapshot};
 use vrcx_0_runtime_host::BackendRuntimeFrontendSessionSnapshot;
 
 #[tauri::command]
@@ -14,32 +14,7 @@ pub async fn app__start_background_mode(
     app_handle: AppHandle,
     state: State<'_, AppState>,
 ) -> Result<BackendRuntimeSnapshot, AppError> {
-    bootstrap::capture_background_resume_route(&app_handle, &state);
-    let snapshot = match state
-        .start_backend_runtime(BackendRuntimeMode::Background)
-        .await
-    {
-        Ok(snapshot) => snapshot,
-        Err(error) => {
-            bootstrap::show_auth_failure_notification_after_backend_start_error(
-                &app_handle,
-                &state,
-                &error.to_string(),
-            );
-            refresh_tray_menu(&app_handle, &state);
-            return Err(error.into());
-        }
-    };
-    let current = state.snapshot_backend_runtime();
-    if snapshot.mode == BackendRuntimeMode::Background
-        && current.mode == BackendRuntimeMode::Background
-        && current.phase == BackendRuntimePhase::Running
-    {
-        bootstrap::show_background_mode_started_notification(&app_handle, &state);
-        destroy_main_window(&app_handle);
-    }
-    refresh_tray_menu(&app_handle, &state);
-    Ok(snapshot)
+    bootstrap::start_background_mode_for_current_session(&app_handle, &state).await
 }
 
 #[tauri::command]
@@ -83,14 +58,4 @@ pub fn app__get_backend_runtime_frontend_session_snapshot(
 pub fn app__ensure_main_window(app_handle: AppHandle) -> Result<(), AppError> {
     bootstrap::ensure_main_window(&app_handle)
         .map_err(|error| AppError::Custom(format!("ensure main window: {error}")))
-}
-
-fn destroy_main_window(app_handle: &AppHandle) {
-    bootstrap::destroy_main_window_for_background_mode(app_handle);
-}
-
-fn refresh_tray_menu(app_handle: &AppHandle, state: &AppState) {
-    if let Err(error) = bootstrap::refresh_tray_menu(app_handle, state) {
-        tracing::warn!(error = %error, "failed to refresh tray background mode item");
-    }
 }

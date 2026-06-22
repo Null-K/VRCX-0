@@ -5,18 +5,12 @@ use crate::commands;
 use crate::macos_menu;
 use crate::state::AppState;
 
-use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
 use tauri::Emitter;
 use tauri::Manager;
 use tauri::WindowEvent;
+use tauri::tray::{MouseButton, MouseButtonState, TrayIconEvent};
 use vrcx_0_application::{BackendRuntimeMode, BackendRuntimePhase};
 use vrcx_0_persistence::config::{self as config_store, ConfigWriteEntry};
-
-fn refresh_tray_menu(app: &tauri::AppHandle, state: &AppState) {
-    if let Err(error) = bootstrap::refresh_tray_menu(app, state) {
-        tracing::warn!(error = %error, "failed to refresh tray background mode item");
-    }
-}
 
 fn stop_background_mode_and_show_window(app: &tauri::AppHandle, state: &AppState) {
     if let Err(error) = bootstrap::restore_foreground_window_from_background_mode(app, state) {
@@ -83,35 +77,14 @@ fn disable_community_theme_from_tray(app: &tauri::AppHandle, state: &AppState) {
     }
 }
 
-fn start_background_mode_and_hide_window(app: tauri::AppHandle) {
+fn start_background_mode_from_shell(app: tauri::AppHandle) {
     tauri::async_runtime::spawn(async move {
         let Some(state) = app.try_state::<AppState>() else {
             return;
         };
-        bootstrap::capture_background_resume_route(&app, &state);
-        match state
-            .start_backend_runtime(BackendRuntimeMode::Background)
-            .await
+        if let Err(error) = bootstrap::start_background_mode_for_current_session(&app, &state).await
         {
-            Ok(snapshot) => {
-                let current = state.snapshot_backend_runtime();
-                if snapshot.mode == BackendRuntimeMode::Background
-                    && is_background_running(current.mode, current.phase)
-                {
-                    bootstrap::show_background_mode_started_notification(&app, &state);
-                    bootstrap::destroy_main_window_for_background_mode(&app);
-                }
-                refresh_tray_menu(&app, &state);
-            }
-            Err(error) => {
-                bootstrap::show_auth_failure_notification_after_backend_start_error(
-                    &app,
-                    &state,
-                    &error.to_string(),
-                );
-                tracing::warn!(error = %error, "failed to start background mode from tray");
-                refresh_tray_menu(&app, &state);
-            }
+            tracing::warn!(error = %error, "failed to start background mode from tray");
         }
     });
 }
@@ -229,7 +202,7 @@ pub fn run() {
                     api.prevent_close();
                     hide_window_to_tray(window);
                     if auto_background_mode_on_tray_enabled(&state) {
-                        start_background_mode_and_hide_window(window.app_handle().clone());
+                        start_background_mode_from_shell(window.app_handle().clone());
                     }
                 } else {
                     commands::host::window::stop_runtime_services(window.app_handle());
@@ -260,7 +233,7 @@ pub fn run() {
                     if is_background_mode_hidden(app, &state) {
                         stop_background_mode_and_show_window(app, &state);
                     } else {
-                        start_background_mode_and_hide_window(app.clone());
+                        start_background_mode_from_shell(app.clone());
                     }
                 }
             }
