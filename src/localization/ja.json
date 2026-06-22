@@ -721,7 +721,9 @@
                 "selected_user": "選択中のユーザー",
                 "unnamed_user": "名前のないユーザー",
                 "self": "自分",
-                "date_range": "日付範囲"
+                "date_range": "日付範囲",
+                "start": "開始",
+                "end": "終了"
             },
             "action": {
                 "current_user": "自分",
@@ -5607,7 +5609,9 @@
             "instance_creator": "インスタンス作成者",
             "time": "時間",
             "count": "回数",
-            "action": "アクション"
+            "action": "アクション",
+            "joined": "参加",
+            "left": "退出"
         },
         "label": {
             "page": "ページ",

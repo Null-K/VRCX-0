@@ -704,6 +704,13 @@
                 "no_user_id_was_found_for_value": "{value}에 대한 사용자 ID를 찾을 수 없습니다."
             }
         },
+        "instance_history": {
+            "label": {
+                "date_range": "날짜 범위",
+                "start": "시작",
+                "end": "종료"
+            }
+        },
         "my_avatars": {
             "filter": "필터",
             "clear_filters": "모두 지우기",
@@ -5516,7 +5523,9 @@
             "instance_creator": "방파개",
             "time": "시간",
             "count": "카운트",
-            "action": "작업"
+            "action": "작업",
+            "joined": "입장",
+            "left": "퇴장"
         },
         "label": {
             "page": "페이지",

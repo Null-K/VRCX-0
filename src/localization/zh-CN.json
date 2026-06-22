@@ -721,7 +721,9 @@
                 "selected_user": "所选用户",
                 "unnamed_user": "未命名用户",
                 "self": "自己",
-                "date_range": "日期范围"
+                "date_range": "日期范围",
+                "start": "开始",
+                "end": "结束"
             },
             "action": {
                 "current_user": "自己",
@@ -5608,7 +5610,9 @@
             "instance_creator": "房间建立者",
             "time": "停留时间",
             "count": "加入次数",
-            "action": "操作"
+            "action": "操作",
+            "joined": "加入",
+            "left": "离开"
         },
         "label": {
             "page": "页",

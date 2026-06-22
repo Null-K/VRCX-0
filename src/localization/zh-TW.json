@@ -721,7 +721,9 @@
                 "selected_user": "所選使用者",
                 "unnamed_user": "未命名使用者",
                 "self": "自己",
-                "date_range": "日期範圍"
+                "date_range": "日期範圍",
+                "start": "開始",
+                "end": "結束"
             },
             "action": {
                 "current_user": "自己",
@@ -5608,7 +5610,9 @@
             "instance_creator": "房間創建者",
             "time": "時間",
             "count": "次數",
-            "action": "動作"
+            "action": "動作",
+            "joined": "加入",
+            "left": "離開"
         },
         "label": {
             "page": "頁",

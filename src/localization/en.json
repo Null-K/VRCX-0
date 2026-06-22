@@ -721,7 +721,9 @@
                 "selected_user": "Selected user",
                 "unnamed_user": "Unnamed user",
                 "self": "Me",
-                "date_range": "Date range"
+                "date_range": "Date range",
+                "start": "Start",
+                "end": "End"
             },
             "action": {
                 "current_user": "Me",
@@ -5608,7 +5610,9 @@
             "instance_creator": "Instance Creator",
             "time": "Time",
             "count": "Count",
-            "action": "Action"
+            "action": "Action",
+            "joined": "Joined",
+            "left": "Left"
         },
         "label": {
             "page": "Page",
