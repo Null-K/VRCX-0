@@ -2,6 +2,7 @@ import { CircleHelpIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { Button } from '@/ui/shadcn/button';
+import { Checkbox } from '@/ui/shadcn/checkbox';
 import {
     Dialog,
     DialogContent,
@@ -34,9 +35,12 @@ const GENERIC_WEBHOOK_EXAMPLE = `{
     "id": "usr_xxx",
     "displayName": "Pizza"
   },
-  "location": "wrld_xxx:123",
+  "location": "The Black Cat public",
+  "locationId": "wrld_xxx:123",
+  "worldId": "wrld_xxx",
   "worldName": "The Black Cat",
-  "timestamp": "2026-06-18T08:30:00Z"
+  "timestamp": "2026-06-18T08:30:00Z",
+  "localTime": "2026-06-18 17:30:00"
 }`;
 
 const DISCORD_WEBHOOK_EXAMPLE = `{
@@ -52,6 +56,65 @@ const DISCORD_WEBHOOK_EXAMPLE = `{
     }
   ]
 }`;
+
+const WEBHOOK_PAYLOAD_FIELDS: Array<[string, string]> = [
+    ['version', 'field_option_version'],
+    ['event', 'field_option_event'],
+    ['category', 'field_option_category'],
+    ['title', 'field_option_title'],
+    ['message', 'field_option_message'],
+    ['user', 'field_option_user'],
+    ['location', 'field_option_location'],
+    ['locationId', 'field_option_location_id'],
+    ['worldId', 'field_option_world_id'],
+    ['worldName', 'field_option_world_name'],
+    ['timestamp', 'field_option_timestamp'],
+    ['localTime', 'field_option_local_time']
+];
+
+const DEFAULT_WEBHOOK_FIELDS = WEBHOOK_PAYLOAD_FIELDS.map(([field]) => field);
+
+function parseWebhookFields(value: unknown): string[] {
+    const raw = String(value || '').trim();
+    let parsed: unknown[] = [];
+    if (raw.startsWith('[')) {
+        try {
+            const json = JSON.parse(raw);
+            parsed = Array.isArray(json) ? json : [];
+        } catch {
+            parsed = [];
+        }
+    } else if (raw) {
+        parsed = raw.split(',');
+    }
+    const selected = parsed
+        .map((field) => String(field || '').trim())
+        .filter((field) => DEFAULT_WEBHOOK_FIELDS.includes(field));
+    return selected.length
+        ? Array.from(new Set(selected))
+        : DEFAULT_WEBHOOK_FIELDS;
+}
+
+function formatWebhookFields(fields: string[]): string {
+    return JSON.stringify(
+        fields.filter((field) => DEFAULT_WEBHOOK_FIELDS.includes(field))
+    );
+}
+
+function updateWebhookFields(
+    fields: string[],
+    field: string,
+    checked: boolean
+): string[] {
+    const current = new Set(fields);
+    if (checked) {
+        current.add(field);
+    } else {
+        current.delete(field);
+    }
+    const ordered = DEFAULT_WEBHOOK_FIELDS.filter((item) => current.has(item));
+    return ordered.length ? ordered : [...DEFAULT_WEBHOOK_FIELDS];
+}
 
 export function SettingsNotificationsTab({
     prefs,
@@ -76,6 +139,7 @@ export function SettingsNotificationsTab({
     onWebhookUrlDraftChange,
     onWebhookUrlBlur,
     onWebhookFormatChange,
+    onWebhookFieldsChange,
     onNotificationTtsModeChange,
     onNotificationTtsVoiceChange,
     onNotificationTtsNicknameChange,
@@ -84,6 +148,10 @@ export function SettingsNotificationsTab({
     onSpeakNotificationTts
 }: any) {
     const { t } = useTranslation();
+    const selectedWebhookFields = parseWebhookFields(prefs.webhookFields);
+    const webhookFieldsDisabled =
+        !prefs.webhookEnabled ||
+        (prefs.webhookFormat || 'generic') !== 'generic';
     return (
         <SettingsTabContent value="notifications">
             <SettingsGroup
@@ -117,6 +185,50 @@ export function SettingsNotificationsTab({
                             </SelectGroup>
                         </SelectContent>
                     </Select>
+                </Field>
+
+                <Field
+                    label={t(
+                        'view.settings.notifications.notifications.webhook.fields'
+                    )}
+                >
+                    <div className="grid max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {WEBHOOK_PAYLOAD_FIELDS.map(([field, labelKey]) => (
+                            <label
+                                key={field}
+                                className="flex min-h-9 items-center gap-2 text-sm"
+                            >
+                                <Checkbox
+                                    checked={selectedWebhookFields.includes(
+                                        field
+                                    )}
+                                    disabled={webhookFieldsDisabled}
+                                    onCheckedChange={(checked: any) => {
+                                        onWebhookFieldsChange(
+                                            formatWebhookFields(
+                                                updateWebhookFields(
+                                                    selectedWebhookFields,
+                                                    field,
+                                                    Boolean(checked)
+                                                )
+                                            )
+                                        );
+                                    }}
+                                />
+                                <span
+                                    className={
+                                        webhookFieldsDisabled
+                                            ? 'text-muted-foreground'
+                                            : undefined
+                                    }
+                                >
+                                    {t(
+                                        `view.settings.notifications.notifications.webhook.${labelKey}`
+                                    )}
+                                </span>
+                            </label>
+                        ))}
+                    </div>
                 </Field>
 
                 <Field

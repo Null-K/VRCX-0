@@ -281,6 +281,7 @@ impl RuntimeHostState {
             auth_scope: runtime_context.auth_scope.clone(),
             game_log_snapshot: runtime_context.game_log_snapshot_handle(),
             overlay_activity: runtime_context.overlay_activity.clone(),
+            world_cache: Arc::clone(&runtime_context.world_cache),
         }));
         let session_runtime = Arc::new(SessionHostRuntime::new(
             runtime_context.session.clone(),

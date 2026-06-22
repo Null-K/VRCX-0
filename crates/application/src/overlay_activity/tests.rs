@@ -369,6 +369,8 @@ fn queue_projection_only_ingests_ready_events() {
     runtime.ingest_instance_queue_projection(&RealtimeInstanceQueueProjection {
         kind: "update".to_string(),
         instance_location: "wrld_1:123".to_string(),
+        world_id: "wrld_1".to_string(),
+        world_name: "Queue World".to_string(),
         position: 2,
         queue_size: 4,
         received_at: "2026-05-31T00:03:00.000Z".to_string(),
@@ -377,6 +379,8 @@ fn queue_projection_only_ingests_ready_events() {
     runtime.ingest_instance_queue_projection(&RealtimeInstanceQueueProjection {
         kind: "ready".to_string(),
         instance_location: "wrld_1:123".to_string(),
+        world_id: "wrld_1".to_string(),
+        world_name: "Queue World".to_string(),
         position: 0,
         queue_size: 0,
         received_at: "2026-05-31T00:03:10.000Z".to_string(),
@@ -466,6 +470,7 @@ fn game_log_join_leave_batch_ingests_current_instance_activity() {
                 display_name: "Joining User".to_string(),
                 location: "wrld_1:123".to_string(),
                 user_id: "usr_joining".to_string(),
+                world_name: "Test World".to_string(),
                 time: 0,
             }],
             ..GameLogWriteBatch::default()

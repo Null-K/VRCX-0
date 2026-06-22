@@ -88,6 +88,7 @@ fn writes_core_game_log_rows_with_parameterized_sql() -> Result<(), Error> {
             display_name: "做鳄梦small-fry".into(),
             location: "wrld_test:123".into(),
             user_id: "usr_1".into(),
+            world_name: "测试世界".into(),
             time: 0,
         },
     )?;
@@ -166,6 +167,7 @@ fn duplicate_location_and_join_leave_rows_are_ignored() -> Result<(), Error> {
         display_name: "DupUser".into(),
         location: "wrld_dup:1".into(),
         user_id: "usr_dup".into(),
+        world_name: "Dup".into(),
         time: 0,
     };
     insert_join_leave(db, &join)?;
@@ -222,6 +224,7 @@ fn writes_core_rows_in_one_batch_and_keeps_deduplication() -> Result<(), Error> 
         display_name: "BatchUser".into(),
         location: "wrld_batch:1".into(),
         user_id: "usr_batch".into(),
+        world_name: "Batch 世界".into(),
         time: 0,
     });
     batch.events.push(GameLogEventEntry {
@@ -268,6 +271,7 @@ fn batch_write_rolls_back_when_one_core_insert_fails() -> Result<(), Error> {
         display_name: "RollbackUser".into(),
         location: "wrld_rollback:1".into(),
         user_id: "usr_rollback".into(),
+        world_name: "Rollback".into(),
         time: 0,
     });
 
@@ -348,6 +352,7 @@ fn sessions_events_fetch_all_in_window_regardless_of_location() -> Result<(), Er
             display_name: "Matched".into(),
             location: "wrld_orphan:1".into(),
             user_id: "usr_matched".into(),
+            world_name: "Orphan".into(),
             time: 0,
         },
     )?;
@@ -359,6 +364,7 @@ fn sessions_events_fetch_all_in_window_regardless_of_location() -> Result<(), Er
             display_name: "EmptyLoc".into(),
             location: "".into(),
             user_id: "usr_empty".into(),
+            world_name: "".into(),
             time: 0,
         },
     )?;
@@ -371,6 +377,7 @@ fn sessions_events_fetch_all_in_window_regardless_of_location() -> Result<(), Er
             display_name: "Traveling".into(),
             location: "traveling".into(),
             user_id: "usr_traveling".into(),
+            world_name: "".into(),
             time: 0,
         },
     )?;
@@ -383,6 +390,7 @@ fn sessions_events_fetch_all_in_window_regardless_of_location() -> Result<(), Er
             display_name: "Elsewhere".into(),
             location: "wrld_elsewhere:1".into(),
             user_id: "usr_elsewhere".into(),
+            world_name: "".into(),
             time: 0,
         },
     )?;

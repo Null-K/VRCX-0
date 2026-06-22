@@ -14,6 +14,7 @@ use crate::Result;
 pub struct VideoInput {
     pub created_at: String,
     pub location: String,
+    pub world_name: String,
     pub video_url: String,
     pub video_id: String,
     pub video_name: String,

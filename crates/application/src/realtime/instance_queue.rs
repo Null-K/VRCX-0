@@ -1,6 +1,8 @@
 use serde_json::Value;
 use vrcx_0_core::realtime::RealtimeWsMessagePayload;
 
+use crate::world_enrich::world_id_from_location_or_id;
+
 use super::RealtimeInstanceQueueProjection;
 
 pub fn apply_instance_queue_ws_message(
@@ -26,7 +28,9 @@ pub fn apply_instance_queue_ws_message(
     Some(RealtimeInstanceQueueProjection {
         generation,
         kind: kind.to_string(),
+        world_id: world_id_from_location_or_id(&instance_location),
         instance_location,
+        world_name: String::new(),
         position: number_field(content.get("position")),
         queue_size: number_field(content.get("queueSize")),
         received_at: payload.received_at.clone(),

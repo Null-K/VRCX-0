@@ -187,6 +187,11 @@ pub fn format_display_location(
     world_name.to_string()
 }
 
+pub fn is_meaningful_world_name(value: &str) -> bool {
+    let trimmed = value.trim();
+    !trimmed.is_empty() && !trimmed.starts_with("wrld_")
+}
+
 fn readable_location_part(value: &str) -> &str {
     let trimmed = value.trim();
     if trimmed == "private"

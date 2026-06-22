@@ -1,4 +1,5 @@
 use std::sync::{Arc, Mutex};
+use std::time::Duration;
 
 use serde_json::{json, Map, Value};
 use vrcx_0_application::HostSessionRuntime;
@@ -19,6 +20,7 @@ use vrcx_0_application::RuntimeSnapshot;
 use vrcx_0_application::RuntimeSyncEngine;
 use vrcx_0_application::TaskSupervisor;
 use vrcx_0_application::WebClient;
+use vrcx_0_application::WorldCache;
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_persistence::DatabaseService;
 
@@ -26,6 +28,9 @@ use crate::host_actions::RuntimeHost;
 use crate::notification::{
     DesktopNotifier, DesktopNotifierSlot, NotificationDispatcher, NotificationDispatcherDeps,
 };
+
+const WORLD_CACHE_WORKING_CAPACITY: u64 = 512;
+const WORLD_CACHE_WORKING_TTL: Duration = Duration::from_secs(30 * 60);
 
 #[derive(Clone)]
 struct OverlayActivityRuntimeEventSink {
@@ -78,6 +83,7 @@ pub struct RuntimeHostContext {
     pub auth_scope: RuntimeAuthScope,
     pub mutual_graph_fetch: MutualGraphFetchRuntime,
     pub overlay_activity: OverlayActivityRuntime,
+    pub world_cache: Arc<WorldCache>,
     pub config: ConfigRepository,
     notification_desktop_notifier: DesktopNotifierSlot,
     overlay_activity_extra_sinks: Arc<Mutex<Vec<Arc<dyn OverlayActivitySink>>>>,
@@ -97,6 +103,11 @@ impl RuntimeHostContext {
         let diagnostics = RuntimeDiagnostics::new();
         let tasks = TaskSupervisor::new();
         let session = HostSessionRuntime::new();
+        let world_cache = Arc::new(WorldCache::new(
+            Arc::clone(&db),
+            WORLD_CACHE_WORKING_CAPACITY,
+            WORLD_CACHE_WORKING_TTL,
+        ));
         let notification_desktop_notifier = DesktopNotifierSlot::default();
         let notification_sink: Arc<dyn OverlayActivitySink> =
             Arc::new(NotificationDispatcher::new(NotificationDispatcherDeps {
@@ -104,6 +115,7 @@ impl RuntimeHostContext {
                 config: config.clone(),
                 image_cache: Arc::clone(&image_cache),
                 web: Arc::clone(&web),
+                world_cache: Arc::clone(&world_cache),
                 desktop: Arc::new(notification_desktop_notifier.clone()),
                 event_bus: event_bus.clone(),
                 diagnostics: diagnostics.clone(),
@@ -131,6 +143,7 @@ impl RuntimeHostContext {
             auth_scope: RuntimeAuthScope::new(),
             mutual_graph_fetch: MutualGraphFetchRuntime::new(),
             overlay_activity,
+            world_cache,
             config,
             notification_desktop_notifier,
             overlay_activity_extra_sinks: Arc::new(Mutex::new(vec![notification_sink])),

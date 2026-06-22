@@ -162,6 +162,7 @@ pub(crate) fn game_log_batch_for_kind(
                     display_name: object_field_string(&entry, &["displayName", "display_name"]),
                     location: object_field_string(&entry, &["location"]),
                     user_id: object_field_string(&entry, &["userId", "user_id"]),
+                    world_name: object_field_string(&entry, &["worldName", "world_name"]),
                     time: value_as_i64(object_field(&entry, "time").unwrap_or(&Value::Null)),
                 })
                 .collect();

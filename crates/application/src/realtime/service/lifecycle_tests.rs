@@ -18,14 +18,14 @@ mod tests {
     use crate::overlay_activity::{
         OverlayActivityCandidate, OverlayActivityFilters, OverlayActivityRuntime,
     };
+    use crate::world_enrich::PendingEntryCorrection;
     use crate::{
         HostSessionRuntime, RealtimeNotificationUpsert, RuntimeEventBus, RuntimeSnapshot,
         RuntimeSyncEngine, TaskSupervisor, WebClient,
     };
 
     use super::super::types::{
-        ActiveRealtimeContext, PendingEntryCorrection, RealtimeHostRuntimeMessageSink,
-        RealtimeHostRuntimeState,
+        ActiveRealtimeContext, RealtimeHostRuntimeMessageSink, RealtimeHostRuntimeState,
     };
     use super::super::*;
 
@@ -72,6 +72,11 @@ mod tests {
                 "https://api.vrchat.cloud/api/1".into(),
                 "wss://pipeline.vrchat.cloud".into(),
             ));
+        let world_cache = Arc::new(crate::world_cache::WorldCache::new(
+            Arc::clone(&db),
+            512,
+            Duration::from_secs(30 * 60),
+        ));
         let runtime = Arc::new(RealtimeHostRuntime::new(RealtimeHostRuntimeDeps {
             db,
             web,
@@ -82,6 +87,7 @@ mod tests {
             auth_scope: RuntimeAuthScope::new(),
             game_log_snapshot: Arc::new(Mutex::new(RuntimeSnapshot::default())),
             overlay_activity: OverlayActivityRuntime::default(),
+            world_cache,
         }));
         let active_session = RealtimeSessionContext::new(
             "usr_self".into(),
@@ -149,6 +155,11 @@ mod tests {
                     }
                 }
             })));
+        let world_cache = Arc::new(crate::world_cache::WorldCache::new(
+            Arc::clone(&db),
+            512,
+            Duration::from_secs(30 * 60),
+        ));
         let runtime = Arc::new(RealtimeHostRuntime::new(RealtimeHostRuntimeDeps {
             db,
             web,
@@ -159,6 +170,7 @@ mod tests {
             auth_scope: RuntimeAuthScope::new(),
             game_log_snapshot: Arc::new(Mutex::new(RuntimeSnapshot::default())),
             overlay_activity: overlay_activity.clone(),
+            world_cache,
         }));
         let active_session = RealtimeSessionContext::new(
             "usr_self".into(),

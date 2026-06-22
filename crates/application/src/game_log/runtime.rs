@@ -12,6 +12,7 @@ use crate::sync::RuntimeSyncEngine;
 use crate::task_supervisor::TaskSupervisor;
 use crate::web_client::WebClient;
 use crate::worker::{RuntimeWorker, RuntimeWorkerOptions};
+use crate::world_cache::WorldCache;
 use crate::Result;
 
 use super::host::GameLogHostActions;
@@ -31,6 +32,7 @@ pub struct GameLogRuntimeDeps {
     pub snapshot: Arc<Mutex<RuntimeSnapshot>>,
     pub host_actions: Arc<dyn GameLogHostActions>,
     pub overlay_activity: OverlayActivityRuntime,
+    pub world_cache: Arc<WorldCache>,
 }
 
 pub struct GameLogRuntime {
@@ -51,6 +53,7 @@ impl GameLogRuntime {
             snapshot: deps.snapshot,
             host_actions: deps.host_actions,
             overlay_activity: deps.overlay_activity,
+            world_cache: deps.world_cache,
         });
         let worker_processor = processor.clone();
         let worker = RuntimeWorker::start(

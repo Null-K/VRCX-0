@@ -176,7 +176,8 @@ impl RealtimeHostRuntime {
         owner_user_id: &str,
         output: RealtimeInstanceClosedOutput,
     ) {
-        let projection = output.projection;
+        let mut projection = output.projection;
+        self.enrich_world_name(&mut projection.notification);
         if let Some(location) = projection
             .notification
             .get("location")

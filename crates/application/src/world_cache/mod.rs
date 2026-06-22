@@ -1,3 +1,3 @@
 mod runtime;
 
-pub(crate) use runtime::WorldCache;
+pub use runtime::WorldCache;

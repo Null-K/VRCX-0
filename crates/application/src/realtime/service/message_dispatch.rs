@@ -102,7 +102,9 @@ impl RealtimeMessageSink for RealtimeHostRuntimeMessageSink {
             return;
         }
 
-        if let Some(projection) = apply_instance_queue_ws_message(generation, payload) {
+        if let Some(mut projection) = apply_instance_queue_ws_message(generation, payload) {
+            self.runtime
+                .enrich_instance_queue_projection(&mut projection);
             self.runtime
                 .deps
                 .overlay_activity

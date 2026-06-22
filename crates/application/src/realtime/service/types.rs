@@ -1,6 +1,7 @@
 use super::*;
 use crate::realtime::invite_automation::runtime::InviteAutomationState;
 use crate::world_cache::WorldCache;
+use crate::world_enrich::PendingEntryCorrection;
 use std::collections::HashSet;
 
 pub(super) const MAX_QUEUED_FRIEND_MESSAGES: usize = 512;
@@ -17,14 +18,6 @@ pub(super) struct ActiveRealtimeContext {
 pub(super) struct PendingFriendBaseline {
     pub(super) session: RealtimeSessionContext,
     pub(super) friends_by_id: HashMap<String, FriendRecord>,
-}
-
-#[derive(Clone, Debug)]
-pub(super) struct PendingEntryCorrection {
-    pub(super) stream: RealtimeEntryCorrectionStream,
-    pub(super) id: String,
-    pub(super) location: String,
-    pub(super) group_name: String,
 }
 
 #[derive(Default)]
@@ -92,6 +85,7 @@ pub struct RealtimeHostRuntimeDeps {
     pub auth_scope: RuntimeAuthScope,
     pub game_log_snapshot: Arc<Mutex<RuntimeSnapshot>>,
     pub overlay_activity: OverlayActivityRuntime,
+    pub world_cache: Arc<WorldCache>,
 }
 
 pub struct RealtimeHostRuntime {
@@ -102,7 +96,7 @@ pub struct RealtimeHostRuntime {
     pub(super) current_user: RealtimeCurrentUserRuntime,
     pub(super) user_cache: UserCacheRuntime,
     pub(super) user_query_cache: UserQueryCache,
-    pub(super) world_cache: WorldCache,
+    pub(super) world_cache: Arc<WorldCache>,
     pub(super) notification_apply_lock: Arc<tokio::sync::Mutex<()>>,
 }
 

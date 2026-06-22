@@ -2,19 +2,11 @@ use super::types::{
     ActiveRealtimeContext, RealtimeHostRuntimeMessageSink, RealtimeHostRuntimeState,
 };
 use super::*;
-use std::time::Duration;
-
-const WORLD_CACHE_WORKING_CAPACITY: u64 = 512;
-const WORLD_CACHE_WORKING_TTL: Duration = Duration::from_secs(30 * 60);
 
 impl RealtimeHostRuntime {
     pub fn new(deps: RealtimeHostRuntimeDeps) -> Self {
         let (cancel_tx, _) = watch::channel(0);
-        let world_cache = crate::world_cache::WorldCache::new(
-            Arc::clone(&deps.db),
-            WORLD_CACHE_WORKING_CAPACITY,
-            WORLD_CACHE_WORKING_TTL,
-        );
+        let world_cache = Arc::clone(&deps.world_cache);
         Self {
             deps,
             state: Mutex::new(RealtimeHostRuntimeState::default()),

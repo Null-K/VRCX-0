@@ -5,7 +5,9 @@ use serde_json::{json, Value};
 use vrcx_0_application::{
     HostSessionRuntime, ImageCache, OverlayActivityDelivery, OverlayActivitySink,
     OverlayActivitySnapshot, RuntimeDiagnostics, RuntimeEventBus, TaskSupervisor, WebClient,
+    WorldCache,
 };
+use vrcx_0_core::location::{format_display_location, is_meaningful_world_name, parse_location};
 use vrcx_0_host::overlay_notifications::{send_xs_notification, OvrToolkit};
 use vrcx_0_persistence::config::ConfigRepository;
 use vrcx_0_vrchat_client::web_client::WebExecuteRequest;
@@ -15,6 +17,20 @@ use crate::vr_overlay::{OverlayLocale, OverlayLocalizer};
 const APP_LANGUAGE_CONFIG_KEY: &str = "appLanguage";
 const WEBHOOK_TIMEOUT: Duration = Duration::from_secs(10);
 const WEBHOOK_RETRY_DELAYS: &[Duration] = &[Duration::from_millis(750), Duration::from_secs(2)];
+const DEFAULT_WEBHOOK_FIELDS: &[&str] = &[
+    "version",
+    "event",
+    "category",
+    "title",
+    "message",
+    "user",
+    "location",
+    "locationId",
+    "worldId",
+    "worldName",
+    "timestamp",
+    "localTime",
+];
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct NotificationDeliveryPreferences {
@@ -30,6 +46,7 @@ pub struct NotificationDeliveryPreferences {
     pub webhook_enabled: bool,
     pub webhook_url: String,
     pub webhook_format: String,
+    pub webhook_fields: Vec<String>,
 }
 
 impl Default for NotificationDeliveryPreferences {
@@ -47,6 +64,7 @@ impl Default for NotificationDeliveryPreferences {
             webhook_enabled: false,
             webhook_url: String::new(),
             webhook_format: "generic".into(),
+            webhook_fields: default_webhook_fields(),
         }
     }
 }
@@ -161,6 +179,7 @@ pub struct NotificationDispatcher {
     image_cache: Arc<ImageCache>,
     ovrt: Arc<OvrToolkit>,
     web: Arc<WebClient>,
+    world_cache: Arc<WorldCache>,
     desktop: Arc<dyn DesktopNotifier>,
     event_bus: RuntimeEventBus,
     diagnostics: RuntimeDiagnostics,
@@ -172,6 +191,7 @@ pub struct NotificationDispatcherDeps {
     pub config: ConfigRepository,
     pub image_cache: Arc<ImageCache>,
     pub web: Arc<WebClient>,
+    pub world_cache: Arc<WorldCache>,
     pub desktop: Arc<dyn DesktopNotifier>,
     pub event_bus: RuntimeEventBus,
     pub diagnostics: RuntimeDiagnostics,
@@ -186,6 +206,7 @@ impl NotificationDispatcher {
             image_cache: deps.image_cache,
             ovrt: Arc::new(OvrToolkit::new()),
             web: deps.web,
+            world_cache: deps.world_cache,
             desktop: deps.desktop,
             event_bus: deps.event_bus,
             diagnostics: deps.diagnostics,
@@ -205,7 +226,13 @@ impl OverlayActivitySink for NotificationDispatcher {
             return;
         }
         let locale = load_locale(&self.config);
-        let render = render_delivery(&delivery, locale);
+        let endpoint = self
+            .session
+            .snapshot()
+            .realtime_context
+            .map(|context| context.endpoint)
+            .unwrap_or_default();
+        let world_cache = Arc::clone(&self.world_cache);
         let image_cache = Arc::clone(&self.image_cache);
         let ovrt = Arc::clone(&self.ovrt);
         let web = Arc::clone(&self.web);
@@ -214,6 +241,15 @@ impl OverlayActivitySink for NotificationDispatcher {
         let diagnostics = self.diagnostics.clone();
 
         self.tasks.spawn(async move {
+            let mut delivery = delivery;
+            resolve_delivery_world_name(
+                world_cache.as_ref(),
+                web.as_ref(),
+                &endpoint,
+                &mut delivery,
+            )
+            .await;
+            let render = render_delivery(&delivery, locale);
             dispatch_rendered_notification(
                 delivery,
                 preferences,
@@ -329,6 +365,39 @@ impl RenderedNotification {
     }
 }
 
+async fn resolve_delivery_world_name(
+    world_cache: &WorldCache,
+    web: &WebClient,
+    endpoint: &str,
+    delivery: &mut OverlayActivityDelivery,
+) {
+    if is_meaningful_world_name(&delivery.entry.content.world_name) {
+        return;
+    }
+    let world_id = {
+        let content = &delivery.entry.content;
+        let explicit = content.world_id.trim();
+        if explicit.is_empty() {
+            parse_location(&content.location).world_id
+        } else {
+            explicit.to_string()
+        }
+    };
+    if world_id.is_empty() {
+        return;
+    }
+    let Some(name) = world_cache.resolve_name(web, endpoint, &world_id).await else {
+        return;
+    };
+    let parsed = parse_location(&delivery.entry.content.location);
+    let display_location =
+        format_display_location(&parsed, &name, &delivery.entry.content.group_name);
+    delivery.entry.content.world_name = name;
+    if !display_location.trim().is_empty() {
+        delivery.entry.content.display_location = display_location;
+    }
+}
+
 fn render_delivery(
     delivery: &OverlayActivityDelivery,
     locale: OverlayLocale,
@@ -387,6 +456,7 @@ fn load_preferences(config: &ConfigRepository) -> NotificationDeliveryPreference
             "webhookFormat",
             "generic",
         )),
+        webhook_fields: parse_webhook_fields(&config_string(config, "webhookFields", "")),
     }
 }
 
@@ -467,6 +537,37 @@ fn normalize_webhook_format(value: &str) -> String {
     }
 }
 
+fn default_webhook_fields() -> Vec<String> {
+    DEFAULT_WEBHOOK_FIELDS
+        .iter()
+        .map(|field| (*field).to_string())
+        .collect()
+}
+
+pub fn parse_webhook_fields(value: &str) -> Vec<String> {
+    let fields = value.trim();
+    if fields.is_empty() {
+        return default_webhook_fields();
+    }
+    let parsed = if fields.starts_with('[') {
+        serde_json::from_str::<Vec<String>>(fields).unwrap_or_default()
+    } else {
+        fields.split(',').map(str::to_string).collect()
+    };
+    let mut selected = Vec::new();
+    for field in parsed {
+        let field = field.trim();
+        if is_default_webhook_field(field) && !selected.iter().any(|item| item == field) {
+            selected.push(field.to_string());
+        }
+    }
+    if selected.is_empty() {
+        default_webhook_fields()
+    } else {
+        selected
+    }
+}
+
 async fn resolve_local_image(image_cache: &ImageCache, image_url: &str) -> Option<String> {
     let url = image_url.trim();
     if !url.starts_with("http://") && !url.starts_with("https://") {
@@ -521,7 +622,12 @@ async fn send_webhook_with_retry(
     if url.is_empty() {
         return;
     }
-    let payload = webhook_payload(delivery, render, &preferences.webhook_format);
+    let payload = webhook_payload(
+        delivery,
+        render,
+        &preferences.webhook_format,
+        &preferences.webhook_fields,
+    );
     let body = match serde_json::to_string(&payload) {
         Ok(body) => body,
         Err(error) => {
@@ -580,12 +686,13 @@ fn webhook_payload(
     delivery: &OverlayActivityDelivery,
     render: &RenderedNotification,
     format: &str,
+    fields: &[String],
 ) -> Value {
     if format == "discord" {
         return discord_webhook_payload(delivery, render);
     }
     let entry = &delivery.entry;
-    json!({
+    let payload = json!({
         "version": 1,
         "event": &entry.activity_type,
         "category": entry.category,
@@ -595,12 +702,60 @@ fn webhook_payload(
             "id": &entry.actor_user_id,
             "displayName": &entry.actor_display_name,
         },
-        "location": &entry.content.location,
+        "location": &entry.content.display_location,
+        "locationId": &entry.content.location,
         "worldId": &entry.content.world_id,
-        "displayLocation": &entry.content.display_location,
         "worldName": &entry.content.world_name,
         "timestamp": &entry.created_at,
-    })
+        "localTime": webhook_local_time_string(&entry.created_at),
+    });
+    filter_generic_webhook_payload(payload, fields)
+}
+
+pub fn filter_generic_webhook_payload(payload: Value, fields: &[String]) -> Value {
+    let Some(object) = payload.as_object() else {
+        return payload;
+    };
+
+    let mut filtered = serde_json::Map::new();
+    if fields.is_empty() {
+        for field in DEFAULT_WEBHOOK_FIELDS {
+            insert_generic_webhook_field(&mut filtered, object, field);
+        }
+    } else {
+        for field in fields {
+            let field = field.as_str();
+            if is_default_webhook_field(field) {
+                insert_generic_webhook_field(&mut filtered, object, field);
+            }
+        }
+    }
+    Value::Object(filtered)
+}
+
+fn insert_generic_webhook_field(
+    target: &mut serde_json::Map<String, Value>,
+    source: &serde_json::Map<String, Value>,
+    field: &str,
+) {
+    if let Some(value) = source.get(field) {
+        target.insert(field.to_string(), value.clone());
+    }
+}
+
+fn is_default_webhook_field(field: &str) -> bool {
+    DEFAULT_WEBHOOK_FIELDS.contains(&field)
+}
+
+pub fn webhook_local_time_string(created_at: &str) -> String {
+    chrono::DateTime::parse_from_rfc3339(created_at)
+        .map(|value| {
+            value
+                .with_timezone(&chrono::Local)
+                .format("%Y-%m-%d %H:%M:%S")
+                .to_string()
+        })
+        .unwrap_or_default()
 }
 
 fn discord_webhook_payload(
@@ -636,4 +791,76 @@ fn discord_webhook_payload(
 fn non_empty(value: &str) -> Option<&str> {
     let value = value.trim();
     (!value.is_empty()).then_some(value)
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+    use vrcx_0_application::{
+        OverlayActivityActorRelation, OverlayActivityCategory, OverlayActivityContent,
+        OverlayActivityDelivery, OverlayActivityEntry,
+    };
+
+    use super::{webhook_payload, RenderedNotification};
+
+    #[test]
+    fn generic_webhook_payload_exposes_location_id_and_local_time() {
+        let payload = webhook_payload(
+            &delivery(),
+            &rendered(),
+            "generic",
+            &["location".into(), "locationId".into(), "localTime".into()],
+        );
+
+        assert_eq!(
+            payload.get("location").and_then(|value| value.as_str()),
+            Some("Named World public")
+        );
+        assert_eq!(
+            payload.get("locationId").and_then(|value| value.as_str()),
+            Some("wrld_named:123")
+        );
+        let local_time = payload
+            .get("localTime")
+            .and_then(|value| value.as_str())
+            .expect("localTime");
+        assert_eq!(local_time.len(), "2026-06-18 17:30:00".len());
+        assert!(payload.get("timestamp").is_none());
+        assert!(payload.get("worldName").is_none());
+    }
+
+    fn rendered() -> RenderedNotification {
+        RenderedNotification {
+            title: "Traveler".into(),
+            body: "joined Named World".into(),
+            text: "Traveler joined Named World".into(),
+            image_url: String::new(),
+        }
+    }
+
+    fn delivery() -> OverlayActivityDelivery {
+        OverlayActivityDelivery {
+            entry: OverlayActivityEntry {
+                sequence: 1,
+                source_id: "game-log:join".into(),
+                activity_type: "OnPlayerJoined".into(),
+                category: OverlayActivityCategory::CurrentInstance,
+                created_at: "2026-06-18T08:30:00.000Z".into(),
+                actor_user_id: "usr_traveler".into(),
+                actor_display_name: "Traveler".into(),
+                content: OverlayActivityContent {
+                    location: "wrld_named:123".into(),
+                    world_id: "wrld_named".into(),
+                    display_location: "Named World public".into(),
+                    world_name: "Named World".into(),
+                    ..OverlayActivityContent::default()
+                },
+                actor_relation: OverlayActivityActorRelation::None,
+                payload: json!({}),
+            },
+            desktop: false,
+            vr: false,
+            webhook: true,
+        }
+    }
 }

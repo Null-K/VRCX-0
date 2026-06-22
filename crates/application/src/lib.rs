@@ -32,6 +32,7 @@ pub mod vrchat_api;
 mod web_client;
 mod worker;
 mod world_cache;
+mod world_enrich;
 
 pub mod ports {
     pub use crate::event_bus::{RuntimeEventBus, RuntimeEventSink};
@@ -162,5 +163,6 @@ pub use task_supervisor::{
 pub use vrcx_0_core::location::ParsedLocation;
 pub use web_client::WebClient;
 pub use worker::{OverflowPolicy, RuntimeJobHandler, RuntimePushReport};
+pub use world_cache::WorldCache;
 
 pub type Result<T> = std::result::Result<T, Error>;

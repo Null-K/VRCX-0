@@ -1,6 +1,7 @@
-use super::lifecycle_enrichment::{resolved_display_location, PendingWorldNameResolution};
-use super::types::PendingEntryCorrection;
 use super::*;
+use crate::world_enrich::{
+    resolved_display_location, PendingEntryCorrection, PendingWorldNameResolution,
+};
 use vrcx_0_vrchat_client::worlds::world_get_input;
 
 const WORLD_NAME_FETCH_THROTTLE_MS: i64 = 600_000;
@@ -207,11 +208,6 @@ impl RealtimeHostRuntime {
                 },
             });
     }
-}
-
-pub(super) fn is_meaningful_world_name(value: &str) -> bool {
-    let trimmed = value.trim();
-    !trimmed.is_empty() && !trimmed.starts_with("wrld_")
 }
 
 fn string_value(value: &Value, key: &str) -> String {

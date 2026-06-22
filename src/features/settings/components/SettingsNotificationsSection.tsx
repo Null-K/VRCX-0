@@ -126,11 +126,15 @@ export function SettingsNotificationsSection({ notifications }: any) {
             onWebhookFormatChange={(value: any) => {
                 saveStringPreference('webhookFormat', 'webhookFormat', value);
             }}
+            onWebhookFieldsChange={(value: any) => {
+                saveStringPreference('webhookFields', 'webhookFields', value);
+            }}
             onTestWebhook={() => {
                 commands
                     .appWebhookSendTest(
                         String(prefs.webhookUrl || ''),
-                        String(prefs.webhookFormat || 'generic')
+                        String(prefs.webhookFormat || 'generic'),
+                        String(prefs.webhookFields || '')
                     )
                     .then((status) => {
                         toast.success(

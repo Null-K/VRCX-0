@@ -1,6 +1,6 @@
 use std::collections::{HashMap, HashSet};
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::sync::{Arc, Mutex, Weak};
+use std::time::{Duration, Instant};
 
 use moka::sync::Cache;
 use serde_json::Value;
@@ -10,12 +10,22 @@ use vrcx_0_persistence::worlds::{
     world_cache_get_many, world_cache_list_recent, world_cache_upsert, WorldSummaryOutput,
 };
 use vrcx_0_persistence::DatabaseService;
+use vrcx_0_vrchat_client::http_api::ApiScope;
+use vrcx_0_vrchat_client::worlds::world_get_input;
 
-pub(crate) struct WorldCache {
+use crate::web_client::WebClient;
+use vrcx_0_core::location::is_meaningful_world_name;
+
+const WORLD_RESOLVE_FETCH_TIMEOUT_MS: u64 = 5_000;
+const WORLD_RESOLVE_FAILURE_TTL_MS: u64 = 60_000;
+
+pub struct WorldCache {
     favorites: Mutex<HashMap<String, Arc<CachedWorld>>>,
     working: Cache<String, Arc<CachedWorld>>,
     working_init_limit: usize,
     db: Arc<DatabaseService>,
+    inflight: Mutex<HashMap<String, Weak<tokio::sync::Mutex<()>>>>,
+    failures: Mutex<HashMap<String, Instant>>,
 }
 
 struct CachedWorld {
@@ -23,7 +33,7 @@ struct CachedWorld {
 }
 
 impl WorldCache {
-    pub(crate) fn new(db: Arc<DatabaseService>, capacity: u64, working_ttl: Duration) -> Self {
+    pub fn new(db: Arc<DatabaseService>, capacity: u64, working_ttl: Duration) -> Self {
         let capacity = capacity.max(1);
         Self {
             favorites: Mutex::new(HashMap::new()),
@@ -33,6 +43,8 @@ impl WorldCache {
                 .build(),
             working_init_limit: usize::try_from(capacity).unwrap_or(usize::MAX),
             db,
+            inflight: Mutex::new(HashMap::new()),
+            failures: Mutex::new(HashMap::new()),
         }
     }
 
@@ -204,6 +216,106 @@ impl WorldCache {
         Some(cached.value.clone())
     }
 
+    pub async fn resolve_name(
+        &self,
+        web: &WebClient,
+        endpoint: &str,
+        world_id: &str,
+    ) -> Option<String> {
+        let world_id = normalize_id(world_id);
+        if world_id.is_empty() {
+            return None;
+        }
+        if let Some(name) = self.get_name(&world_id) {
+            return Some(name);
+        }
+        let endpoint = endpoint.trim();
+        if endpoint.is_empty() {
+            return None;
+        }
+        if self.recently_failed(&world_id) {
+            return None;
+        }
+        let inflight = self.inflight_lock(&world_id);
+        let _guard = inflight.lock().await;
+        if let Some(name) = self.get_name(&world_id) {
+            return Some(name);
+        }
+        if self.recently_failed(&world_id) {
+            return None;
+        }
+        match self.fetch_world_name(web, endpoint, &world_id).await {
+            Some(name) => {
+                self.clear_failure(&world_id);
+                Some(name)
+            }
+            None => {
+                self.record_failure(&world_id);
+                None
+            }
+        }
+    }
+
+    async fn fetch_world_name(
+        &self,
+        web: &WebClient,
+        endpoint: &str,
+        world_id: &str,
+    ) -> Option<String> {
+        let (_, request) = world_get_input(endpoint.to_string(), world_id.to_string()).ok()?;
+        let response = tokio::time::timeout(
+            Duration::from_millis(WORLD_RESOLVE_FETCH_TIMEOUT_MS),
+            web.execute_api(request, ApiScope::Vrchat, self.db.as_ref()),
+        )
+        .await
+        .ok()?
+        .ok()?;
+        if !(200..=299).contains(&response.status) {
+            return None;
+        }
+        let world = serde_json::from_str::<Value>(&response.data).ok()?;
+        self.hydrate_from_payload(&world);
+        world_name(&world)
+    }
+
+    fn recently_failed(&self, world_id: &str) -> bool {
+        self.failures
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(world_id)
+            .is_some_and(|at| at.elapsed() < Duration::from_millis(WORLD_RESOLVE_FAILURE_TTL_MS))
+    }
+
+    fn record_failure(&self, world_id: &str) {
+        let mut map = self
+            .failures
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        map.retain(|_, at| at.elapsed() < Duration::from_millis(WORLD_RESOLVE_FAILURE_TTL_MS));
+        map.insert(world_id.to_string(), Instant::now());
+    }
+
+    fn clear_failure(&self, world_id: &str) {
+        self.failures
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .remove(world_id);
+    }
+
+    fn inflight_lock(&self, world_id: &str) -> Arc<tokio::sync::Mutex<()>> {
+        let mut map = self
+            .inflight
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if let Some(existing) = map.get(world_id).and_then(Weak::upgrade) {
+            return existing;
+        }
+        map.retain(|_, weak| weak.strong_count() > 0);
+        let lock = Arc::new(tokio::sync::Mutex::new(()));
+        map.insert(world_id.to_string(), Arc::downgrade(&lock));
+        lock
+    }
+
     fn load_favorite_ids(&self) -> HashSet<String> {
         match favorite_list(self.db.as_ref(), "world".into()) {
             Ok(rows) => rows
@@ -328,11 +440,6 @@ fn is_persistable_world(value: &Value, name: &str) -> bool {
     release_status == "public"
         && is_meaningful_world_name(name)
         && (!image_url.is_empty() || !thumbnail_image_url.is_empty())
-}
-
-fn is_meaningful_world_name(value: &str) -> bool {
-    let trimmed = value.trim();
-    !trimmed.is_empty() && !trimmed.starts_with("wrld_")
 }
 
 #[cfg(test)]

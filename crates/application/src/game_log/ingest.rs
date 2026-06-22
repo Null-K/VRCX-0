@@ -318,6 +318,7 @@ impl GameLogIngestEngine {
             display_name: display_name.to_string(),
             location: self.state.current_location.clone(),
             user_id: user_id.to_string(),
+            world_name: self.state.current_world_name.clone(),
             time: 0,
         });
     }
@@ -339,6 +340,7 @@ impl GameLogIngestEngine {
             display_name: display_name.to_string(),
             location: self.state.current_location.clone(),
             user_id: user_id.to_string(),
+            world_name: self.state.current_world_name.clone(),
             time: duration,
         });
     }
@@ -392,6 +394,7 @@ impl GameLogIngestEngine {
                 display_name: player.display_name.clone(),
                 location: self.state.current_location.clone(),
                 user_id: player.user_id.clone(),
+                world_name: self.state.current_world_name.clone(),
                 time: duration_ms(player.join_time_ms, stopped_at_ms),
             });
         }
@@ -421,6 +424,7 @@ impl GameLogIngestEngine {
         Some(VideoInput {
             created_at: event.created_at.clone(),
             location: self.state.current_location.clone(),
+            world_name: self.state.current_world_name.clone(),
             video_url,
             display_name: display_name.to_string(),
             ..Default::default()

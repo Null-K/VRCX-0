@@ -1223,8 +1223,8 @@ async appReadVrcRegJsonFile(filepath: string) : Promise<string> {
 async appDesktopNotification(boldText: string, text: string | null, image: string | null, playSound: boolean | null) : Promise<null> {
     return await TAURI_INVOKE("app__desktop_notification", { boldText, text, image, playSound });
 },
-async appWebhookSendTest(url: string, format: string) : Promise<number> {
-    return await TAURI_INVOKE("app__webhook_send_test", { url, format });
+async appWebhookSendTest(url: string, format: string, fields: string) : Promise<number> {
+    return await TAURI_INVOKE("app__webhook_send_test", { url, format, fields });
 },
 async appAuthFailureNotificationShow(reason: string | null) : Promise<null> {
     return await TAURI_INVOKE("app__auth_failure_notification_show", { reason });
@@ -1481,7 +1481,7 @@ export type RealtimeEntryCorrection = { stream: RealtimeEntryCorrectionStream; i
 export type RealtimeEntryCorrectionFields = { displayName?: string | null; worldName?: string | null; displayLocation?: string | null }
 export type RealtimeEntryCorrectionStream = "feed" | "notification"
 export type RealtimeInstanceClosedProjection = { generation: number; notification: JsonValue; feedEntry: JsonValue }
-export type RealtimeInstanceQueueProjection = { generation: number; kind: string; instanceLocation: string; position: number; queueSize: number; receivedAt: string }
+export type RealtimeInstanceQueueProjection = { generation: number; kind: string; instanceLocation: string; worldId: string; worldName: string; position: number; queueSize: number; receivedAt: string }
 export type RealtimeNotificationProjection = { generation: number; upserts?: RealtimeNotificationUpsert[]; expiredIds?: string[]; seenIds?: string[]; clearMenuIfNoUnseen: boolean }
 export type RealtimeNotificationUpsert = { notification: JsonValue; insertDefaults?: JsonValue | null; notifyMenu: boolean; deliverRuntime: boolean; runAutomation: boolean }
 export type RealtimeTransportStartResult = { generation: number; clientRunId: number; sessionGeneration: number }

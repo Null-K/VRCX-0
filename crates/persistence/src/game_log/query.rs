@@ -273,6 +273,7 @@ pub fn get_game_log_join_leave(db: &DatabaseService) -> Result<Vec<GameLogJoinLe
             display_name: row_string(&row, 2),
             location: row_string(&row, 3),
             user_id: row_string(&row, 4),
+            world_name: String::new(),
             time: row
                 .get(5)
                 .and_then(serde_json::Value::as_i64)

@@ -64,6 +64,8 @@ export function createDefaultSettingsPrefs() {
         webhookEnabled: false,
         webhookUrl: '',
         webhookFormat: 'generic',
+        webhookFields:
+            '["version","event","category","title","message","user","location","locationId","worldId","worldName","timestamp","localTime"]',
         wristOverlayEnabled: false,
         wristOverlayStartMode: 'vrchatVrMode',
         wristOverlayButton: 'grip',

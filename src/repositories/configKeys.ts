@@ -127,6 +127,11 @@ export const ConfigKeys = {
     webhookEnabled: { type: 'bool', default: false },
     webhookUrl: { type: 'string', default: '' },
     webhookFormat: { type: 'string', default: 'generic' },
+    webhookFields: {
+        type: 'string',
+        default:
+            '["version","event","category","title","message","user","location","locationId","worldId","worldName","timestamp","localTime"]'
+    },
     vrNotificationActivityFilters: { type: 'string', default: '' },
     desktopNotificationActivityFilters: { type: 'string', default: '' },
     webhookActivityFilters: { type: 'string', default: '' },

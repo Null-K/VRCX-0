@@ -5,6 +5,7 @@ use crate::realtime::{
     FriendProjection, RealtimeInstanceClosedProjection, RealtimeInstanceQueueProjection,
     RealtimeNotificationProjection,
 };
+use crate::world_enrich::world_id_from_location_or_id;
 
 use super::definitions::known_definition_for_type;
 use super::runtime::{first_non_empty, string_field};
@@ -57,6 +58,8 @@ impl OverlayActivityRuntime {
             current_instance: false,
             payload: json!({
                 "instanceLocation": projection.instance_location,
+                "worldId": projection.world_id,
+                "worldName": projection.world_name,
                 "position": projection.position,
                 "queueSize": projection.queue_size,
             }),
@@ -104,6 +107,8 @@ impl OverlayActivityRuntime {
                 current_instance: true,
                 payload: json!({
                     "location": entry.location,
+                    "worldId": world_id_from_location_or_id(&entry.location),
+                    "worldName": entry.world_name,
                     "time": entry.time,
                 }),
             };
@@ -120,6 +125,8 @@ impl OverlayActivityRuntime {
                 "videoUrl": input.video_url,
                 "videoId": input.video_id,
                 "videoName": input.video_name,
+                "worldId": world_id_from_location_or_id(&input.location),
+                "worldName": input.world_name,
                 "thumbnailUrl": input.thumbnail_url,
             });
             let candidate = OverlayActivityCandidate {

@@ -24,6 +24,8 @@ use crate::overlay_activity::OverlayActivityRuntime;
 use crate::sync::RuntimeSyncEngine;
 use crate::task_supervisor::TaskSupervisor;
 use crate::web_client::WebClient;
+use crate::world_cache::WorldCache;
+use crate::world_enrich::{is_meaningful_world_name, world_id_from_location_or_id};
 use crate::{Error, Result};
 
 const GAME_LOG_WRITE_RETRY_DELAYS_MS: &[u64] = &[25, 100, 250];
@@ -51,6 +53,7 @@ pub struct GameLogProcessorDeps {
     pub snapshot: Arc<Mutex<RuntimeSnapshot>>,
     pub host_actions: Arc<dyn GameLogHostActions>,
     pub overlay_activity: OverlayActivityRuntime,
+    pub world_cache: Arc<WorldCache>,
 }
 
 impl GameLogProcessorDeps {
@@ -183,8 +186,9 @@ impl GameLogProcessor {
     fn apply_ingest_output(
         &self,
         deps: GameLogSideEffectDeps,
-        output: GameLogIngestOutput,
+        mut output: GameLogIngestOutput,
     ) -> Result<()> {
+        self.enrich_ingest_output_world_names(&mut output);
         let write_outcome =
             self.write_batch_or_emit_failure_telemetry(&output.batch, output.raw_rows.clone())?;
         if let GameLogWriteOutcome::RuntimePersisted { affected_count } = write_outcome {
@@ -201,6 +205,42 @@ impl GameLogProcessor {
             dispatch_side_effect(deps.clone(), side_effect);
         }
         Ok(())
+    }
+
+    fn enrich_ingest_output_world_names(&self, output: &mut GameLogIngestOutput) {
+        for entry in &mut output.batch.join_leave {
+            if let Some(world_name) =
+                self.cached_world_name_for_location(&entry.world_name, &entry.location)
+            {
+                entry.world_name = world_name;
+            }
+        }
+
+        for side_effect in &mut output.side_effects {
+            let GameLogSideEffect::Video(input) = side_effect else {
+                continue;
+            };
+            if let Some(world_name) =
+                self.cached_world_name_for_location(&input.world_name, &input.location)
+            {
+                input.world_name = world_name;
+            }
+        }
+    }
+
+    fn cached_world_name_for_location(
+        &self,
+        current_world_name: &str,
+        location: &str,
+    ) -> Option<String> {
+        if is_meaningful_world_name(current_world_name) {
+            return None;
+        }
+        let world_id = world_id_from_location_or_id(location);
+        if world_id.is_empty() {
+            return None;
+        }
+        self.deps.world_cache.get_name(&world_id)
     }
 
     fn write_batch_or_emit_failure_telemetry(
@@ -373,7 +413,7 @@ mod tests {
     use crate::game_log::runtime_state::RuntimeSnapshot;
     use crate::game_log::NoopGameLogHostActions;
     use crate::image_cache::ImageCache;
-    use crate::overlay_activity::OverlayActivityRuntime;
+    use crate::overlay_activity::{OverlayActivityFilters, OverlayActivityRuntime};
     use crate::sync::RuntimeSyncEngine;
     use crate::task_supervisor::TaskSupervisor;
     use crate::web_client::WebClient;
@@ -419,6 +459,11 @@ mod tests {
         let web = Arc::new(WebClient::new(&storage, &db, "https://app.example".into())?);
         let image_fetcher = web.image_fetcher()?;
         let image_cache = Arc::new(ImageCache::new(dir.path.join("ImageCache"), image_fetcher)?);
+        let world_cache = Arc::new(crate::world_cache::WorldCache::new(
+            Arc::clone(&db),
+            512,
+            std::time::Duration::from_secs(30 * 60),
+        ));
         let processor = GameLogProcessor::new(GameLogProcessorDeps {
             db: Arc::clone(&db),
             web,
@@ -428,7 +473,24 @@ mod tests {
             sync: RuntimeSyncEngine::new(),
             snapshot: Arc::new(Mutex::new(RuntimeSnapshot::default())),
             host_actions: Arc::new(NoopGameLogHostActions),
-            overlay_activity: OverlayActivityRuntime::new(),
+            overlay_activity: OverlayActivityRuntime::with_filters(
+                OverlayActivityFilters::from_json(serde_json::json!({
+                    "version": 1,
+                    "wrist": {
+                        "types": {
+                            "OnPlayerJoined": {
+                                "scope": "everyoneInInstance",
+                                "favoriteGroupKeys": "all"
+                            },
+                            "OnPlayerLeft": {
+                                "scope": "everyoneInInstance",
+                                "favoriteGroupKeys": "all"
+                            }
+                        }
+                    }
+                })),
+            ),
+            world_cache,
         });
         Ok((dir, db, processor))
     }
@@ -509,6 +571,45 @@ mod tests {
                     .and_then(|value| value.as_bool())
                     == Some(true)
         }));
+        Ok(())
+    }
+
+    #[test]
+    fn join_leave_events_reuse_current_world_name_for_overlay_content() -> Result<()> {
+        let (_dir, _db, processor) = test_processor("runtime-gamelog-world-name")?;
+
+        processor.handle_jobs(vec![
+            GameLogWorkerJob::Event(event(
+                "2026-05-14T07:00:00.000Z",
+                GameLogEventKind::Location {
+                    location: "wrld_named:123".into(),
+                    world_name: "Named World".into(),
+                },
+            )),
+            GameLogWorkerJob::Event(event(
+                "2026-05-14T07:00:10.000Z",
+                GameLogEventKind::PlayerJoined {
+                    display_name: "Traveler".into(),
+                    user_id: "usr_traveler".into(),
+                },
+            )),
+        ])?;
+
+        let entries = processor.deps.overlay_activity.snapshot().entries;
+        let entry = entries
+            .iter()
+            .find(|entry| entry.activity_type == "OnPlayerJoined")
+            .expect("join overlay entry");
+        assert_eq!(entry.content.world_name, "Named World");
+        assert_eq!(entry.content.world_id, "wrld_named");
+        assert_eq!(entry.content.display_location, "Named World public");
+        assert_eq!(
+            entry
+                .payload
+                .get("worldName")
+                .and_then(|value| value.as_str()),
+            Some("Named World")
+        );
         Ok(())
     }
 }

@@ -18,6 +18,7 @@ pub struct GameLogJoinLeaveEntry {
     pub display_name: String,
     pub location: String,
     pub user_id: String,
+    pub world_name: String,
     pub time: i64,
 }
 

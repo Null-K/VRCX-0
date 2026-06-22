@@ -42,14 +42,15 @@ use crate::realtime::{
     FriendBaselineResult, FriendProjection, PendingOfflineTimerAction,
     RealtimeCurrentUserAuthority, RealtimeCurrentUserOutput, RealtimeEntryCorrection,
     RealtimeEntryCorrectionFields, RealtimeEntryCorrectionStream, RealtimeFriendApplyResult,
-    RealtimeFriendOutput, RealtimeInstanceClosedOutput, RealtimeNotificationOutput,
-    RealtimeNotificationProjection, RealtimeNotificationUpsert, RealtimeSessionContext,
-    RealtimeTransportStartResult, RealtimeWsStatusPayload,
+    RealtimeFriendOutput, RealtimeInstanceClosedOutput, RealtimeInstanceQueueProjection,
+    RealtimeNotificationOutput, RealtimeNotificationProjection, RealtimeNotificationUpsert,
+    RealtimeSessionContext, RealtimeTransportStartResult, RealtimeWsStatusPayload,
 };
 use crate::session::HostSessionRuntime;
 use crate::sync::RuntimeSyncEngine;
 use crate::task_supervisor::TaskSupervisor;
 use crate::web_client::WebClient;
+use crate::world_enrich::is_meaningful_world_name;
 use crate::RuntimeAuthScope;
 use crate::{Error, Result};
 
@@ -80,6 +81,6 @@ mod persistence;
 #[path = "types.rs"]
 mod types;
 
-use lifecycle_world_cache::{is_meaningful_world_name, WorldNameFetchOutcome};
+use lifecycle_world_cache::WorldNameFetchOutcome;
 
 pub use types::{RealtimeHostRuntime, RealtimeHostRuntimeDeps, RealtimeStopRequest};
