@@ -79,7 +79,7 @@ describe('gameLog utilities', () => {
         ]);
     });
 
-    it('groups burst joins near the session start and drops matching start leaves', () => {
+    it('groups burst joins near the session start and keeps genuine leaves', () => {
         const result = buildGameLogSessions(
             [
                 {
@@ -92,6 +92,7 @@ describe('gameLog utilities', () => {
             ],
             [
                 ...Array.from({ length: 5 }, (_: any, index: any) => ({
+                    rowId: 10 + index,
                     type: 'OnPlayerJoined',
                     created_at: `2024-01-01T10:00:0${index}.000Z`,
                     location: 'wrld_session:1',
@@ -101,6 +102,7 @@ describe('gameLog utilities', () => {
                     isFavorite: false
                 })),
                 {
+                    rowId: 20,
                     type: 'OnPlayerLeft',
                     created_at: '2024-01-01T10:00:02.000Z',
                     location: 'wrld_session:1',
@@ -111,6 +113,10 @@ describe('gameLog utilities', () => {
         );
 
         expect(result.segments[0].events).toEqual([
+            expect.objectContaining({
+                type: 'OnPlayerLeft',
+                userId: 'usr_0'
+            }),
             {
                 type: 'JoinGroup',
                 created_at: '2024-01-01T10:00:00.000Z',
@@ -127,6 +133,55 @@ describe('gameLog utilities', () => {
                     })
                 ])
             }
+        ]);
+    });
+
+    it('keeps events just before the next location in the earlier session', () => {
+        const result = buildGameLogSessions(
+            [
+                {
+                    id: 1,
+                    created_at: '2024-01-01T10:00:00.000Z',
+                    location: 'wrld_a:1',
+                    worldId: 'wrld_a',
+                    worldName: 'A'
+                },
+                {
+                    id: 2,
+                    created_at: '2024-01-01T10:05:00.000Z',
+                    location: 'wrld_b:1',
+                    worldId: 'wrld_b',
+                    worldName: 'B'
+                }
+            ],
+            [
+                {
+                    rowId: 100,
+                    type: 'OnPlayerLeft',
+                    created_at: '2024-01-01T10:04:59.000Z',
+                    location: 'wrld_a:1',
+                    userId: 'usr_a',
+                    displayName: 'A'
+                },
+                {
+                    rowId: 101,
+                    type: 'OnPlayerJoined',
+                    created_at: '2024-01-01T10:05:01.000Z',
+                    location: 'wrld_b:1',
+                    userId: 'usr_b',
+                    displayName: 'B'
+                }
+            ]
+        );
+
+        const [segB, segA] = result.segments;
+        expect(segB.worldId).toBe('wrld_b');
+        expect(segB.events.map((event: any) => event.userId)).toEqual([
+            'usr_b'
+        ]);
+        expect(segA.worldId).toBe('wrld_a');
+        expect(segA.events.map((event: any) => event.userId)).toEqual([
+            'usr_a'
         ]);
     });
 

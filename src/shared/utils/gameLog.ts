@@ -61,6 +61,7 @@ export interface GameLogSessionsResult {
 
 type GameLogSessionSegmentBuild = GameLogSessionSegment & {
     epoch: number;
+    sortId: number;
     events: Array<GameLogRow | GameLogSessionGroup>;
 };
 
@@ -323,7 +324,6 @@ export function parsePrintFromUrl(url: string): string | null {
     return null;
 }
 
-const SESSION_TOLERANCE_MS = 1000;
 const SESSION_AGGREGATE_THRESHOLD = 5;
 const SESSION_AGGREGATE_WINDOW_MS = 5000;
 
@@ -335,17 +335,28 @@ function toGameLogSessionEpoch(dateStr: unknown): number {
     return Number.isNaN(timestamp) ? 0 : timestamp;
 }
 
-function findGameLogSessionIndex(
-    eventEpoch: number,
-    segmentsAsc: Array<GameLogSessionSegment & { epoch: number }>
-): number {
-    const target = eventEpoch + SESSION_TOLERANCE_MS;
-    for (let index = segmentsAsc.length - 1; index >= 0; index -= 1) {
-        if (segmentsAsc[index].epoch <= target) {
-            return index;
-        }
+function toGameLogSortId(value: unknown): number {
+    if (typeof value === 'number') {
+        return Number.isFinite(value) ? value : 0;
     }
-    return -1;
+    if (typeof value === 'string') {
+        const parsed = Number.parseInt(value, 10);
+        return Number.isNaN(parsed) ? 0 : parsed;
+    }
+    return 0;
+}
+
+// Order rows the same way the table view does: created_at then per-table id.
+// Folding sessions over this order keeps the session view consistent with the
+// table, so an event between two locations always belongs to the earlier one.
+function compareGameLogStreamAsc(
+    left: { epoch: number; sortId: number },
+    right: { epoch: number; sortId: number }
+): number {
+    if (left.epoch !== right.epoch) {
+        return left.epoch - right.epoch;
+    }
+    return left.sortId - right.sortId;
 }
 
 function toGameLogSessionMember(event: GameLogRow): GameLogSessionMember {
@@ -531,18 +542,21 @@ export function buildGameLogSessions(
     }
 
     const segmentsAsc: GameLogSessionSegmentBuild[] = locationSegments
-        .map((location): GameLogSessionSegmentBuild => ({
-            id: location.id,
-            created_at: location.created_at,
-            epoch: toGameLogSessionEpoch(location.created_at),
-            location: location.location,
-            worldId: location.worldId,
-            worldName: location.worldName,
-            groupName: location.groupName,
-            duration: location.time || null,
-            events: []
-        }))
-        .sort((left, right) => left.epoch - right.epoch);
+        .map(
+            (location): GameLogSessionSegmentBuild => ({
+                id: location.id,
+                created_at: location.created_at,
+                epoch: toGameLogSessionEpoch(location.created_at),
+                sortId: toGameLogSortId(location.id),
+                location: location.location,
+                worldId: location.worldId,
+                worldName: location.worldName,
+                groupName: location.groupName,
+                duration: location.time || null,
+                events: []
+            })
+        )
+        .sort(compareGameLogStreamAsc);
 
     let dedupedEvents = flatEvents;
     if (flatEvents && flatEvents.length > 0) {
@@ -558,61 +572,26 @@ export function buildGameLogSessions(
     }
 
     if (dedupedEvents && dedupedEvents.length > 0) {
-        for (const event of dedupedEvents) {
-            const index = findGameLogSessionIndex(
-                toGameLogSessionEpoch(event.created_at),
-                segmentsAsc
-            );
-            if (index === -1) {
-                continue;
-            }
-            segmentsAsc[index].events.push({ ...event });
-        }
-    }
+        const eventsAsc = dedupedEvents
+            .map((event) => ({
+                event,
+                epoch: toGameLogSessionEpoch(event.created_at),
+                sortId: toGameLogSortId(event.rowId ?? event.id)
+            }))
+            .sort(compareGameLogStreamAsc);
 
-    for (const segment of segmentsAsc) {
-        segment.events.sort(
-            (left, right) =>
-                toGameLogSessionEpoch(left.created_at) -
-                toGameLogSessionEpoch(right.created_at)
-        );
-    }
-
-    for (const segment of segmentsAsc) {
-        const cutoff = segment.epoch - SESSION_TOLERANCE_MS;
-        segment.events = segment.events.filter(
-            (event) => toGameLogSessionEpoch(event.created_at) >= cutoff
-        );
-    }
-
-    for (const segment of segmentsAsc) {
-        const windowEnd = segment.epoch + SESSION_AGGREGATE_WINDOW_MS;
-        const joinedIds = new Set<unknown>();
-        for (const event of segment.events) {
-            if (toGameLogSessionEpoch(event.created_at) > windowEnd) {
-                break;
-            }
-            if (event.type === 'OnPlayerJoined' && event.userId) {
-                joinedIds.add(event.userId);
-            }
-        }
-        if (joinedIds.size > 0) {
-            for (
-                let index = segment.events.length - 1;
-                index >= 0;
-                index -= 1
+        let activeIndex = -1;
+        let nextIndex = 0;
+        for (const item of eventsAsc) {
+            while (
+                nextIndex < segmentsAsc.length &&
+                compareGameLogStreamAsc(segmentsAsc[nextIndex], item) <= 0
             ) {
-                const event = segment.events[index];
-                if (toGameLogSessionEpoch(event.created_at) > windowEnd) {
-                    continue;
-                }
-                if (
-                    event.type === 'OnPlayerLeft' &&
-                    event.userId &&
-                    joinedIds.has(event.userId)
-                ) {
-                    segment.events.splice(index, 1);
-                }
+                activeIndex = nextIndex;
+                nextIndex += 1;
+            }
+            if (activeIndex >= 0) {
+                segmentsAsc[activeIndex].events.push({ ...item.event });
             }
         }
     }
@@ -628,6 +607,6 @@ export function buildGameLogSessions(
 
     const segments: GameLogSessionSegment[] = segmentsAsc
         .reverse()
-        .map(({ epoch: _epoch, ...rest }) => rest);
+        .map(({ epoch: _epoch, sortId: _sortId, ...rest }) => rest);
     return { segments };
 }
