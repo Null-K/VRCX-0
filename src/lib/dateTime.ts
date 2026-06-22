@@ -45,6 +45,15 @@ export function formatDateTime(
     );
 }
 
+export function formatCompactDateTime(value: unknown) {
+    return formatDateTime(value, {
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
 export function formatClock(
     value: unknown,
     preferences: DateTimeFormatPreferences & { includeSeconds?: boolean } = {}

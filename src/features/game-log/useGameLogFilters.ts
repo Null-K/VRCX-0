@@ -13,16 +13,7 @@ import { GAME_LOG_FILTER_TYPES } from '@/repositories/gameLogRepository';
 import { recordViewModeUsage } from '@/services/telemetry/telemetryViewModeUsage';
 
 import {
-    clampGameLogSessionDateInputRange,
-    isoToGameLogDateInputValue,
-    parseGameLogDateInput,
-    toGameLogDateInputValue,
-    toGameLogIsoRangeEnd,
-    toGameLogIsoRangeStart
-} from './gameLogDateRange';
-import {
     GAME_LOG_SESSION_FILTER_TYPES,
-    type GameLogDateRange,
     type GameLogFilterType,
     type GameLogViewMode
 } from './gameLogTypes';
@@ -60,9 +51,6 @@ export function useGameLogFilters() {
     const [sessionFavoritesOnly, setSessionFavoritesOnly] = useState(false);
     const [sessionDateFrom, setSessionDateFrom] = useState('');
     const [sessionDateTo, setSessionDateTo] = useState('');
-    const [sessionDateDraftFrom, setSessionDateDraftFrom] = useState('');
-    const [sessionDateDraftTo, setSessionDateDraftTo] = useState('');
-    const [sessionDatePopoverOpen, setSessionDatePopoverOpen] = useState(false);
     const [viewMode, setViewMode] = useState<GameLogViewMode>('sessions');
     const deferredSearchQuery = useDeferredValue(searchQuery);
     const todayDate = useTodayDate();
@@ -107,12 +95,6 @@ export function useGameLogFilters() {
                     setSessionFavoritesOnly(Boolean(nextSessionFavoritesOnly));
                     setSessionDateFrom(String(nextSessionDateFrom || ''));
                     setSessionDateTo(String(nextSessionDateTo || ''));
-                    setSessionDateDraftFrom(
-                        isoToGameLogDateInputValue(nextSessionDateFrom)
-                    );
-                    setSessionDateDraftTo(
-                        isoToGameLogDateInputValue(nextSessionDateTo)
-                    );
                     setViewMode(normalizeViewMode(nextViewMode));
                     preferencesReadyRef.current = true;
                     setPreferencesReady(true);
@@ -190,19 +172,13 @@ export function useGameLogFilters() {
         setSearchDraft(searchQuery);
     }, [searchQuery]);
 
-    useEffect(() => {
-        if (sessionDatePopoverOpen) {
-            return;
-        }
-        setSessionDateDraftFrom(isoToGameLogDateInputValue(sessionDateFrom));
-        setSessionDateDraftTo(isoToGameLogDateInputValue(sessionDateTo));
-    }, [sessionDateFrom, sessionDatePopoverOpen, sessionDateTo]);
-
-    const sessionDateDraftRange = useMemo(() => {
-        const from = parseGameLogDateInput(sessionDateDraftFrom);
-        const to = parseGameLogDateInput(sessionDateDraftTo);
-        return from || to ? { from, to } : undefined;
-    }, [sessionDateDraftFrom, sessionDateDraftTo]);
+    const sessionDateRange = useMemo(
+        () => ({
+            from: sessionDateFrom ? new Date(sessionDateFrom) : null,
+            to: sessionDateTo ? new Date(sessionDateTo) : null
+        }),
+        [sessionDateFrom, sessionDateTo]
+    );
 
     const tableQueryFilterTypes = useMemo(
         () =>
@@ -265,64 +241,17 @@ export function useGameLogFilters() {
         setSearchQuery('');
     }, []);
 
-    const updateSessionDateDraftRange = useCallback(
-        (range?: GameLogDateRange) => {
-            const nextFrom = toGameLogDateInputValue(range?.from);
-            const nextTo = toGameLogDateInputValue(range?.to);
-            if (!nextFrom || !nextTo) {
-                setSessionDateDraftFrom(nextFrom);
-                setSessionDateDraftTo(nextTo);
+    const setSessionDateTimeRange = useCallback(
+        (value: { from: Date | null; to: Date | null }) => {
+            if (!value.from) {
+                setSessionDateFrom('');
+                setSessionDateTo('');
                 return;
             }
-            const [clampedFrom, clampedTo] = clampGameLogSessionDateInputRange(
-                nextFrom,
-                nextTo
-            );
-            setSessionDateDraftFrom(clampedFrom);
-            setSessionDateDraftTo(clampedTo);
+            setSessionDateFrom(value.from.toISOString());
+            setSessionDateTo((value.to || value.from).toISOString());
         },
         []
-    );
-
-    const applySessionDateRange = useCallback(() => {
-        if (!sessionDateDraftFrom && !sessionDateDraftTo) {
-            setSessionDateFrom('');
-            setSessionDateTo('');
-            setSessionDatePopoverOpen(false);
-            return;
-        }
-        const [fromInput, toInput] = clampGameLogSessionDateInputRange(
-            sessionDateDraftFrom || sessionDateDraftTo,
-            sessionDateDraftTo || sessionDateDraftFrom
-        );
-        setSessionDateDraftFrom(fromInput);
-        setSessionDateDraftTo(toInput);
-        setSessionDateFrom(toGameLogIsoRangeStart(fromInput));
-        setSessionDateTo(toGameLogIsoRangeEnd(toInput));
-        setSessionDatePopoverOpen(false);
-    }, [sessionDateDraftFrom, sessionDateDraftTo]);
-
-    const clearSessionDateRange = useCallback(() => {
-        setSessionDateDraftFrom('');
-        setSessionDateDraftTo('');
-        setSessionDateFrom('');
-        setSessionDateTo('');
-        setSessionDatePopoverOpen(false);
-    }, []);
-
-    const handleSessionDatePopoverChange = useCallback(
-        (open: boolean) => {
-            if (open) {
-                setSessionDateDraftFrom(
-                    isoToGameLogDateInputValue(sessionDateFrom)
-                );
-                setSessionDateDraftTo(
-                    isoToGameLogDateInputValue(sessionDateTo)
-                );
-            }
-            setSessionDatePopoverOpen(open);
-        },
-        [sessionDateFrom, sessionDateTo]
     );
 
     const refreshGameLog = useCallback(() => {
@@ -337,11 +266,8 @@ export function useGameLogFilters() {
         queryFilterTypes,
         refreshToken,
         searchDraft,
-        sessionDateDraftFrom,
-        sessionDateDraftRange,
-        sessionDateDraftTo,
         sessionDateFrom,
-        sessionDatePopoverOpen,
+        sessionDateRange,
         sessionDateTo,
         sessionFavoritesOnly,
         sessionSelectedTypes,
@@ -349,17 +275,14 @@ export function useGameLogFilters() {
         tableSelectedTypes,
         todayDate,
         viewMode,
-        applySessionDateRange,
         changeViewMode,
         clearSearch,
-        clearSessionDateRange,
         commitSearchDraft,
-        handleSessionDatePopoverChange,
         refreshGameLog,
         setActiveSelectedTypes,
         setSearchDraft,
-        toggleFavoritesOnly,
-        updateSessionDateDraftRange
+        setSessionDateTimeRange,
+        toggleFavoritesOnly
     };
 }
 

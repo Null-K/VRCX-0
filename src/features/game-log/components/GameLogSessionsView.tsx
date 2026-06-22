@@ -1,4 +1,8 @@
-import { ChevronRightIcon } from 'lucide-react';
+import {
+    ChevronRightIcon,
+    ChevronsDownUpIcon,
+    ChevronsUpDownIcon
+} from 'lucide-react';
 import {
     Fragment,
     memo,
@@ -440,6 +444,25 @@ export function GameLogSessionsView({
     const [sessionOpenOverrides, setSessionOpenOverrides] = useState(
         () => new Map()
     );
+    const [defaultOpen, setDefaultOpen] = useState(true);
+    const collapseAll = useCallback(() => {
+        setSessionOpenOverrides(new Map());
+        setDefaultOpen(false);
+    }, []);
+    const expandAll = useCallback(() => {
+        setSessionOpenOverrides(new Map());
+        setDefaultOpen(true);
+    }, []);
+    const allSessionsOpen = useMemo(
+        () =>
+            sessions.every((session: any) => {
+                const sessionKey = getGameLogSessionKey(session);
+                return sessionKey
+                    ? (sessionOpenOverrides.get(sessionKey) ?? defaultOpen)
+                    : defaultOpen;
+            }),
+        [defaultOpen, sessionOpenOverrides, sessions]
+    );
     const handleSessionOpenChange = useCallback(
         (sessionKey: any, nextOpen: any) => {
             if (!sessionKey) {
@@ -531,6 +554,28 @@ export function GameLogSessionsView({
 
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-md border">
+            {sessions.length ? (
+                <div className="border-border flex shrink-0 items-center justify-end border-b px-2 py-1">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-muted-foreground h-7 gap-1.5"
+                        onClick={allSessionsOpen ? collapseAll : expandAll}
+                    >
+                        {allSessionsOpen ? (
+                            <ChevronsDownUpIcon data-icon="inline-start" />
+                        ) : (
+                            <ChevronsUpDownIcon data-icon="inline-start" />
+                        )}
+                        {t(
+                            allSessionsOpen
+                                ? 'view.game_log.sessions.collapse_all'
+                                : 'view.game_log.sessions.expand_all'
+                        )}
+                    </Button>
+                </div>
+            ) : null}
             <div
                 ref={scrollRef}
                 className="flex-1 overflow-x-hidden overflow-y-auto"
@@ -544,8 +589,8 @@ export function GameLogSessionsView({
                         Boolean(currentDayKey) &&
                         currentDayKey !== previousDayKey;
                     const isOpen = sessionKey
-                        ? (sessionOpenOverrides.get(sessionKey) ?? true)
-                        : true;
+                        ? (sessionOpenOverrides.get(sessionKey) ?? defaultOpen)
+                        : defaultOpen;
                     return (
                         <Fragment key={sessionKey || `session:${index}`}>
                             {showDayDivider ? (

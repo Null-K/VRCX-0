@@ -659,6 +659,8 @@
                 "played_by": "Played by {name}",
                 "expand_session": "Expand session",
                 "collapse_session": "Collapse session",
+                "expand_all": "Expand all",
+                "collapse_all": "Collapse all",
                 "no_data": "No game log data"
             },
             "label": {
@@ -667,6 +669,8 @@
                 "table": "Table",
                 "favorites_only": "Favorites only",
                 "session_date_range": "Session date range",
+                "start": "Start",
+                "end": "End",
                 "max": "Max",
                 "days": "days",
                 "game_log_is_disabled": "Game log is disabled",

@@ -12,22 +12,24 @@ import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { TableColumnVisibilityMenu } from '@/components/data-table/TableColumnVisibilityMenu';
+import {
+    DateTimeRangePicker,
+    type DateTimeRangeValue
+} from '@/components/date-time-range-picker/DateTimeRangePicker';
+import { formatCompactDateTime } from '@/lib/dateTime';
 import { Button } from '@/ui/shadcn/button';
-import { Calendar } from '@/ui/shadcn/calendar';
 import {
     InputGroup,
     InputGroupAddon,
     InputGroupButton,
     InputGroupInput
 } from '@/ui/shadcn/input-group';
-import { Popover, PopoverContent, PopoverTrigger } from '@/ui/shadcn/popover';
 import { Spinner } from '@/ui/shadcn/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@/ui/shadcn/toggle-group';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/ui/shadcn/tooltip';
 
 import { GAME_LOG_SESSION_DATE_RANGE_MAX_DAYS } from '../gameLogDateRange';
 import type {
-    GameLogDateRange,
     GameLogFilterType,
     GameLogLoadStatus,
     GameLogRow,
@@ -111,96 +113,42 @@ function GameLogFavoritesToggle({
 }
 
 function GameLogSessionDateFilter({
-    open,
-    onOpenChange,
-    sessionDateFrom,
-    sessionDateTo,
-    sessionDateDraftFrom,
-    sessionDateDraftTo,
-    sessionDateDraftRange,
-    todayDate,
-    onRangeSelect,
-    onClear,
-    onApply
+    value,
+    onChange,
+    todayDate
 }: {
-    onApply(): void;
-    onClear(): void;
-    onOpenChange(open: boolean): void;
-    onRangeSelect(range?: GameLogDateRange): void;
-    open: boolean;
-    sessionDateDraftFrom: string;
-    sessionDateDraftRange?: GameLogDateRange;
-    sessionDateDraftTo: string;
-    sessionDateFrom: string;
-    sessionDateTo: string;
+    onChange(value: DateTimeRangeValue): void;
     todayDate: Date;
+    value: DateTimeRangeValue;
 }) {
     const { t } = useTranslation();
-    const label = t('view.game_log.label.session_date_range');
-    const dateRangeLabel =
-        sessionDateFrom || sessionDateTo
-            ? [sessionDateFrom || '...', sessionDateTo || '...'].join(' - ')
-            : label;
 
     return (
-        <Popover open={open} onOpenChange={onOpenChange}>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <PopoverTrigger asChild>
-                        <InputGroupButton
-                            type="button"
-                            size="icon-xs"
-                            variant={
-                                sessionDateFrom || sessionDateTo
-                                    ? 'secondary'
-                                    : 'ghost'
-                            }
-                            aria-label={dateRangeLabel}
-                            onMouseDown={(event) => event.preventDefault()}
-                        >
-                            <CalendarRangeIcon data-icon="icon" />
-                        </InputGroupButton>
-                    </PopoverTrigger>
-                </TooltipTrigger>
-                <TooltipContent>{dateRangeLabel}</TooltipContent>
-            </Tooltip>
-            <PopoverContent className="w-auto" align="end">
-                <Calendar
-                    mode="range"
-                    numberOfMonths={2}
-                    max={GAME_LOG_SESSION_DATE_RANGE_MAX_DAYS}
-                    selected={sessionDateDraftRange}
-                    disabled={{ after: todayDate }}
-                    onSelect={onRangeSelect}
-                />
-                <div className="flex items-center justify-between gap-4 px-3 pb-3">
-                    <div className="text-muted-foreground min-w-0 text-xs">
-                        {[
-                            sessionDateDraftFrom || '...',
-                            sessionDateDraftTo || '...'
-                        ].join(' - ')}
-                        <span className="ml-2">
-                            {t('view.game_log.label.max')}{' '}
-                            {GAME_LOG_SESSION_DATE_RANGE_MAX_DAYS}{' '}
-                            {t('view.game_log.label.days')}
-                        </span>
-                    </div>
-                    <div className="flex justify-end gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={onClear}
-                        >
-                            {t('common.actions.clear')}
-                        </Button>
-                        <Button type="button" size="sm" onClick={onApply}>
-                            {t('common.actions.confirm')}
-                        </Button>
-                    </div>
-                </div>
-            </PopoverContent>
-        </Popover>
+        <DateTimeRangePicker
+            value={value}
+            onChange={onChange}
+            placeholder={t('view.game_log.label.session_date_range')}
+            startLabel={t('view.game_log.label.start')}
+            endLabel={t('view.game_log.label.end')}
+            clearLabel={t('common.actions.clear')}
+            confirmLabel={t('common.actions.confirm')}
+            formatValue={formatCompactDateTime}
+            maxDays={GAME_LOG_SESSION_DATE_RANGE_MAX_DAYS}
+            minuteStep={15}
+            align="end"
+            disabled={{ after: todayDate }}
+            renderTrigger={({ active, label }) => (
+                <InputGroupButton
+                    type="button"
+                    size="icon-xs"
+                    variant={active ? 'secondary' : 'ghost'}
+                    aria-label={label}
+                    onMouseDown={(event: any) => event.preventDefault()}
+                >
+                    <CalendarRangeIcon data-icon="icon" />
+                </InputGroupButton>
+            )}
+        />
     );
 }
 
@@ -306,24 +254,16 @@ export function GameLogToolbar({
         favoritesOnly: boolean;
         queryFilterTypes: readonly GameLogFilterType[];
         searchDraft: string;
-        sessionDateDraftFrom: string;
-        sessionDateDraftRange?: GameLogDateRange;
-        sessionDateDraftTo: string;
-        sessionDateFrom: string;
-        sessionDatePopoverOpen: boolean;
-        sessionDateTo: string;
+        sessionDateRange: DateTimeRangeValue;
         todayDate: Date;
         viewMode: GameLogViewMode;
-        applySessionDateRange(): void;
         changeViewMode(viewMode: GameLogViewMode): void;
         clearSearch(): void;
-        clearSessionDateRange(): void;
         commitSearchDraft(): void;
-        handleSessionDatePopoverChange(open: boolean): void;
         setActiveSelectedTypes(types: GameLogFilterType[]): void;
         setSearchDraft(value: string): void;
+        setSessionDateTimeRange(value: DateTimeRangeValue): void;
         toggleFavoritesOnly(): void;
-        updateSessionDateDraftRange(range?: GameLogDateRange): void;
     };
     refreshModel: {
         canRefresh: boolean;
@@ -337,24 +277,16 @@ export function GameLogToolbar({
         favoritesOnly,
         queryFilterTypes,
         searchDraft,
-        sessionDateDraftFrom,
-        sessionDateDraftRange,
-        sessionDateDraftTo,
-        sessionDateFrom,
-        sessionDatePopoverOpen,
-        sessionDateTo,
+        sessionDateRange,
         todayDate,
         viewMode,
-        applySessionDateRange,
         changeViewMode,
         clearSearch,
-        clearSessionDateRange,
         commitSearchDraft,
-        handleSessionDatePopoverChange,
         setActiveSelectedTypes,
         setSearchDraft,
-        toggleFavoritesOnly,
-        updateSessionDateDraftRange
+        setSessionDateTimeRange,
+        toggleFavoritesOnly
     } = filterModel;
     const { canRefresh, loadStatus, onRefresh } = refreshModel;
     const isTableView = viewMode === 'table';
@@ -392,17 +324,9 @@ export function GameLogToolbar({
                     dateFilterControl={
                         isTableView ? null : (
                             <GameLogSessionDateFilter
-                                open={sessionDatePopoverOpen}
-                                onOpenChange={handleSessionDatePopoverChange}
-                                sessionDateFrom={sessionDateFrom}
-                                sessionDateTo={sessionDateTo}
-                                sessionDateDraftFrom={sessionDateDraftFrom}
-                                sessionDateDraftTo={sessionDateDraftTo}
-                                sessionDateDraftRange={sessionDateDraftRange}
+                                value={sessionDateRange}
+                                onChange={setSessionDateTimeRange}
                                 todayDate={todayDate}
-                                onRangeSelect={updateSessionDateDraftRange}
-                                onClear={clearSessionDateRange}
-                                onApply={applySessionDateRange}
                             />
                         )
                     }

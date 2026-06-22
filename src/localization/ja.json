@@ -659,6 +659,8 @@
                 "played_by": "{name} が再生",
                 "expand_session": "セッションを展開",
                 "collapse_session": "セッションを折りたたむ",
+                "expand_all": "すべて展開",
+                "collapse_all": "すべて折りたたむ",
                 "no_data": "ゲームログデータはありません"
             },
             "label": {
@@ -667,6 +669,8 @@
                 "table": "テーブル",
                 "favorites_only": "お気に入りのみ",
                 "session_date_range": "セッション期間",
+                "start": "開始",
+                "end": "終了",
                 "max": "最大",
                 "days": "日",
                 "game_log_is_disabled": "ゲームログが無効です",

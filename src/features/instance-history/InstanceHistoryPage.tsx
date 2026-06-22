@@ -24,7 +24,7 @@ import {
 import { normalizeEndpoint, normalizeUserId } from '@/domain/users/userFacts';
 import { UserPickerRow } from '@/features/charts/components/MutualFriendsViewParts';
 import { InstanceHistoryList } from '@/features/instance-history/components/InstanceHistoryList';
-import { formatDateTime } from '@/lib/dateTime';
+import { formatCompactDateTime } from '@/lib/dateTime';
 import gameLogRepository from '@/repositories/gameLogRepository';
 import { useModalStore } from '@/state/modalStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
@@ -272,18 +272,10 @@ export function InstanceHistoryPage({
 
     const dateActive = Boolean(dateRange.from || dateRange.to);
 
-    const formatRangePart = (value: Date) =>
-        formatDateTime(value, {
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-
     const dateRangeLabel = dateActive
         ? [
-              dateRange.from ? formatRangePart(dateRange.from) : '...',
-              dateRange.to ? formatRangePart(dateRange.to) : '...'
+              dateRange.from ? formatCompactDateTime(dateRange.from) : '...',
+              dateRange.to ? formatCompactDateTime(dateRange.to) : '...'
           ].join(' - ')
         : t('view.instance_history.label.date_range');
 
@@ -296,7 +288,8 @@ export function InstanceHistoryPage({
             endLabel={t('view.instance_history.label.end')}
             clearLabel={t('common.actions.clear')}
             confirmLabel={t('common.actions.confirm')}
-            formatValue={formatRangePart}
+            formatValue={formatCompactDateTime}
+            minuteStep={15}
             disabled={{ after: new Date() }}
         />
     );

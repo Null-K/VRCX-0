@@ -659,6 +659,8 @@
                 "played_by": "{name} 播放",
                 "expand_session": "展開工作階段",
                 "collapse_session": "收起工作階段",
+                "expand_all": "全部展開",
+                "collapse_all": "全部收起",
                 "no_data": "無紀錄"
             },
             "label": {
@@ -667,6 +669,8 @@
                 "table": "表格",
                 "favorites_only": "僅收藏",
                 "session_date_range": "工作階段日期範圍",
+                "start": "開始",
+                "end": "結束",
                 "max": "最大",
                 "days": "天",
                 "game_log_is_disabled": "遊戲紀錄已停用",

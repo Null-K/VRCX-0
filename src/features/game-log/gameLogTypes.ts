@@ -47,11 +47,6 @@ export type GameLogSession = GameLogRow & {
     events?: GameLogSessionEvent[];
 };
 
-export type GameLogDateRange = {
-    from: Date | undefined;
-    to?: Date;
-};
-
 export type GameLogDetailValue = {
     primary?: unknown;
     secondary?: unknown;
@@ -63,9 +58,7 @@ export type GameLogColumns = ColumnDef<GameLogRow>[];
 
 export type GameLogTableInstance = ReactTable<GameLogRow>;
 
-export type GameLogPaginationSetter = Dispatch<
-    SetStateAction<PaginationState>
->;
+export type GameLogPaginationSetter = Dispatch<SetStateAction<PaginationState>>;
 
 export type GameLogFilterType = string;
 

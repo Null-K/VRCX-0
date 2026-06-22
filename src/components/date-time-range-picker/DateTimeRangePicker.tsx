@@ -1,7 +1,8 @@
 import { CalendarRangeIcon } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { DateRange } from 'react-day-picker';
 
+import { formatCompactDateTime } from '@/lib/dateTime';
 import { Button } from '@/ui/shadcn/button';
 import { Calendar } from '@/ui/shadcn/calendar';
 import { Label } from '@/ui/shadcn/label';
@@ -17,6 +18,9 @@ import {
 
 import {
     buildDateTimeRange,
+    buildMinuteOptions,
+    slotEndTime,
+    snapMinuteDown,
     toTimeValue,
     stripTime,
     type DateTimeRangeValue
@@ -34,9 +38,12 @@ interface DateTimeRangePickerProps {
     confirmLabel: string;
     formatValue?: (date: Date) => string;
     numberOfMonths?: number;
+    maxDays?: number;
+    minuteStep?: number;
     disabled?: any;
     align?: 'start' | 'center' | 'end';
     triggerClassName?: string;
+    renderTrigger?: (state: { active: boolean; label: string }) => ReactNode;
 }
 
 function twoDigitOptions(count: number) {
@@ -46,16 +53,17 @@ function twoDigitOptions(count: number) {
 }
 
 const HOUR_OPTIONS = twoDigitOptions(24);
-const MINUTE_OPTIONS = twoDigitOptions(60);
 
 function TimeSelect({
     value,
     onChange,
-    label
+    label,
+    minuteOptions
 }: {
     value: string;
     onChange: (next: string) => void;
     label: string;
+    minuteOptions: string[];
 }) {
     const [hour = '00', minute = '00'] = value.split(':');
 
@@ -88,7 +96,7 @@ function TimeSelect({
                 </SelectTrigger>
                 <SelectContent>
                     <SelectGroup>
-                        {MINUTE_OPTIONS.map((option) => (
+                        {minuteOptions.map((option) => (
                             <SelectItem key={option} value={option}>
                                 {option}
                             </SelectItem>
@@ -100,15 +108,6 @@ function TimeSelect({
     );
 }
 
-function defaultFormat(date: Date) {
-    return date.toLocaleString(undefined, {
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-}
-
 export function DateTimeRangePicker({
     value,
     onChange,
@@ -117,18 +116,26 @@ export function DateTimeRangePicker({
     endLabel,
     clearLabel,
     confirmLabel,
-    formatValue = defaultFormat,
+    formatValue = formatCompactDateTime,
     numberOfMonths = 2,
+    maxDays,
+    minuteStep = 1,
     disabled,
     align = 'start',
-    triggerClassName
+    triggerClassName,
+    renderTrigger
 }: DateTimeRangePickerProps) {
     const [open, setOpen] = useState(false);
     const [draftRange, setDraftRange] = useState<DateRange | undefined>(
         undefined
     );
+    const minuteOptions = useMemo(
+        () => buildMinuteOptions(minuteStep),
+        [minuteStep]
+    );
+    const defaultEndTime = `23:${minuteOptions[minuteOptions.length - 1]}`;
     const [startTime, setStartTime] = useState('00:00');
-    const [endTime, setEndTime] = useState('23:59');
+    const [endTime, setEndTime] = useState(defaultEndTime);
 
     const active = Boolean(value.from || value.to);
 
@@ -144,19 +151,29 @@ export function DateTimeRangePicker({
                   }
                 : undefined
         );
-        setStartTime(toTimeValue(value.from, '00:00'));
-        setEndTime(toTimeValue(value.to, '23:59'));
-    }, [open, value.from, value.to]);
+        setStartTime(
+            snapMinuteDown(toTimeValue(value.from, '00:00'), minuteStep)
+        );
+        setEndTime(
+            snapMinuteDown(toTimeValue(value.to, defaultEndTime), minuteStep)
+        );
+    }, [open, value.from, value.to, minuteStep, defaultEndTime]);
 
     function apply() {
-        onChange(buildDateTimeRange(draftRange, startTime, endTime));
+        onChange(
+            buildDateTimeRange(
+                draftRange,
+                startTime,
+                slotEndTime(endTime, minuteStep)
+            )
+        );
         setOpen(false);
     }
 
     function clear() {
         setDraftRange(undefined);
         setStartTime('00:00');
-        setEndTime('23:59');
+        setEndTime(defaultEndTime);
         onChange({ from: null, to: null });
         setOpen(false);
     }
@@ -171,19 +188,24 @@ export function DateTimeRangePicker({
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <Button
-                    type="button"
-                    variant={active ? 'secondary' : 'outline'}
-                    className={triggerClassName}
-                >
-                    <CalendarRangeIcon data-icon="inline-start" />
-                    <span className="truncate">{triggerLabel}</span>
-                </Button>
+                {renderTrigger ? (
+                    renderTrigger({ active, label: triggerLabel })
+                ) : (
+                    <Button
+                        type="button"
+                        variant={active ? 'secondary' : 'outline'}
+                        className={triggerClassName}
+                    >
+                        <CalendarRangeIcon data-icon="inline-start" />
+                        <span className="truncate">{triggerLabel}</span>
+                    </Button>
+                )}
             </PopoverTrigger>
             <PopoverContent align={align} className="w-auto p-0">
                 <Calendar
                     mode="range"
                     numberOfMonths={numberOfMonths}
+                    max={maxDays}
                     selected={draftRange}
                     disabled={disabled}
                     onSelect={setDraftRange}
@@ -197,6 +219,7 @@ export function DateTimeRangePicker({
                             value={startTime}
                             onChange={setStartTime}
                             label={startLabel}
+                            minuteOptions={minuteOptions}
                         />
                     </div>
                     <div className="flex flex-col gap-1.5">
@@ -207,6 +230,7 @@ export function DateTimeRangePicker({
                             value={endTime}
                             onChange={setEndTime}
                             label={endLabel}
+                            minuteOptions={minuteOptions}
                         />
                     </div>
                 </div>

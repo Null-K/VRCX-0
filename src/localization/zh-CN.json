@@ -659,6 +659,8 @@
                 "played_by": "{name} 播放",
                 "expand_session": "展开会话",
                 "collapse_session": "收起会话",
+                "expand_all": "全部展开",
+                "collapse_all": "全部收起",
                 "no_data": "无日志"
             },
             "label": {
@@ -667,6 +669,8 @@
                 "table": "表格",
                 "favorites_only": "仅收藏",
                 "session_date_range": "会话日期范围",
+                "start": "开始",
+                "end": "结束",
                 "max": "最大",
                 "days": "天",
                 "game_log_is_disabled": "游戏日志已禁用",

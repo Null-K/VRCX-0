@@ -119,17 +119,19 @@ function normalizeFilterList(filters: unknown = []): GameLogFilterType[] {
         return [];
     }
 
-    return filters.filter((filter, index, source): filter is GameLogFilterType => {
-        if (typeof filter !== 'string') {
-            return false;
-        }
+    return filters.filter(
+        (filter, index, source): filter is GameLogFilterType => {
+            if (typeof filter !== 'string') {
+                return false;
+            }
 
-        if (!GAME_LOG_FILTER_TYPES.includes(filter as GameLogFilterType)) {
-            return false;
-        }
+            if (!GAME_LOG_FILTER_TYPES.includes(filter as GameLogFilterType)) {
+                return false;
+            }
 
-        return source.indexOf(filter) === index;
-    });
+            return source.indexOf(filter) === index;
+        }
+    );
 }
 
 function normalizeSessionLimit(value: unknown, fallback = 25) {
@@ -164,10 +166,12 @@ function normalizeDateBoundary(value: unknown, boundary: 'start' | 'end') {
         return '';
     }
 
-    if (boundary === 'end') {
-        date.setHours(23, 59, 59, 999);
-    } else {
-        date.setHours(0, 0, 0, 0);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+        if (boundary === 'end') {
+            date.setHours(23, 59, 59, 999);
+        } else {
+            date.setHours(0, 0, 0, 0);
+        }
     }
 
     return date.toISOString();
@@ -343,7 +347,9 @@ function normalizeSessionFilters(filters: GameLogFilterType[]) {
     const hasLocationFilter = filters.includes('Location');
     const eventFilters = filters.filter(
         (filter): filter is SessionEventFilterType =>
-            SESSION_EVENT_FILTER_TYPES.includes(filter as SessionEventFilterType)
+            SESSION_EVENT_FILTER_TYPES.includes(
+                filter as SessionEventFilterType
+            )
     );
 
     return {
@@ -452,11 +458,12 @@ async function loadSessionEvents(
                 .filter(Boolean)
         )
     );
-    const events = await gameLogPersistenceRepository.getSessionsEventsForSegments(
-        locationTags,
-        new Date(minEpoch - dateWindowMs).toISOString(),
-        new Date(maxEpoch + dateWindowMs).toISOString()
-    );
+    const events =
+        await gameLogPersistenceRepository.getSessionsEventsForSegments(
+            locationTags,
+            new Date(minEpoch - dateWindowMs).toISOString(),
+            new Date(maxEpoch + dateWindowMs).toISOString()
+        );
 
     return events.map((event: unknown) => {
         const currentEvent = toGameLogRow(event) as GameLogEvent;
@@ -632,9 +639,10 @@ async function getPreviousInstancesByWorldId({
 }: {
     worldId?: unknown;
 }) {
-    const rows = await gameLogPersistenceRepository.getPreviousInstancesByWorldId({
-        id: worldId
-    });
+    const rows =
+        await gameLogPersistenceRepository.getPreviousInstancesByWorldId({
+            id: worldId
+        });
     if (rows instanceof Map) {
         return Array.from(rows.values());
     }
