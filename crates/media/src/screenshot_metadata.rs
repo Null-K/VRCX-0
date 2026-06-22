@@ -165,3 +165,121 @@ pub fn get_screenshot_metadata(path: &str) -> Option<ScreenshotMetadata> {
 
     Some(result)
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::PathBuf;
+    use std::sync::atomic::{AtomicU64, Ordering};
+
+    use super::*;
+    use crate::png::{generate_text_chunk, ChunkType, PngChunk};
+
+    static NEXT_TEMP_ID: AtomicU64 = AtomicU64::new(0);
+
+    fn chunk(chunk_type_str: &str, data: Vec<u8>) -> Vec<u8> {
+        let chunk_type = match chunk_type_str {
+            "IHDR" => ChunkType::IHDR,
+            "sRGB" => ChunkType::SRGB,
+            "IDAT" => ChunkType::IDAT,
+            "IEND" => ChunkType::IEND,
+            _ => ChunkType::Unknown,
+        };
+        PngChunk {
+            index: 0,
+            chunk_type,
+            chunk_type_str: chunk_type_str.into(),
+            data,
+        }
+        .to_bytes()
+    }
+
+    fn ihdr() -> Vec<u8> {
+        chunk("IHDR", vec![0, 0, 0, 2, 0, 0, 0, 3, 8, 6, 0, 0, 0])
+    }
+
+    fn temp_png_path(name: &str) -> PathBuf {
+        let id = NEXT_TEMP_ID.fetch_add(1, Ordering::Relaxed);
+        std::env::temp_dir().join(format!("vrcx-0-{name}-{}-{id}.png", std::process::id()))
+    }
+
+    fn write_png(name: &str, bytes: &[u8]) -> PathBuf {
+        let path = temp_png_path(name);
+        fs::write(&path, bytes).unwrap();
+        path
+    }
+
+    fn png_with_pre_idat_text_chunks(chunks: &[PngChunk]) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        bytes.extend_from_slice(&ihdr());
+        for chunk in chunks {
+            bytes.extend_from_slice(&chunk.to_bytes());
+        }
+        bytes.extend_from_slice(&chunk("IDAT", Vec::new()));
+        bytes.extend_from_slice(&chunk("IEND", Vec::new()));
+        bytes
+    }
+
+    #[test]
+    fn get_screenshot_metadata_merges_vrcx_players_and_instance_over_vrchat_xmp() {
+        let xmp = r#"<x:xmpmeta><rdf:Description><CreatorTool>VRChat</CreatorTool><Author>Maple</Author><AuthorID>usr_author</AuthorID><DateTime>2026-06-21T22:00:00Z</DateTime><WorldID>wrld_xmp</WorldID><WorldDisplayName>XMP World</WorldDisplayName><rdf:li>Original note</rdf:li></rdf:Description></x:xmpmeta>"#;
+        let vrcx = serde_json::json!({
+            "application": "VRCX-0",
+            "version": 1,
+            "author": { "id": "usr_vrcx", "displayName": "VRCX Author" },
+            "world": {
+                "id": "wrld_vrcx",
+                "name": "VRCX World",
+                "instanceId": "wrld_vrcx:456"
+            },
+            "players": [
+                { "id": "usr_friend", "displayName": "Friend" }
+            ]
+        })
+        .to_string();
+        let bytes = png_with_pre_idat_text_chunks(&[
+            generate_text_chunk("XML:com.adobe.xmp", xmp),
+            generate_text_chunk("Description", &vrcx),
+        ]);
+        let path = write_png("merged-metadata", &bytes);
+        let path_str = path.to_str().unwrap().to_string();
+
+        let metadata = get_screenshot_metadata(&path_str).unwrap();
+        fs::remove_file(path).ok();
+
+        assert_eq!(metadata.application.as_deref(), Some("VRChat"));
+        assert_eq!(metadata.author.id, "usr_author");
+        assert_eq!(metadata.world.id, "wrld_xmp");
+        assert_eq!(metadata.world.name.as_deref(), Some("XMP World"));
+        assert_eq!(metadata.world.instance_id, "wrld_vrcx:456");
+        assert_eq!(metadata.players.len(), 1);
+        assert_eq!(metadata.players[0].id, "usr_friend");
+        assert_eq!(metadata.source_file.as_deref(), Some(path_str.as_str()));
+    }
+
+    #[test]
+    fn read_text_metadata_falls_back_to_legacy_lfs_itxt_after_idat_when_srgb_exists() {
+        let lfs =
+            "lfs|2|author:usr_author,Maple|world:wrld_lfs,123,LFS World|players:usr_friend,1,2,3,Friend";
+        let mut bytes = Vec::new();
+        bytes.extend_from_slice(&[0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        bytes.extend_from_slice(&ihdr());
+        bytes.extend_from_slice(&chunk("sRGB", vec![0]));
+        bytes.extend_from_slice(&chunk("IDAT", vec![0; 8200]));
+        bytes.extend_from_slice(&generate_text_chunk("Description", lfs).to_bytes());
+        bytes.extend_from_slice(&chunk("IEND", Vec::new()));
+        let path = write_png("legacy-lfs", &bytes);
+
+        let metadata_strings = read_text_metadata(path.to_str().unwrap());
+        let metadata = get_screenshot_metadata(path.to_str().unwrap()).unwrap();
+        fs::remove_file(path).ok();
+
+        assert_eq!(metadata_strings, vec![lfs.to_string()]);
+        assert_eq!(metadata.application.as_deref(), Some("lfs"));
+        assert_eq!(metadata.world.id, "wrld_lfs");
+        assert_eq!(metadata.world.instance_id, "wrld_lfs:123");
+        assert_eq!(metadata.world.name.as_deref(), Some("LFS World"));
+        assert_eq!(metadata.players[0].display_name, "Friend");
+    }
+}

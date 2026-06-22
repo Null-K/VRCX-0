@@ -326,7 +326,11 @@ pub(super) fn parse_sticker_spawn(
 
     if let Some(pos) = content.find("[StickersManager] User ") {
         let info = &content[pos + 23..];
-        let (user_id, display_name) = parse_user_info(info);
+        let user_info = info
+            .split_once(" spawned sticker")
+            .map(|(user_info, _)| user_info)
+            .unwrap_or(info);
+        let (display_name, user_id) = parse_user_info(user_info);
         if display_name.is_empty() && user_id.is_empty() {
             return true;
         }

@@ -400,3 +400,62 @@ pub fn delete_text_chunk(keyword: &str, png: &mut PngFile) -> bool {
     }
     false
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn crc32_matches_standard_vector_and_chained_png_chunk_crc() {
+        assert_eq!(crc32(b"123456789", 0), 0xCBF4_3926);
+
+        let chunk = generate_text_chunk("Description", "hello");
+        let expected = crc32(&chunk.data, crc32(b"iTXt", 0));
+        let bytes = chunk.to_bytes();
+        let crc_bytes = &bytes[bytes.len() - 4..];
+        assert_eq!(u32::from_be_bytes(crc_bytes.try_into().unwrap()), expected);
+    }
+
+    #[test]
+    fn generated_itxt_chunk_round_trips_keyword_and_text() {
+        let chunk = generate_text_chunk("Description", "VRChat metadata");
+
+        assert_eq!(
+            chunk.read_itxt(),
+            Some(("Description".into(), "VRChat metadata".into()))
+        );
+        assert_eq!(&chunk.data[..12], b"Description\0");
+        assert_eq!(&chunk.data[12..16], &[0, 0, 0, 0]);
+    }
+
+    #[test]
+    fn read_itxt_rejects_non_itxt_and_empty_or_oversized_keywords() {
+        let non_text = PngChunk {
+            index: 0,
+            chunk_type: ChunkType::IHDR,
+            chunk_type_str: "IHDR".into(),
+            data: vec![0; 13],
+        };
+        assert_eq!(non_text.read_itxt(), None);
+
+        let empty_keyword = PngChunk {
+            index: 0,
+            chunk_type: ChunkType::ITXT,
+            chunk_type_str: "iTXt".into(),
+            data: vec![0, 0, 0, 0, 0],
+        };
+        assert_eq!(empty_keyword.read_itxt(), None);
+
+        let mut oversized_keyword = vec![b'a'; 80];
+        oversized_keyword.push(0);
+        oversized_keyword.extend_from_slice(&[0, 0, 0, 0]);
+        oversized_keyword.extend_from_slice(b"text");
+        let oversized = PngChunk {
+            index: 0,
+            chunk_type: ChunkType::ITXT,
+            chunk_type_str: "iTXt".into(),
+            data: oversized_keyword,
+        };
+        assert_eq!(oversized.read_itxt(), None);
+    }
+}
