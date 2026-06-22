@@ -340,6 +340,7 @@ struct RenderedNotification {
     title: String,
     body: String,
     text: String,
+    display_location: String,
     image_url: String,
 }
 
@@ -424,10 +425,16 @@ fn render_delivery(
         &entry.content.group_name,
     );
     let text = combine_text(&title, &body);
+    let display_location = localizer.display_location(
+        &entry.content.location,
+        &entry.content.world_name,
+        &entry.content.group_name,
+    );
     RenderedNotification {
         title,
         body,
         text,
+        display_location,
         image_url: entry.content.image_url.clone(),
     }
 }
@@ -719,7 +726,7 @@ fn webhook_payload(
             "id": &entry.actor_user_id,
             "displayName": &entry.actor_display_name,
         },
-        "location": &entry.content.display_location,
+        "location": &render.display_location,
         "locationId": &entry.content.location,
         "worldId": &entry.content.world_id,
         "worldName": &entry.content.world_name,
@@ -780,8 +787,8 @@ fn discord_webhook_payload(
     render: &RenderedNotification,
 ) -> Value {
     let entry = &delivery.entry;
-    let description = if !entry.content.display_location.trim().is_empty() {
-        format!("\u{2192} {}", entry.content.display_location)
+    let description = if !render.display_location.trim().is_empty() {
+        format!("\u{2192} {}", render.display_location)
     } else if !entry.content.world_name.trim().is_empty() {
         format!("\u{2192} {}", entry.content.world_name)
     } else if !render.body.trim().is_empty() {
@@ -882,6 +889,25 @@ mod tests {
             render.text,
             "Traveler 现在位于 Group World 群组+(Group Name)"
         );
+        assert_eq!(render.display_location, "Group World 群组+(Group Name)");
+    }
+
+    #[test]
+    fn generic_webhook_location_uses_localized_access_label() {
+        let mut delivery = delivery();
+        delivery.entry.content.location =
+            "wrld_named:123~group(grp_a)~groupAccessType(plus)".into();
+        delivery.entry.content.world_name = "Group World".into();
+        delivery.entry.content.group_name = "Group Name".into();
+        delivery.entry.content.display_location = "Group World groupPlus(Group Name)".into();
+
+        let render = render_delivery(&delivery, OverlayLocale::ZhCn);
+        let payload = webhook_payload(&delivery, &render, "generic", &["location".into()]);
+
+        assert_eq!(
+            payload.get("location").and_then(|value| value.as_str()),
+            Some("Group World 群组+(Group Name)")
+        );
     }
 
     fn rendered() -> RenderedNotification {
@@ -889,6 +915,7 @@ mod tests {
             title: "Traveler".into(),
             body: "joined Named World".into(),
             text: "Traveler joined Named World".into(),
+            display_location: "Named World public".into(),
             image_url: String::new(),
         }
     }
