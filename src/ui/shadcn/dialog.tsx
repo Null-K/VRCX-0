@@ -70,14 +70,6 @@ function DialogContent({
                 )}
                 onPointerDownOutside={(event: any) => {
                     preserveAppTitleBarOutsideInteraction(event);
-                    if (!event.defaultPrevented) {
-                        const target = (event.detail?.originalEvent?.target ??
-                            event.target) as Element | null;
-                        if (target?.closest('[data-slot="dialog-content"]')) {
-                            event.preventDefault();
-                            return;
-                        }
-                    }
                     onPointerDownOutside?.(event);
                 }}
                 onInteractOutside={(event: any) => {
