@@ -52,7 +52,7 @@ export function useLoginPageState() {
     const [loginForm, setLoginForm] = useState<any>({
         username: '',
         password: '',
-        saveCredentials: false
+        saveCredentials: true
     });
     const [loginErrors, setLoginErrors] = useState<any>({
         username: '',
