@@ -1,4 +1,5 @@
 import { ChevronDownIcon } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { getLanguageName, languageCodes } from '@/localization/index';
@@ -89,10 +90,24 @@ function FontFamilyPreferenceField({
     onCjkFontPackChange
 }: any) {
     const showCjkFontPack = supportsConfigurableCjkFontPack(locale);
+    const [fontMenuOpen, setFontMenuOpen] = useState(false);
+
+    function openCustomFontDialogAfterMenuClose() {
+        setFontMenuOpen(false);
+        window.setTimeout(() => onFontFamilyChange('custom'), 0);
+    }
+
+    function handleFontFamilyChange(value: any) {
+        if (value === 'custom') {
+            openCustomFontDialogAfterMenuClose();
+            return;
+        }
+        onFontFamilyChange(value);
+    }
 
     return (
         <Field label={t('view.settings.appearance.appearance.font_family')}>
-            <DropdownMenu>
+            <DropdownMenu open={fontMenuOpen} onOpenChange={setFontMenuOpen}>
                 <DropdownMenuTrigger asChild>
                     <Button
                         type="button"
@@ -117,7 +132,7 @@ function FontFamilyPreferenceField({
                     <DropdownMenuGroup>
                         <DropdownMenuRadioGroup
                             value={prefs.appFontFamily}
-                            onValueChange={onFontFamilyChange}
+                            onValueChange={handleFontFamilyChange}
                         >
                             {westernFontDropdownOptions.map(
                                 ([value, labelKey]: any) => (
@@ -129,7 +144,14 @@ function FontFamilyPreferenceField({
                                     </DropdownMenuRadioItem>
                                 )
                             )}
-                            <DropdownMenuRadioItem value="custom">
+                            <DropdownMenuRadioItem
+                                value="custom"
+                                onSelect={() => {
+                                    if (prefs.appFontFamily === 'custom') {
+                                        openCustomFontDialogAfterMenuClose();
+                                    }
+                                }}
+                            >
                                 {t(
                                     'view.settings.appearance.appearance.font_family_custom'
                                 )}
