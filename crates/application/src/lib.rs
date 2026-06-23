@@ -10,6 +10,7 @@ mod event_bus;
 mod game_client;
 mod game_log;
 mod image_cache;
+mod interruptible_sleep;
 mod local_favorites;
 mod log_watcher;
 mod media_upload;

@@ -112,7 +112,10 @@ impl ProcessMonitor {
                     first_poll = false;
                 }
 
-                std::thread::sleep(Duration::from_secs(1));
+                crate::interruptible_sleep::sleep_interruptibly(Duration::from_secs(1), || {
+                    !stop_requested.load(Ordering::Acquire)
+                        && current_generation.load(Ordering::Acquire) == generation
+                });
             }
 
             if current_generation.load(Ordering::Acquire) == generation {
