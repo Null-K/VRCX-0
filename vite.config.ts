@@ -99,7 +99,8 @@ export default defineConfig(({ mode }) => {
     const telemetryEndpoint = isProductionBuild
         ? process.env.VRCX_0_TELEMETRY_ENDPOINT || productionTelemetryEndpoint
         : '';
-    const bundledCjkFontsEnabled = process.platform !== 'darwin';
+    const macosSystemFontsEnabled = process.platform === 'darwin';
+    const bundledCjkFontsEnabled = !macosSystemFontsEnabled;
 
     return {
         base: '',
@@ -165,6 +166,9 @@ export default defineConfig(({ mode }) => {
             VRCX_0_TELEMETRY_ENDPOINT: JSON.stringify(telemetryEndpoint),
             VRCX_0_BUNDLED_CJK_FONTS_ENABLED: JSON.stringify(
                 bundledCjkFontsEnabled
+            ),
+            VRCX_0_MACOS_SYSTEM_FONTS_ENABLED: JSON.stringify(
+                macosSystemFontsEnabled
             )
         },
         server: {

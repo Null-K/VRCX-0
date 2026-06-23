@@ -1,3 +1,5 @@
+import { useRuntimeStore } from '@/state/runtimeStore';
+
 import { SettingsTabContent } from '../SettingsViewParts';
 import { SettingsInterfaceAppearanceCard } from './SettingsInterfaceAppearanceCard';
 import { SettingsInterfaceDisplayCards } from './SettingsInterfaceDisplayCards';
@@ -5,6 +7,9 @@ import { SettingsInterfaceThemesCard } from './SettingsInterfaceThemesCard';
 import { SettingsInterfaceUserColorsCard } from './SettingsInterfaceUserColorsCard';
 
 export function SettingsInterfaceTab({ settingsInterface }: any) {
+    const isMacHost = useRuntimeStore(
+        (state: any) => state.hostCapabilities.platform === 'macos'
+    );
     const {
         locale,
         prefs,
@@ -44,6 +49,7 @@ export function SettingsInterfaceTab({ settingsInterface }: any) {
                 prefs={prefs}
                 zoomInput={zoomInput}
                 zoomLevel={zoomLevel}
+                hideFontControls={isMacHost}
                 onLanguageChange={onLanguageChange}
                 onFontFamilyChange={onFontFamilyChange}
                 onCjkFontPackChange={onCjkFontPackChange}

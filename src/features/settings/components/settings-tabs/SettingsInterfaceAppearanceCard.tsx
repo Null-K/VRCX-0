@@ -76,10 +76,87 @@ function getFontDropdownDisplayText(t: any, prefs: any) {
     return `${t(fontLabel)} / ${t(cjkLabel)}`;
 }
 
+function FontFamilyPreferenceField({
+    t,
+    prefs,
+    onFontFamilyChange,
+    onCjkFontPackChange
+}: any) {
+    return (
+        <Field label={t('view.settings.appearance.appearance.font_family')}>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="min-w-44 justify-between font-normal"
+                    >
+                        <span className="truncate">
+                            {getFontDropdownDisplayText(t, prefs)}
+                        </span>
+                        <ChevronDownIcon
+                            data-icon="inline-end"
+                            className="opacity-50"
+                        />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuGroup>
+                        <DropdownMenuRadioGroup
+                            value={prefs.appFontFamily}
+                            onValueChange={onFontFamilyChange}
+                        >
+                            {westernFontDropdownOptions.map(
+                                ([value, labelKey]: any) => (
+                                    <DropdownMenuRadioItem
+                                        key={value}
+                                        value={value}
+                                    >
+                                        {t(labelKey)}
+                                    </DropdownMenuRadioItem>
+                                )
+                            )}
+                            <DropdownMenuRadioItem value="custom">
+                                {t(
+                                    'view.settings.appearance.appearance.font_family_custom'
+                                )}
+                            </DropdownMenuRadioItem>
+                        </DropdownMenuRadioGroup>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuGroup>
+                        <DropdownMenuRadioGroup
+                            value={
+                                prefs.appFontFamily === 'custom'
+                                    ? ''
+                                    : prefs.appCjkFontPack
+                            }
+                            onValueChange={onCjkFontPackChange}
+                        >
+                            {cjkFontPackOptions.map(
+                                ([value, labelKey]: any) => (
+                                    <DropdownMenuRadioItem
+                                        key={value}
+                                        value={value}
+                                    >
+                                        {t(labelKey)}
+                                    </DropdownMenuRadioItem>
+                                )
+                            )}
+                        </DropdownMenuRadioGroup>
+                    </DropdownMenuGroup>
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </Field>
+    );
+}
+
 export function SettingsInterfaceAppearanceCard({
     locale,
     prefs,
     zoomInput,
+    hideFontControls,
     onLanguageChange,
     onFontFamilyChange,
     onCjkFontPackChange,
@@ -90,7 +167,6 @@ export function SettingsInterfaceAppearanceCard({
     onAccessibleStatusIndicatorsChange
 }: any) {
     const { t } = useTranslation();
-    const fontDropdownDisplayText = getFontDropdownDisplayText(t, prefs);
 
     return (
         <SettingsGroup title={t('view.settings.appearance.appearance.header')}>
@@ -114,72 +190,14 @@ export function SettingsInterfaceAppearanceCard({
                 </Select>
             </Field>
 
-            <Field label={t('view.settings.appearance.appearance.font_family')}>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="min-w-44 justify-between font-normal"
-                        >
-                            <span className="truncate">
-                                {fontDropdownDisplayText}
-                            </span>
-                            <ChevronDownIcon
-                                data-icon="inline-end"
-                                className="opacity-50"
-                            />
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                        <DropdownMenuGroup>
-                            <DropdownMenuRadioGroup
-                                value={prefs.appFontFamily}
-                                onValueChange={onFontFamilyChange}
-                            >
-                                {westernFontDropdownOptions.map(
-                                    ([value, labelKey]: any) => (
-                                        <DropdownMenuRadioItem
-                                            key={value}
-                                            value={value}
-                                        >
-                                            {t(labelKey)}
-                                        </DropdownMenuRadioItem>
-                                    )
-                                )}
-                                <DropdownMenuRadioItem value="custom">
-                                    {t(
-                                        'view.settings.appearance.appearance.font_family_custom'
-                                    )}
-                                </DropdownMenuRadioItem>
-                            </DropdownMenuRadioGroup>
-                        </DropdownMenuGroup>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuGroup>
-                            <DropdownMenuRadioGroup
-                                value={
-                                    prefs.appFontFamily === 'custom'
-                                        ? ''
-                                        : prefs.appCjkFontPack
-                                }
-                                onValueChange={onCjkFontPackChange}
-                            >
-                                {cjkFontPackOptions.map(
-                                    ([value, labelKey]: any) => (
-                                        <DropdownMenuRadioItem
-                                            key={value}
-                                            value={value}
-                                        >
-                                            {t(labelKey)}
-                                        </DropdownMenuRadioItem>
-                                    )
-                                )}
-                            </DropdownMenuRadioGroup>
-                        </DropdownMenuGroup>
-                    </DropdownMenuContent>
-                </DropdownMenu>
-            </Field>
+            {!hideFontControls ? (
+                <FontFamilyPreferenceField
+                    t={t}
+                    prefs={prefs}
+                    onFontFamilyChange={onFontFamilyChange}
+                    onCjkFontPackChange={onCjkFontPackChange}
+                />
+            ) : null}
 
             <Field
                 label={t('view.settings.appearance.appearance.zoom')}

@@ -408,17 +408,21 @@ export function applyAppFontPreferences({
     const normalizedFont = normalizeAppFontFamily(fontFamily);
     const normalizedCjk = normalizeAppCjkFontPack(cjkFontPack);
     const normalizedLocale = normalizeFontLocale(locale);
-    const fontConfig = APP_FONT_CONFIG[normalizedFont];
-    const cjkConfig = resolveCjkFontConfig(normalizedCjk, normalizedLocale);
+    const useMacosSystemFonts = VRCX_0_MACOS_SYSTEM_FONTS_ENABLED;
+    const effectiveFont = useMacosSystemFonts ? 'system_ui' : normalizedFont;
+    const fontConfig = APP_FONT_CONFIG[effectiveFont];
+    const cjkConfig = useMacosSystemFonts
+        ? resolveNotoCjkFontConfig(normalizedLocale)
+        : resolveCjkFontConfig(normalizedCjk, normalizedLocale);
     const westernFont =
-        normalizedFont === 'custom'
+        effectiveFont === 'custom'
             ? String(customFontFamily || '').trim() ||
               APP_FONT_CONFIG[APP_FONT_DEFAULT_KEY].cssName
             : fontConfig.cssName;
 
     ensureDynamicStyle(
         APP_FONT_STYLE_ATTR,
-        normalizedFont,
+        effectiveFont,
         fontConfig.cssImport
     );
     ensureDynamicStyle(
