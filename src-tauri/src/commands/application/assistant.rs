@@ -82,6 +82,20 @@ pub async fn app__assistant_list_models(
 
 #[tauri::command]
 #[specta::specta]
+pub async fn app__assistant_set_panel_open(
+    state: State<'_, AppState>,
+    sessionId: String,
+    open: bool,
+) -> Result<(), AppError> {
+    state
+        .assistant()
+        .await?
+        .set_entity_panel_open(&sessionId, open);
+    Ok(())
+}
+
+#[tauri::command]
+#[specta::specta]
 pub async fn app__assistant_config_status(
     state: State<'_, AppState>,
 ) -> Result<AssistantConfigStatus, AppError> {

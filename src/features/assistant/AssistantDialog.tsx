@@ -21,7 +21,8 @@ import { ScrollArea } from '@/ui/shadcn/scroll-area';
 import {
     cancelActiveTurn,
     refreshSessions,
-    sendMessage
+    sendMessage,
+    setEntityPanelOpen
 } from './assistantActions';
 import { Composer } from './components/Composer';
 import { EntityPanel } from './components/EntityPanel';
@@ -47,14 +48,13 @@ export function AssistantDialog() {
 
     const open = useAssistantChatStore((state) => state.open);
     const setOpen = useAssistantChatStore((state) => state.setOpen);
-    const entityPanelOpen = useAssistantChatStore(
-        (state) => state.entityPanelOpen
-    );
-    const setEntityPanelOpen = useAssistantChatStore(
-        (state) => state.setEntityPanelOpen
-    );
     const activeSessionId = useAssistantChatStore(
         (state) => state.activeSessionId
+    );
+    const entityPanelOpen = useAssistantChatStore((state) =>
+        state.activeSessionId
+            ? (state.entityPanelOpenBySession[state.activeSessionId] ?? false)
+            : false
     );
     const messages = useAssistantChatStore((state) =>
         activeSessionId ? state.messagesBySession[activeSessionId] : undefined

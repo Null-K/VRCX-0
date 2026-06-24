@@ -149,6 +149,10 @@ impl AssistantController {
         self.sessions.create_session()
     }
 
+    pub fn set_entity_panel_open(&self, session_id: &str, open: bool) {
+        self.sessions.set_entity_panel_open(session_id, open);
+    }
+
     pub fn delete_session(&self, session_id: &str) {
         self.cancel(session_id);
         self.sessions.delete(session_id);

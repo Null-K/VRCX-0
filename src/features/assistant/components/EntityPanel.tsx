@@ -6,9 +6,17 @@ import { openWorldDialog } from '@/services/dialogService';
 import { useAssistantChatStore } from '@/state/assistantChatStore';
 import { ScrollArea } from '@/ui/shadcn/scroll-area';
 
+import type { Entity } from '../assistantTypes';
+
+const EMPTY: Entity[] = [];
+
 export function EntityPanel() {
     const { t } = useTranslation();
-    const entities = useAssistantChatStore((state) => state.surfacedEntities);
+    const entities = useAssistantChatStore((state) =>
+        state.activeSessionId
+            ? (state.surfacedEntitiesBySession[state.activeSessionId] ?? EMPTY)
+            : EMPTY
+    );
 
     return (
         <div className="flex h-full min-h-0 flex-col">

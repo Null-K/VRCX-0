@@ -25,12 +25,25 @@ pub(crate) fn ensure_global_store_tables(db: &DatabaseService) -> Result<(), Err
 
 pub(crate) fn ensure_assistant_tables(db: &DatabaseService) -> Result<(), Error> {
     for sql in [
-        "CREATE TABLE IF NOT EXISTS assistant_session (id TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT '')",
+        "CREATE TABLE IF NOT EXISTS assistant_session (id TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT '', updated_at TEXT NOT NULL DEFAULT '', entity_panel_open INTEGER NOT NULL DEFAULT 0, surfaced_entities TEXT NOT NULL DEFAULT '[]')",
         "CREATE TABLE IF NOT EXISTS assistant_message (id TEXT PRIMARY KEY, session_id TEXT NOT NULL, seq INTEGER NOT NULL DEFAULT 0, role TEXT NOT NULL DEFAULT '', content TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT '')",
         "CREATE INDEX IF NOT EXISTS assistant_message_session_seq_idx ON assistant_message (session_id, seq)",
     ] {
         db.execute_non_query(sql, &Default::default())?;
     }
+    // Upgrade tables created before the UI-state columns existed.
+    add_column_if_missing(
+        db,
+        "assistant_session",
+        "entity_panel_open",
+        "INTEGER NOT NULL DEFAULT 0",
+    )?;
+    add_column_if_missing(
+        db,
+        "assistant_session",
+        "surfaced_entities",
+        "TEXT NOT NULL DEFAULT '[]'",
+    )?;
     Ok(())
 }
 

@@ -77,3 +77,20 @@ export async function cancelActiveTurn(): Promise<void> {
         await commands.appAssistantCancel(sessionId);
     }
 }
+
+export function setEntityPanelOpen(open: boolean): void {
+    const store = useAssistantChatStore.getState();
+    const sessionId = store.activeSessionId;
+    store.setEntityPanelOpen(open);
+    if (sessionId) {
+        // Persist so the panel state survives an app restart.
+        void commands
+            .appAssistantSetPanelOpen(sessionId, open)
+            .catch((error) => {
+                console.warn(
+                    '[assistant] failed to persist panel state',
+                    error
+                );
+            });
+    }
+}

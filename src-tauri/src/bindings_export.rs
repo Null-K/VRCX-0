@@ -90,6 +90,7 @@ pub fn builder() -> Builder<tauri::Wry> {
             commands::application::assistant::app__assistant_new_session,
             commands::application::assistant::app__assistant_delete_session,
             commands::application::assistant::app__assistant_list_models,
+            commands::application::assistant::app__assistant_set_panel_open,
             commands::application::assistant::app__assistant_config_status,
             commands::application::assistant::app__assistant_set_config,
             commands::application::overlay_activity::app__overlay_activity_definitions_get,

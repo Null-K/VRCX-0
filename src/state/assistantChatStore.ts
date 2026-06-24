@@ -18,8 +18,8 @@ interface AssistantChatState {
     sessions: SessionSummary[];
     activeSessionId: string | null;
     messagesBySession: Record<string, UIMessage[]>;
-    surfacedEntities: Entity[];
-    entityPanelOpen: boolean;
+    surfacedEntitiesBySession: Record<string, Entity[]>;
+    entityPanelOpenBySession: Record<string, boolean>;
     busySessions: Record<string, boolean>;
     setOpen: (open: boolean) => void;
     setEntityPanelOpen: (open: boolean) => void;
@@ -34,7 +34,6 @@ interface AssistantChatState {
     applyTurnEntities: (event: AssistantTurnEntitiesEvent) => void;
     applyDone: (event: AssistantDoneEvent) => void;
     applyError: (event: AssistantErrorEvent) => void;
-    clearSurfaced: () => void;
 }
 
 function markSessionIdle(
@@ -96,15 +95,26 @@ export const useAssistantChatStore = create<AssistantChatState>((set) => ({
     sessions: [],
     activeSessionId: null,
     messagesBySession: {},
-    surfacedEntities: [],
-    entityPanelOpen: false,
+    surfacedEntitiesBySession: {},
+    entityPanelOpenBySession: {},
     busySessions: {},
 
     setOpen: (open) => set({ open }),
-    setEntityPanelOpen: (entityPanelOpen) => set({ entityPanelOpen }),
+    // Entity panel open/closed is remembered per session: switching restores the
+    // panel state and contents of the session being opened, never wiping them.
+    setEntityPanelOpen: (open) =>
+        set((state) =>
+            state.activeSessionId
+                ? {
+                      entityPanelOpenBySession: {
+                          ...state.entityPanelOpenBySession,
+                          [state.activeSessionId]: open
+                      }
+                  }
+                : {}
+        ),
     setSessions: (sessions) => set({ sessions }),
-    setActiveSession: (activeSessionId) =>
-        set({ activeSessionId, surfacedEntities: [], entityPanelOpen: false }),
+    setActiveSession: (activeSessionId) => set({ activeSessionId }),
 
     hydrateSession: (session) =>
         set((state) => ({
@@ -117,6 +127,15 @@ export const useAssistantChatStore = create<AssistantChatState>((set) => ({
                     streaming: false,
                     toolCalls: []
                 }))
+            },
+            // Restore the persisted right-panel state for this session.
+            entityPanelOpenBySession: {
+                ...state.entityPanelOpenBySession,
+                [session.id]: session.entityPanelOpen
+            },
+            surfacedEntitiesBySession: {
+                ...state.surfacedEntitiesBySession,
+                [session.id]: session.surfacedEntities
             }
         })),
 
@@ -190,17 +209,21 @@ export const useAssistantChatStore = create<AssistantChatState>((set) => ({
         ),
 
     applyTurnEntities: (event) =>
-        set((state) =>
-            state.activeSessionId === event.sessionId
-                ? {
-                      surfacedEntities: event.entities,
-                      entityPanelOpen:
-                          event.entities.length > 0
-                              ? true
-                              : state.entityPanelOpen
-                  }
-                : {}
-        ),
+        set((state) => ({
+            surfacedEntitiesBySession: {
+                ...state.surfacedEntitiesBySession,
+                [event.sessionId]: event.entities
+            },
+            // Auto-open this session's panel when it surfaces entities, but never
+            // force-close it — respect a manual toggle on an empty turn.
+            entityPanelOpenBySession:
+                event.entities.length > 0
+                    ? {
+                          ...state.entityPanelOpenBySession,
+                          [event.sessionId]: true
+                      }
+                    : state.entityPanelOpenBySession
+        })),
 
     applyDone: (event) =>
         set((state) => ({
@@ -225,7 +248,5 @@ export const useAssistantChatStore = create<AssistantChatState>((set) => ({
             ),
             busySessions: { ...state.busySessions, [event.sessionId]: false },
             sessions: markSessionIdle(state.sessions, event.sessionId)
-        })),
-
-    clearSurfaced: () => set({ surfacedEntities: [] })
+        }))
 }));

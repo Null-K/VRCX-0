@@ -167,6 +167,9 @@ async appAssistantDeleteSession(sessionId: string) : Promise<null> {
 async appAssistantListModels(baseUrl: string, apiKey: string | null) : Promise<string[]> {
     return await TAURI_INVOKE("app__assistant_list_models", { baseUrl, apiKey });
 },
+async appAssistantSetPanelOpen(sessionId: string, open: boolean) : Promise<null> {
+    return await TAURI_INVOKE("app__assistant_set_panel_open", { sessionId, open });
+},
 async appAssistantConfigStatus() : Promise<AssistantConfigStatus> {
     return await TAURI_INVOKE("app__assistant_config_status");
 },
@@ -1553,7 +1556,7 @@ export type ScreenshotLibraryImage = { path: string; folderPath: string; fileNam
 export type ScreenshotLibraryScanStatus = { running: boolean; scanned: number; indexed: number; changed: number; skipped: number; deleted: number; error: string | null; lastScanAt: string | null }
 export type ScreenshotMetadata = { application?: string | null; version?: number; author: AuthorDetail; world: WorldDetail; players: PlayerDetail[]; timestamp?: string | null; note?: string | null; pos?: [number, number, number] | null; sourceFile?: string | null; error?: string | null }
 export type SendResult = { sessionId: string; turnId: string }
-export type Session = { id: string; title: string; messages: Message[]; activeTurn: ActiveTurn | null; createdAt: string; updatedAt: string }
+export type Session = { id: string; title: string; messages: Message[]; activeTurn: ActiveTurn | null; entityPanelOpen: boolean; surfacedEntities: Entity[]; createdAt: string; updatedAt: string }
 export type SessionSummary = { id: string; title: string; busy: boolean; updatedAt: string }
 export type SocialFavoritesBaselineInput = { userId?: string; endpoint?: string; currentUserSnapshot?: RawJson; friendRosterById?: RawJson }
 export type SocialFavoritesBaselineOutput = { userId: string; stale: boolean; count: number; snapshot: RawJson | null }

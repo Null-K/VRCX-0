@@ -1,10 +1,10 @@
 use std::collections::BTreeMap;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use specta::Type;
 
-#[derive(Debug, Clone, Serialize, PartialEq, Eq, Type)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Type)]
 #[serde(rename_all = "camelCase")]
 pub struct Entity {
     pub kind: String,

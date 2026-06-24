@@ -18,6 +18,8 @@ pub struct PersistedSession {
     pub title: String,
     pub created_at: String,
     pub updated_at: String,
+    pub entity_panel_open: bool,
+    pub surfaced_entities: String,
     pub messages: Vec<PersistedMessage>,
 }
 
@@ -25,7 +27,7 @@ pub fn assistant_sessions_load(db: &DatabaseService) -> Result<Vec<PersistedSess
     ensure_assistant_tables(db)?;
     let mut sessions: Vec<PersistedSession> = db
         .execute(
-            "SELECT id, title, created_at, updated_at FROM assistant_session ORDER BY updated_at DESC",
+            "SELECT id, title, created_at, updated_at, entity_panel_open, surfaced_entities FROM assistant_session ORDER BY updated_at DESC",
             &Default::default(),
         )?
         .into_iter()
@@ -34,6 +36,8 @@ pub fn assistant_sessions_load(db: &DatabaseService) -> Result<Vec<PersistedSess
             title: row_string(&row, 1),
             created_at: row_string(&row, 2),
             updated_at: row_string(&row, 3),
+            entity_panel_open: row_i64(&row, 4) != 0,
+            surfaced_entities: row_string(&row, 5),
             messages: Vec::new(),
         })
         .collect();
@@ -76,6 +80,24 @@ pub fn assistant_session_upsert(
             .set("title", title.to_string())
             .set("created_at", created_at.to_string())
             .set("updated_at", updated_at.to_string())
+            .build(),
+    )?;
+    Ok(())
+}
+
+pub fn assistant_session_set_ui_state(
+    db: &DatabaseService,
+    id: &str,
+    entity_panel_open: bool,
+    surfaced_entities: &str,
+) -> Result<(), Error> {
+    ensure_assistant_tables(db)?;
+    db.execute_non_query(
+        "UPDATE assistant_session SET entity_panel_open = @open, surfaced_entities = @entities WHERE id = @id",
+        &ParamsBuilder::new()
+            .set("open", i64::from(entity_panel_open))
+            .set("entities", surfaced_entities.to_string())
+            .set("id", id.to_string())
             .build(),
     )?;
     Ok(())

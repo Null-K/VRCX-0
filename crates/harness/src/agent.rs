@@ -119,6 +119,8 @@ pub(crate) async fn run_turn(ctx: TurnContext) {
 
     let surfaced = surfaced_entities(dedup_entities(collected), &final_answer, SURFACE_CAP);
     if !surfaced.is_empty() {
+        ctx.sessions
+            .set_surfaced_entities(&ctx.session_id, &surfaced);
         ctx.emitter.turn_entities(&surfaced);
     }
 

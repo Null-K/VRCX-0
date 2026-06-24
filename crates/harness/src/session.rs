@@ -6,6 +6,8 @@ use specta::Type;
 use vrcx_0_persistence::assistant;
 use vrcx_0_persistence::DatabaseService;
 
+use crate::entities::Entity;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Type)]
 #[serde(rename_all = "lowercase")]
 pub enum Role {
@@ -46,6 +48,8 @@ pub struct Session {
     pub title: String,
     pub messages: Vec<Message>,
     pub active_turn: Option<ActiveTurn>,
+    pub entity_panel_open: bool,
+    pub surfaced_entities: Vec<Entity>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -109,6 +113,9 @@ impl SessionStore {
                             title: entry.title,
                             messages,
                             active_turn: None,
+                            entity_panel_open: entry.entity_panel_open,
+                            surfaced_entities: serde_json::from_str(&entry.surfaced_entities)
+                                .unwrap_or_default(),
                             created_at: entry.created_at,
                             updated_at: entry.updated_at,
                         },
@@ -181,6 +188,8 @@ impl SessionStore {
             title: String::new(),
             messages: Vec::new(),
             active_turn: None,
+            entity_panel_open: false,
+            surfaced_entities: Vec::new(),
             created_at: now.clone(),
             updated_at: now,
         };
@@ -301,6 +310,57 @@ impl SessionStore {
             .map(|session| session.messages.clone())
             .unwrap_or_default()
     }
+
+    /// Persist the entities a turn surfaced (and auto-open the panel for them),
+    /// so a reopened session restores its right-panel contents.
+    pub fn set_surfaced_entities(&self, session_id: &str, entities: &[Entity]) {
+        // Mutate and persist under one lock so the in-memory change and the DB
+        // write stay ordered together — a manual toggle racing a turn end can't
+        // land its UPDATE out of order and desync the persisted panel state.
+        let mut guard = self.sessions.lock().unwrap();
+        let Some(session) = guard.get_mut(session_id) else {
+            return;
+        };
+        session.surfaced_entities = entities.to_vec();
+        if !entities.is_empty() {
+            session.entity_panel_open = true;
+        }
+        persist_ui_state(
+            self.db.as_deref(),
+            session_id,
+            session.entity_panel_open,
+            &session.surfaced_entities,
+        );
+    }
+
+    pub fn set_entity_panel_open(&self, session_id: &str, open: bool) {
+        let mut guard = self.sessions.lock().unwrap();
+        let Some(session) = guard.get_mut(session_id) else {
+            return;
+        };
+        session.entity_panel_open = open;
+        persist_ui_state(
+            self.db.as_deref(),
+            session_id,
+            open,
+            &session.surfaced_entities,
+        );
+    }
+}
+
+fn persist_ui_state(
+    db: Option<&DatabaseService>,
+    session_id: &str,
+    open: bool,
+    entities: &[Entity],
+) {
+    let Some(db) = db else {
+        return;
+    };
+    let json = serde_json::to_string(entities).unwrap_or_else(|_| "[]".into());
+    if let Err(error) = assistant::assistant_session_set_ui_state(db, session_id, open, &json) {
+        tracing::error!(%error, "assistant: failed to persist panel state");
+    }
 }
 
 fn role_str(role: Role) -> &'static str {
@@ -374,6 +434,45 @@ mod tests {
         assert_eq!(history[0].content, "who do I play with?");
         assert_eq!(history[1].role, Role::Assistant);
         assert_eq!(history[1].content, "Alice and Bob.");
+    }
+
+    #[test]
+    fn reopened_session_restores_panel_state() {
+        let db = test_db();
+        let session_id = {
+            let store = SessionStore::with_db(db.clone());
+            let session = store.create_session();
+            store.set_surfaced_entities(
+                &session.id,
+                &[Entity {
+                    kind: "user".into(),
+                    id: "usr_1".into(),
+                    display_name: "Alice".into(),
+                }],
+            );
+            session.id
+        };
+
+        // Surfacing entities auto-opens the panel; both must survive a restart.
+        let reopened = SessionStore::with_db(db).get(&session_id).unwrap();
+        assert!(reopened.entity_panel_open);
+        assert_eq!(reopened.surfaced_entities.len(), 1);
+        assert_eq!(reopened.surfaced_entities[0].id, "usr_1");
+        assert_eq!(reopened.surfaced_entities[0].display_name, "Alice");
+    }
+
+    #[test]
+    fn manual_panel_toggle_persists() {
+        let db = test_db();
+        let session_id = {
+            let store = SessionStore::with_db(db.clone());
+            let session = store.create_session();
+            store.set_entity_panel_open(&session.id, true);
+            store.set_entity_panel_open(&session.id, false);
+            session.id
+        };
+        let reopened = SessionStore::with_db(db).get(&session_id).unwrap();
+        assert!(!reopened.entity_panel_open);
     }
 
     #[test]
