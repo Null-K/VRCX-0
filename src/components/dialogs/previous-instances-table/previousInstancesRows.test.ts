@@ -143,9 +143,7 @@ describe('previousInstancesRows', () => {
                     id: 'usr_known',
                     endpoint: 'default',
                     displayName: 'Known User',
-                    updatedAt: '2024-01-02T02:00:00.000Z',
-                    fieldRanks: {},
-                    fieldSources: {}
+                    updatedAt: '2024-01-02T02:00:00.000Z'
                 }
             }
         );

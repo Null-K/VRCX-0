@@ -70,8 +70,6 @@ interface UserFact {
     memo?: string;
     note?: string;
     updatedAt: string;
-    fieldRanks: Record<string, number>;
-    fieldSources: Record<string, string>;
 }
 
 function normalizeText(value: unknown): string {

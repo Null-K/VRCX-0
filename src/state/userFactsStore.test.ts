@@ -10,8 +10,6 @@ function rustUser(overrides: Record<string, unknown> = {}) {
         stateBucket: 'online',
         location: 'wrld_live:123',
         updatedAt: '2026-01-01T00:00:00.000Z',
-        fieldRanks: { displayName: 80 },
-        fieldSources: { displayName: 'profile' },
         ...overrides
     };
 }

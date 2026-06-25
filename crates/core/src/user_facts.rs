@@ -5,7 +5,6 @@ use serde_json::{Map, Number, Value};
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserFact {
     pub fields: Map<String, Value>,
-    pub field_ranks: HashMap<String, i64>,
     pub field_sources: HashMap<String, String>,
     pub updated_at: String,
 }
@@ -26,24 +25,6 @@ impl UserFact {
         let mut object = self.fields.clone();
         apply_derived_fields(&mut object);
         object.insert("updatedAt".into(), Value::String(self.updated_at.clone()));
-        object.insert(
-            "fieldRanks".into(),
-            Value::Object(
-                self.field_ranks
-                    .iter()
-                    .map(|(key, rank)| (key.clone(), Value::from(*rank)))
-                    .collect(),
-            ),
-        );
-        object.insert(
-            "fieldSources".into(),
-            Value::Object(
-                self.field_sources
-                    .iter()
-                    .map(|(key, source)| (key.clone(), Value::String(source.clone())))
-                    .collect(),
-            ),
-        );
         object
     }
 }
@@ -231,6 +212,13 @@ fn rank_for_field(field: &str, source: &str) -> i64 {
     } else {
         base_source_rank(source)
     }
+}
+
+fn existing_rank_for_field(field_sources: &HashMap<String, String>, field: &str) -> i64 {
+    field_sources
+        .get(field)
+        .map(|source| rank_for_field(field, source))
+        .unwrap_or(0)
 }
 
 fn user_fact_field_name(field: &str) -> Option<&'static str> {
@@ -438,7 +426,6 @@ pub fn merge_user_fact(
                 fields.insert("endpoint".into(), Value::String(endpoint.clone()));
                 fields
             },
-            field_ranks: HashMap::new(),
             field_sources: HashMap::new(),
             updated_at: updated_at.clone(),
         },
@@ -476,7 +463,7 @@ pub fn merge_user_fact(
             continue;
         }
         let rank = rank_for_field(field, &options.source);
-        let existing_rank = fact.field_ranks.get(field).copied().unwrap_or(0);
+        let existing_rank = existing_rank_for_field(&fact.field_sources, field);
         if rank < existing_rank {
             continue;
         }
@@ -484,8 +471,7 @@ pub fn merge_user_fact(
             fact.fields.insert(field.clone(), value.clone());
             changed = true;
         }
-        if fact.field_ranks.get(field).copied() != Some(rank) {
-            fact.field_ranks.insert(field.clone(), rank);
+        if existing_rank != rank {
             fact.field_sources
                 .insert(field.clone(), options.source.clone());
             changed = true;
@@ -552,6 +538,8 @@ mod tests {
             object.get("$isModerator").and_then(Value::as_bool),
             Some(false)
         );
+        assert!(!object.contains_key("fieldRanks"));
+        assert!(!object.contains_key("fieldSources"));
     }
 
     #[test]
