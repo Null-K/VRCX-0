@@ -296,9 +296,7 @@ function applyInstanceTagPart(
     const closeIndex = openIndex >= 0 ? part.lastIndexOf(')') : -1;
     const key = closeIndex >= 0 ? part.slice(0, openIndex) : part;
     const value =
-        openIndex < closeIndex
-            ? part.slice(openIndex + 1, closeIndex)
-            : '';
+        openIndex < closeIndex ? part.slice(openIndex + 1, closeIndex) : '';
 
     switch (key) {
         case 'hidden':
