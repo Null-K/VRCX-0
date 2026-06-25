@@ -132,7 +132,7 @@ jobs:
 
             - name: Validate package version
               run: |
-                  node build-scripts/prepare-release-version.ts \
+                  node scripts/prepare-release-version.ts \
                       --version "${{ steps.version.outputs.version }}" \
                       --dry-run
 

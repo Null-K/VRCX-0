@@ -42,7 +42,7 @@
         "typecheck": "tsgo -p tsconfig.app.json --noEmit && tsgo -p tsconfig.node.json --noEmit",
         "test": "vitest run",
         "test:watch": "vitest",
-        "build:licenses": "node ./build-scripts/generate-third-party-licenses.ts",
+        "build:licenses": "node ./scripts/generate-third-party-licenses.ts",
         "prebuild": "npm run generate:overlay-locales",
         "build": "vite build && npm run build:licenses"
     },

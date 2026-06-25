@@ -34,7 +34,7 @@ jobs:
                       echo "Missing Tauri config version." >&2
                       exit 1
                   fi
-                  node build-scripts/prepare-release-version.ts \
+                  node scripts/prepare-release-version.ts \
                       --version "$version" \
                       --dry-run
 
@@ -209,14 +209,14 @@ jobs:
                   rename_asset "$deb_source" "$deb_path"
                   rename_asset "$rpm_source" "$rpm_path"
 
-                  node build-scripts/create-tauri-updater-manifest.ts \
+                  node scripts/create-tauri-updater-manifest.ts \
                       --version "${{ needs.prepare.outputs.build_version }}" \
                       --tag "${{ needs.prepare.outputs.tag }}" \
                       --target "linux-x86_64-appimage-stable" \
                       --asset-name "$(basename "$appimage_path")" \
                       --signature-file "${appimage_path}.sig" \
                       --out "$manifest_path"
-                  node build-scripts/create-tauri-updater-manifest.ts \
+                  node scripts/create-tauri-updater-manifest.ts \
                       --version "${{ needs.prepare.outputs.build_version }}" \
                       --tag "${{ needs.prepare.outputs.tag }}" \
                       --target "linux-x86_64-deb-stable" \
@@ -224,7 +224,7 @@ jobs:
                       --signature-file "${deb_path}.sig" \
                       --base "$manifest_path" \
                       --out "$manifest_path"
-                  node build-scripts/create-tauri-updater-manifest.ts \
+                  node scripts/create-tauri-updater-manifest.ts \
                       --version "${{ needs.prepare.outputs.build_version }}" \
                       --tag "${{ needs.prepare.outputs.tag }}" \
                       --target "linux-x86_64-rpm-stable" \
@@ -326,7 +326,7 @@ jobs:
                           echo "No macOS updater signature found at $signature_path" >&2
                           exit 1
                       fi
-                      node build-scripts/create-tauri-updater-manifest.ts \
+                      node scripts/create-tauri-updater-manifest.ts \
                           --version "${{ needs.prepare.outputs.build_version }}" \
                           --tag "${{ needs.prepare.outputs.tag }}" \
                           --target "$target" \

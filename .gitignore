@@ -20,7 +20,7 @@ coverage/
 src/plugins/interopApi.js
 bun.lock
 .codex
-build-scripts/package-windows-release.ps1
+scripts/package-windows-release.ps1
 .claude/
 .agents/
 .mcp.json
