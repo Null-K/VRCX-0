@@ -7,9 +7,13 @@ const mocks = vi.hoisted(() => ({
         auth: {
             currentUserEndpoint: 'https://api.example.test/api/1',
             currentUserId: 'usr_self'
+        },
+        gameState: {
+            isGameRunning: true
         }
     },
     showLaunchDialog: vi.fn(),
+    tryOpenLaunchLocation: vi.fn(),
     confirm: vi.fn(),
     getInstance: vi.fn(),
     closeInstance: vi.fn(),
@@ -31,6 +35,10 @@ vi.mock('@/repositories/vrchatInstanceRepository', () => ({
         closeInstance: mocks.closeInstance,
         selfInvite: mocks.selfInvite
     }
+}));
+
+vi.mock('@/services/directAccessService', () => ({
+    tryOpenLaunchLocation: mocks.tryOpenLaunchLocation
 }));
 
 vi.mock('@/state/launchStore', () => ({
@@ -56,6 +64,7 @@ vi.mock('react-i18next', () => {
         'dialog.instance.label.android': 'Android:',
         'dialog.instance.label.ios': 'iOS:',
         'dialog.instance.action.launch_instance': 'Launch instance',
+        'dialog.instance.action.open_in_game': 'Open In-Game',
         'dialog.instance.label.self_invite': 'Self invite',
         'dialog.new_instance.ageGate': 'Age Gate',
         'dialog.new_instance.queueEnabled': 'Queue'
@@ -101,7 +110,9 @@ describe('InstanceActionBar', () => {
         mocks.runtimeState.auth.currentUserEndpoint =
             'https://api.example.test/api/1';
         mocks.runtimeState.auth.currentUserId = 'usr_self';
+        mocks.runtimeState.gameState.isGameRunning = true;
         mocks.showLaunchDialog.mockReset();
+        mocks.tryOpenLaunchLocation.mockReset();
         mocks.confirm.mockReset();
         mocks.getInstance.mockReset();
         mocks.closeInstance.mockReset();
@@ -134,6 +145,7 @@ describe('InstanceActionBar', () => {
         });
 
         expect(html).toContain('aria-label="Launch instance"');
+        expect(html).toContain('aria-label="Open In-Game"');
         expect(html).toContain('aria-label="Self invite"');
         expect(html).toContain('aria-label="Refresh instance info"');
         expect(html).toContain('aria-label="Open instance history"');
@@ -193,6 +205,18 @@ describe('InstanceActionBar', () => {
         expect(html).toContain('aria-label="Self invite"');
         expect(html).toContain('aria-label="Refresh instance info"');
         expect(html).toContain('4/12');
+    });
+
+    it('hides the open in-game action while VRChat is not running', () => {
+        mocks.runtimeState.gameState.isGameRunning = false;
+
+        const html = renderActionBar({
+            location: 'wrld_test:12345'
+        });
+
+        expect(html).toContain('aria-label="Launch instance"');
+        expect(html).not.toContain('aria-label="Open In-Game"');
+        expect(html).toContain('aria-label="Self invite"');
     });
 
     it('builds self invite requests from target shortName without resolving shortName first', () => {

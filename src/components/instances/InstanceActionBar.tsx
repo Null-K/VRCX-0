@@ -1,4 +1,5 @@
 import {
+    Gamepad2Icon,
     HistoryIcon,
     LogInIcon,
     MailIcon,
@@ -19,6 +20,7 @@ import {
 import { formatDateFilter } from '@/lib/dateTime';
 import { cn } from '@/lib/utils';
 import vrchatInstanceRepository from '@/repositories/vrchatInstanceRepository';
+import { tryOpenLaunchLocation } from '@/services/directAccessService';
 import { recordLocationHintsFromInstances } from '@/services/domainIngestionService';
 import { hasGroupIdPrefix } from '@/shared/constants/vrchatIds';
 import { useLaunchStore } from '@/state/launchStore';
@@ -268,6 +270,9 @@ export function InstanceActionBar({
     const currentUserId = useRuntimeStore(
         (state: any) => state.auth.currentUserId
     );
+    const isGameRunning = useRuntimeStore((state) =>
+        Boolean(state.gameState.isGameRunning)
+    );
     const confirm = useModalStore((state: any) => state.confirm);
     const showLaunchDialog = useLaunchStore(
         (state: any) => state.showLaunchDialog
@@ -319,6 +324,8 @@ export function InstanceActionBar({
         instanceInfo?.ageGate ||
         actionTarget.instanceLocation.includes('~ageGate')
     );
+    const canShowLaunchAction = showLaunch && actionTarget.isRealLaunchLocation;
+    const canOpenInstanceInGame = canShowLaunchAction && isGameRunning;
 
     useEffect(() => {
         activeContextRef.current = {
@@ -340,6 +347,42 @@ export function InstanceActionBar({
                 worldName: actionTarget.worldName
             }
         );
+    }
+
+    async function openInstanceInGame() {
+        if (!canOpenInstanceInGame || busy) {
+            return;
+        }
+        setBusy('open-in-game');
+        try {
+            const opened = await tryOpenLaunchLocation(
+                actionTarget.launchLocation,
+                actionTarget.parsedLaunchLocation.shortName ||
+                    actionTarget.shortName,
+                endpoint
+            );
+            if (opened) {
+                toast.success(
+                    t('dialog.instance.success.vrchat_launch_request_sent')
+                );
+                return;
+            }
+            toast.error(
+                t(
+                    'dialog.instance.error.unable_to_open_this_instance_in_vrchat'
+                )
+            );
+        } catch (error) {
+            toast.error(
+                error instanceof Error
+                    ? error.message
+                    : t(
+                          'component.instance_action_bar.toast.failed_to_launch_instance'
+                      )
+            );
+        } finally {
+            setBusy('');
+        }
     }
 
     async function selfInvite() {
@@ -549,7 +592,7 @@ export function InstanceActionBar({
             )}
         >
             {instanceInfoPlacement === 'start' ? instanceSummary : null}
-            {showLaunch && actionTarget.isRealLaunchLocation ? (
+            {canShowLaunchAction ? (
                 <ActionButton
                     label={t('dialog.instance.action.launch_instance')}
                     icon={LogInIcon}
@@ -557,6 +600,18 @@ export function InstanceActionBar({
                     loading={busy === 'launch'}
                     disabled={Boolean(busy)}
                     onClick={launchInstance}
+                />
+            ) : null}
+            {canOpenInstanceInGame ? (
+                <ActionButton
+                    label={t('dialog.instance.action.open_in_game')}
+                    icon={Gamepad2Icon}
+                    disableTooltip={disableTooltip}
+                    loading={busy === 'open-in-game'}
+                    disabled={Boolean(busy)}
+                    onClick={() => {
+                        openInstanceInGame();
+                    }}
                 />
             ) : null}
             {showInvite && actionTarget.isRealInviteLocation ? (
