@@ -4,6 +4,11 @@ version = "2.9.0"
 edition = "2021"
 default-run = "vrcx-0"
 
+[[bin]]
+name = "export-bindings"
+path = "src/bin/export-bindings.rs"
+required-features = ["bindings-export"]
+
 [dependencies]
 tauri = { version = "2", features = ["tray-icon", "image-ico", "macos-proxy"] }
 serde = { workspace = true, features = ["derive"] }
@@ -68,6 +73,7 @@ webkit2gtk-nvidia-quirk = "1"
 
 [features]
 default = ["steamvr-overlay", "openxr-overlay"]
+bindings-export = []
 devtools = ["tauri/devtools"]
 devkit = ["devtools"]
 steamvr-overlay = [
