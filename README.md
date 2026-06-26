@@ -24,6 +24,13 @@ VRCX-0 is designed for everyday use: dramatically lower resource usage, a smalle
 - Just over 10 MB to download, just over 30 MB on disk — over 10× smaller than VRCX
 - **Background mode** — a step beyond minimizing to tray: opt in to drop memory
   to just tens of MB while all core features keep running normally
+- **Social AI** — a built-in assistant that helps you make sense of your VRChat
+  social life: ask who you play with most, who you're drifting away from, or the
+  best time to catch friends online. Powered by your own OpenAI-compatible
+  endpoint, with local LLMs supported
+- **MCP server** — expose your local VRCX-0 social data to MCP-compatible AI
+  clients (Claude and others) through a localhost, token-protected server, so you
+  can work with it from the tools you already use
 - **Social Automation** — auto-switch your status and bio based on time of day,
   instance type, or who you're with; auto-accept invite requests; restores your
   previous state when rules expire
@@ -31,8 +38,10 @@ VRCX-0 is designed for everyday use: dramatically lower resource usage, a smalle
   OpenVR (SteamVR) and **OpenXR (Linux / WiVRn / Monado)**
 - **Community Themes** — browse and install themes from a catalog, set a custom
   background image, and layer your own CSS on top
-- **Three notification channels** — desktop notifications, text-to-speech, and VR
-  overlay alerts, each independently configured per event type
+- **Four notification channels** — desktop notifications, text-to-speech, VR
+  overlay alerts, and webhooks, each independently configured per event type
+- **Webhook notifications** — forward events to any webhook URL with a
+  Discord-compatible payload; choose exactly which fields to send
 - Full keyboard navigation
 - Headless mode for advanced setups — see `crates/headless`
 - Actively developed with new features on its own roadmap
