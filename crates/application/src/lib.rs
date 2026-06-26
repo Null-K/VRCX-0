@@ -1,3 +1,4 @@
+mod async_runtime_policy;
 mod auth_credentials;
 mod auth_scope;
 mod backend_runtime;
@@ -48,6 +49,10 @@ pub mod ports {
     };
 }
 
+pub use async_runtime_policy::{
+    recommended_tokio_max_blocking_threads, recommended_tokio_max_blocking_threads_for,
+    recommended_tokio_worker_threads, recommended_tokio_worker_threads_for,
+};
 pub use auth_credentials::{
     delete_saved_credential, record_login_success, record_logout, saved_credential_login_start,
     saved_snapshot, LoginSuccessRecordInput, LogoutRecordInput, SavedCredentialLoginStartInput,

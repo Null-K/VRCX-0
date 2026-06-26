@@ -23,6 +23,7 @@ reqwest = { workspace = true, features = [
 tokio = { workspace = true, features = [
     "sync",
     "macros",
+    "rt-multi-thread",
     "time",
     "net",
     "io-util"

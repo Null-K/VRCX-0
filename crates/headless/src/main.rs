@@ -13,7 +13,8 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::Layer;
 use vrcx_0_application::{
-    format_runtime_output_event, BackendRuntimeMode, RuntimeEventSink, RuntimeOutputLevel,
+    format_runtime_output_event, recommended_tokio_max_blocking_threads,
+    recommended_tokio_worker_threads, BackendRuntimeMode, RuntimeEventSink, RuntimeOutputLevel,
     RuntimeOutputLine, RuntimeOutputMode, RuntimeTask, RuntimeTaskExecutor, RuntimeTaskHandle,
 };
 use vrcx_0_host::app_paths::resolve_app_data_dir;
@@ -22,8 +23,23 @@ use vrcx_0_host::error_log::{
 };
 use vrcx_0_runtime_host::{RuntimeHostOptions, RuntimeHostState};
 
-#[tokio::main]
-async fn main() -> ExitCode {
+fn main() -> ExitCode {
+    build_adaptive_tokio_runtime().block_on(async_main())
+}
+
+fn build_adaptive_tokio_runtime() -> tokio::runtime::Runtime {
+    let worker_threads = recommended_tokio_worker_threads();
+    let max_blocking_threads = recommended_tokio_max_blocking_threads();
+    tokio::runtime::Builder::new_multi_thread()
+        .worker_threads(worker_threads)
+        .max_blocking_threads(max_blocking_threads)
+        .thread_name("vrcx-0-headless")
+        .enable_all()
+        .build()
+        .expect("failed to build headless async runtime")
+}
+
+async fn async_main() -> ExitCode {
     init_tls_crypto_provider();
 
     let app_data_dir = match resolve_app_data_dir() {
