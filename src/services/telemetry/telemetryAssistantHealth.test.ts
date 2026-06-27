@@ -40,7 +40,17 @@ describe('assistant health telemetry', () => {
         const { postTelemetry } = mockDeps({ anonymous: true });
         const mod = await import('./telemetryAssistantHealth');
 
-        mod.recordAssistantToolError('read_user_note');
+        mod.recordAssistantToolError({
+            source: 'recall_encounter',
+            args: JSON.stringify({
+                query: 'Alice at https://example.com/world/usr_123',
+                limit: 3,
+                includeNonFriends: true,
+                nested: { unsafe: 'wrld_secret' }
+            }),
+            summary:
+                'tool failed for Alice in Blue Room usr_123 at https://example.com/chat'
+        });
         mod.recordAssistantTurnError(
             'provider_error',
             'Provider failed for usr_123 at https://example.com/chat'
@@ -58,7 +68,7 @@ describe('assistant health telemetry', () => {
             expect.arrayContaining([
                 expect.objectContaining({
                     kind: 'tool_error',
-                    source: 'read_user_note',
+                    source: 'recall_encounter',
                     count: 1
                 }),
                 expect.objectContaining({
@@ -68,6 +78,18 @@ describe('assistant health telemetry', () => {
                 })
             ])
         );
+        const toolDetail = payload.details?.find(
+            (detail) => detail.kind === 'tool_error'
+        );
+        expect(toolDetail?.summary).toContain('query=<text>');
+        expect(toolDetail?.summary).toContain('limit=3');
+        expect(toolDetail?.summary).toContain('includeNonFriends=true');
+        expect(toolDetail?.summary).toContain('nested=<object>');
+        expect(toolDetail?.summary).toContain('result=<text>');
+        expect(toolDetail?.summary).not.toContain('Alice');
+        expect(toolDetail?.summary).not.toContain('Blue Room');
+        expect(toolDetail?.summary).not.toContain('usr_123');
+        expect(toolDetail?.summary).not.toContain('example.com');
         const turnDetail = payload.details?.find(
             (detail) => detail.kind === 'turn_error'
         );
@@ -80,7 +102,7 @@ describe('assistant health telemetry', () => {
     it('does not send when anonymous usage telemetry is off', async () => {
         const { postTelemetry } = mockDeps({ anonymous: false });
         const mod = await import('./telemetryAssistantHealth');
-        mod.recordAssistantToolError('read_user_note');
+        mod.recordAssistantToolError({ source: 'read_user_note' });
         await mod.sendAssistantHealth(session);
         expect(postTelemetry).not.toHaveBeenCalled();
     });

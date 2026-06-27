@@ -6,6 +6,7 @@ import {
     commands,
     type AssistantConfigStatus
 } from '@/platform/tauri/bindings';
+import { recordAssistantApiKeyConfigured } from '@/services/telemetry/telemetryAssistantUsage';
 import { Button } from '@/ui/shadcn/button';
 import { Input } from '@/ui/shadcn/input';
 import {
@@ -77,12 +78,16 @@ export function AssistantSettingsGroup() {
     const save = async () => {
         setBusy(true);
         try {
+            const hasNewApiKey = Boolean(apiKey.trim());
             const next = await commands.appAssistantSetConfig(
                 baseUrl,
-                apiKey.trim() ? apiKey : null,
+                hasNewApiKey ? apiKey : null,
                 model,
                 allowWrites
             );
+            if (hasNewApiKey) {
+                recordAssistantApiKeyConfigured();
+            }
             setStatus(next);
             setApiKey('');
             toast.success(t('assistant.settings.saved'));

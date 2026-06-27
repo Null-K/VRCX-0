@@ -5,6 +5,10 @@ import {
     resetAssistantHealth,
     sendAssistantHealth
 } from './telemetryAssistantHealth';
+import {
+    resetAssistantUsage,
+    sendAssistantUsage
+} from './telemetryAssistantUsage';
 import { postTelemetry } from './telemetryClient';
 import {
     TELEMETRY_BASIC_INFO_REPORTED_VERSION_CONFIG_KEY,
@@ -52,6 +56,10 @@ const HEARTBEAT_COLLECTORS: HeartbeatCollector[] = [
     {
         flush: sendAssistantHealth,
         reset: resetAssistantHealth
+    },
+    {
+        flush: sendAssistantUsage,
+        reset: resetAssistantUsage
     }
 ];
 

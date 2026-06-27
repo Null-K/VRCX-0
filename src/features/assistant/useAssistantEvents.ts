@@ -35,7 +35,10 @@ export function useAssistantEvents(): void {
         // A fast model streams 20-60 tokens/sec; without this each token would
         // trigger a full store update + markdown re-parse + re-render.
         const pendingDeltas = new Map<string, AssistantDeltaEvent>();
-        const toolNamesById = new Map<string, string>();
+        const toolCallsById = new Map<
+            string,
+            Pick<AssistantToolCallEvent, 'name' | 'args'>
+        >();
         let rafHandle = 0;
         const flushDeltas = () => {
             rafHandle = 0;
@@ -67,7 +70,10 @@ export function useAssistantEvents(): void {
             assistantToolCall: (payload) => {
                 flushNow();
                 const event = payload as AssistantToolCallEvent;
-                toolNamesById.set(event.toolCallId, event.name);
+                toolCallsById.set(event.toolCallId, {
+                    name: event.name,
+                    args: event.args
+                });
                 store.applyToolCall(event);
             },
             assistantToolResult: (payload) => {
@@ -75,11 +81,14 @@ export function useAssistantEvents(): void {
                 const event = payload as AssistantToolResultEvent;
                 store.applyToolResult(event);
                 if (!event.ok) {
-                    recordAssistantToolError(
-                        toolNamesById.get(event.toolCallId)
-                    );
+                    const tool = toolCallsById.get(event.toolCallId);
+                    recordAssistantToolError({
+                        source: tool?.name,
+                        args: tool?.args,
+                        summary: event.summary
+                    });
                 }
-                toolNamesById.delete(event.toolCallId);
+                toolCallsById.delete(event.toolCallId);
             },
             assistantTurnEntities: (payload) =>
                 store.applyTurnEntities(payload as AssistantTurnEntitiesEvent),
@@ -116,7 +125,7 @@ export function useAssistantEvents(): void {
             for (const unsubscribe of unsubscribers) {
                 unsubscribe();
             }
-            toolNamesById.clear();
+            toolCallsById.clear();
         };
     }, []);
 }

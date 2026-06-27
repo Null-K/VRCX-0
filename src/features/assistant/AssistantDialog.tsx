@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
+import { recordAssistantOpen } from '@/services/telemetry/telemetryAssistantUsage';
 import { useAssistantChatStore } from '@/state/assistantChatStore';
 import {
     Dialog,
@@ -64,8 +65,13 @@ export function AssistantDialog() {
     );
 
     const bottomRef = useRef<HTMLDivElement | null>(null);
+    const previousOpenRef = useRef(false);
 
     useEffect(() => {
+        if (open && !previousOpenRef.current) {
+            recordAssistantOpen();
+        }
+        previousOpenRef.current = open;
         if (open) {
             refreshSessions();
         }

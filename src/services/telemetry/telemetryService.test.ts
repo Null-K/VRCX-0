@@ -24,6 +24,8 @@ describe('startTelemetryLifecycle', () => {
         const resetPageReach = vi.fn();
         const sendAssistantHealth = vi.fn(() => Promise.resolve());
         const resetAssistantHealth = vi.fn();
+        const sendAssistantUsage = vi.fn(() => Promise.resolve());
+        const resetAssistantUsage = vi.fn();
         const sendConfigSnapshot = vi.fn(() => Promise.resolve());
         const unsubscribe = vi.fn();
         const subscribe = vi.fn(() => unsubscribe);
@@ -71,6 +73,10 @@ describe('startTelemetryLifecycle', () => {
             resetAssistantHealth,
             sendAssistantHealth
         }));
+        vi.doMock('./telemetryAssistantUsage', () => ({
+            resetAssistantUsage,
+            sendAssistantUsage
+        }));
         vi.doMock('./telemetryConfigSnapshot', () => ({
             sendConfigSnapshot
         }));
@@ -95,15 +101,18 @@ describe('startTelemetryLifecycle', () => {
         expect(sendViewModeUsage).toHaveBeenCalledTimes(1);
         expect(sendPageReach).toHaveBeenCalledTimes(1);
         expect(sendAssistantHealth).toHaveBeenCalledTimes(1);
+        expect(sendAssistantUsage).toHaveBeenCalledTimes(1);
 
         cleanup();
 
         expect(sendViewModeUsage).toHaveBeenCalledTimes(2);
         expect(sendPageReach).toHaveBeenCalledTimes(2);
         expect(sendAssistantHealth).toHaveBeenCalledTimes(2);
+        expect(sendAssistantUsage).toHaveBeenCalledTimes(2);
         expect(resetViewModeUsage).toHaveBeenCalledOnce();
         expect(resetPageReach).toHaveBeenCalledOnce();
         expect(resetAssistantHealth).toHaveBeenCalledOnce();
+        expect(resetAssistantUsage).toHaveBeenCalledOnce();
         expect(unsubscribe).toHaveBeenCalledOnce();
 
         const sessionEndIndex = postTelemetry.mock.calls.findLastIndex(
@@ -115,7 +124,7 @@ describe('startTelemetryLifecycle', () => {
             sessionEndOrder
         );
         expect(resetViewModeUsage.mock.invocationCallOrder[0]).toBeGreaterThan(
-            sendAssistantHealth.mock.invocationCallOrder[1]
+            sendAssistantUsage.mock.invocationCallOrder[1]
         );
     });
 

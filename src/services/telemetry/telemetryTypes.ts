@@ -113,3 +113,8 @@ export type TelemetryAssistantHealthPayload = TelemetryContextPayload & {
     turnErrors: number;
     details?: TelemetryErrorDetail[];
 };
+
+export type TelemetryAssistantUsagePayload = TelemetryContextPayload & {
+    opens: number;
+    apiKeyConfigured?: boolean;
+};
