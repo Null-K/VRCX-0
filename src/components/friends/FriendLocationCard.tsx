@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 
 import { Location } from '@/components/Location';
 import { UserHoverCard } from '@/components/user-hover-card/UserHoverCard';
+import { UserStatusDot } from '@/components/UserStatusDot';
 import { cn } from '@/lib/utils';
 import { userImage } from '@/services/entityMediaService';
 import { normalizeLocationValue, parseLocation } from '@/shared/utils/location';
@@ -234,8 +235,7 @@ function resolveStatusTone(friend: any, currentUser: any) {
                     ? 'border-[var(--status-busy)]'
                     : 'border-[var(--status-online)]';
         return {
-            dotClassName: cn('bg-background', colorClassName),
-            activeDot: true
+            dotClassName: cn('bg-background', colorClassName)
         };
     }
 
@@ -371,23 +371,10 @@ export function FriendLocationCard({
                     </div>
                 )}
                 {showStatusDot ? (
-                    <span className="border-background bg-background absolute -right-0.5 -bottom-0.5 z-10 block size-3.75 rounded-full border-3">
-                        {tone.activeDot ? (
-                            <span
-                                className={cn(
-                                    'absolute inset-0 rounded-full border-2',
-                                    tone.dotClassName
-                                )}
-                            />
-                        ) : (
-                            <span
-                                className={cn(
-                                    'absolute inset-0 rounded-full',
-                                    tone.dotClassName
-                                )}
-                            />
-                        )}
-                    </span>
+                    <UserStatusDot
+                        statusDotClassName={tone.dotClassName}
+                        className="absolute -right-0.5 -bottom-0.5 z-10 size-3.75"
+                    />
                 ) : null}
             </div>
         </UserHoverCard>

@@ -3,6 +3,7 @@ import {
     readFriendInstanceEpoch,
     readFriendRef,
     readFriendStatusSource,
+    resolveSidebarStatusDotClassName,
     timestampMsFromValue
 } from '@/components/sidebar/friends-sidebar/friendsSidebarModel';
 import { userImage } from '@/services/entityMediaService';
@@ -31,6 +32,17 @@ function statusKeyFromStatus(status: any) {
     }
     if (normalized === 'active') {
         return 'online';
+    }
+    return '';
+}
+
+function statusKeyFromPresence(status: any, state: any) {
+    if (normalizeLocationStatus(state) === 'active') {
+        return 'active';
+    }
+    const statusKey = statusKeyFromStatus(status);
+    if (statusKey) {
+        return statusKey;
     }
     return '';
 }
@@ -111,6 +123,18 @@ export function buildUserHoverCardModel({ seed, profile, nowMs }: any) {
         variant = 'private';
     }
 
+    const statusKey =
+        hasPresence && state !== 'offline'
+            ? statusKeyFromPresence(
+                  profile?.status || statusSource?.status,
+                  state
+              )
+            : '';
+    const statusDotClassName = hasPresence
+        ? resolveSidebarStatusDotClassName(seed, null, false, {
+              hideNonFriend: false
+          })
+        : '';
     const { trustSource, trustKey } = resolveTrust(identity);
 
     return {
@@ -126,7 +150,8 @@ export function buildUserHoverCardModel({ seed, profile, nowMs }: any) {
         userColour: identity?.$userColour || '',
         trustSource,
         trustKey,
-        statusKey: statusKeyFromStatus(profile?.status || statusSource?.status),
+        statusKey,
+        statusDotClassName,
         statusDescription: String(
             profile?.statusDescription || ref?.statusDescription || ''
         ).trim(),

@@ -52,13 +52,23 @@ describe('buildUserHoverCardModel', () => {
     });
 
     it('uses the active variant when online with no resolvable instance', () => {
+        const seed = {
+            id: 'usr_3',
+            stateBucket: 'active',
+            status: 'active',
+            location: ''
+        };
         const model = buildUserHoverCardModel({
-            seed: { id: 'usr_3', stateBucket: 'active', location: '' },
+            seed,
             profile: null,
             nowMs: NOW
         });
 
         expect(model.variant).toBe('active');
+        expect(model.statusKey).toBe('active');
+        expect(model.statusDotClassName).toBe(
+            'border-[var(--status-online)] bg-background'
+        );
         expect(model.instanceEpoch).toBe(0);
     });
 
@@ -70,11 +80,13 @@ describe('buildUserHoverCardModel', () => {
                 location: 'offline',
                 last_login: 1_699_999_000_000
             },
-            profile: null,
+            profile: { status: 'active', last_login: 1_699_999_000_000 },
             nowMs: NOW
         });
 
         expect(model.variant).toBe('offline');
+        expect(model.statusKey).toBe('');
+        expect(model.statusDotClassName).toBe('bg-[var(--status-offline)]');
         expect(model.lastOnlineAgoMs).toBe(NOW - 1_699_999_000_000);
         expect(model.onlineForMs).toBe(0);
     });
@@ -87,7 +99,8 @@ describe('buildUserHoverCardModel', () => {
         });
 
         expect(model.variant).toBe('profile-only');
-        expect(model.statusKey).toBe('busy');
+        expect(model.statusKey).toBe('');
+        expect(model.statusDotClassName).toBe('');
         expect(model.onlineForMs).toBe(0);
     });
 

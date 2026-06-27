@@ -9,6 +9,7 @@ import {
 import { isValidElement } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { UserStatusDot } from '@/components/UserStatusDot';
 import { userFacingErrorMessage } from '@/lib/errorDisplay';
 import { cn } from '@/lib/utils';
 import { userImage } from '@/services/entityMediaService';
@@ -394,20 +395,14 @@ export function UserDialogHeaderSection(props: any) {
             <div className="flex min-w-0 items-start gap-2">
                 <div className="flex min-w-0 flex-1 flex-col gap-1.5">
                     <CardTitle className="flex min-w-0 flex-wrap items-center gap-1.5 text-lg leading-tight">
-                        {statusDotClassName ? (
-                            <span
-                                aria-label={statusStateText || undefined}
-                                role={statusStateText ? 'img' : undefined}
-                                title={statusStateText || undefined}
-                                className={cn(
-                                    'inline-block size-2.5 shrink-0 rounded-full align-middle',
-                                    statusDotClassName.includes(
-                                        'bg-background'
-                                    ) && 'border-2',
-                                    statusDotClassName
-                                )}
-                            />
-                        ) : null}
+                        <UserStatusDot
+                            aria-label={statusStateText || undefined}
+                            role={statusStateText ? 'img' : undefined}
+                            title={statusStateText || undefined}
+                            statusDotClassName={statusDotClassName}
+                            className="inline-block size-2.5 shrink-0 align-middle"
+                            variant="inline"
+                        />
                         {onTitleClick ? (
                             <Button
                                 type="button"

@@ -8,6 +8,7 @@ import vrchatInstanceRepository from '@/repositories/vrchatInstanceRepository';
 import worldProfileRepository from '@/repositories/worldProfileRepository';
 import { convertFileUrlToImageUrl } from '@/services/entityMediaService';
 import { normalizeString as normalizeId } from '@/shared/utils/string';
+import { useFriendRosterStore } from '@/state/friendRosterStore';
 import { usePreferencesStore } from '@/state/preferencesStore';
 import { useRuntimeStore } from '@/state/runtimeStore';
 
@@ -17,15 +18,28 @@ import {
     normalizeInstanceCounts
 } from './userHoverCardModel';
 
+type FriendRosterSeedState = {
+    friendsById: Record<string, Record<string, unknown>>;
+};
+
 export function useUserHoverCardData({ userId, seed }: any) {
     const endpoint = useRuntimeStore(
         (state: any) => state.auth.currentUserEndpoint
     );
     const trustColor = usePreferencesStore((state: any) => state.trustColor);
 
-    const normalizedUserId = normalizeId(userId) || normalizeId(seed?.id);
+    const normalizedInputUserId = normalizeId(userId);
+    const shouldUseRosterSeed = !seed && Boolean(normalizedInputUserId);
+    const rosterSeed = useFriendRosterStore((state: FriendRosterSeedState) =>
+        shouldUseRosterSeed
+            ? (state.friendsById[normalizedInputUserId] ?? null)
+            : null
+    );
+    const effectiveSeed = seed || rosterSeed;
+    const normalizedUserId =
+        normalizedInputUserId || normalizeId(effectiveSeed?.id);
 
-    const isFriend = Boolean(seed);
+    const isFriend = Boolean(effectiveSeed);
 
     const [profile, setProfile] = useState<any>(null);
     const [memo, setMemo] = useState('');
@@ -33,10 +47,10 @@ export function useUserHoverCardData({ userId, seed }: any) {
     const [populationLoading, setPopulationLoading] = useState(false);
     const [profileLoading, setProfileLoading] = useState(true);
 
-    const nowMs = useMemo(() => Date.now(), [profile, seed]);
+    const nowMs = useMemo(() => Date.now(), [profile, effectiveSeed]);
     const model = useMemo(
-        () => buildUserHoverCardModel({ seed, profile, nowMs }),
-        [seed, profile, nowMs]
+        () => buildUserHoverCardModel({ seed: effectiveSeed, profile, nowMs }),
+        [effectiveSeed, profile, nowMs]
     );
 
     useEffect(() => {

@@ -2,7 +2,7 @@ import { UserIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { UserHoverCard } from '@/components/user-hover-card/UserHoverCard';
-import { cn } from '@/lib/utils';
+import { UserStatusDot } from '@/components/UserStatusDot';
 import { getNameColour, userImage } from '@/services/entityMediaService';
 import { TRUST_COLOR_DEFAULTS } from '@/shared/utils/trustColors';
 import { buttonVariants } from '@/ui/shadcn/button';
@@ -88,7 +88,6 @@ export function FriendRow({ friend, rowModel, rowCommands, appearance }: any) {
         isCurrentUser,
         { isGameRunning }
     );
-    const isActiveStatusDot = statusDotClassName.includes('bg-background');
     const {
         statusSource,
         friendLocation,
@@ -150,25 +149,10 @@ export function FriendRow({ friend, rowModel, rowCommands, appearance }: any) {
                                     />
                                 )}
                             </span>
-                            {statusDotClassName ? (
-                                isActiveStatusDot ? (
-                                    <span className="border-background bg-background absolute -right-0.5 -bottom-0.5 z-10 size-3.75 rounded-full border-3">
-                                        <span
-                                            className={cn(
-                                                'absolute inset-0 rounded-full border-2',
-                                                statusDotClassName
-                                            )}
-                                        />
-                                    </span>
-                                ) : (
-                                    <span
-                                        className={cn(
-                                            'border-background absolute -right-0.5 -bottom-0.5 z-10 size-3.75 rounded-full border-3',
-                                            statusDotClassName
-                                        )}
-                                    />
-                                )
-                            ) : null}
+                            <UserStatusDot
+                                statusDotClassName={statusDotClassName}
+                                className="absolute -right-0.5 -bottom-0.5 z-10 size-3.75"
+                            />
                         </span>
                         <span className="min-w-0 flex-1">
                             <span
