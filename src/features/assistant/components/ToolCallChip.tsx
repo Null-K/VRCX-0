@@ -1,5 +1,4 @@
 import { CheckIcon, LoaderIcon, WrenchIcon, XIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 
 import { cn } from '@/lib/utils';
 
@@ -15,12 +14,7 @@ function formatToolName(name: string): string {
 }
 
 export function ToolCallChip({ toolCall }: ToolCallChipProps) {
-    const { t } = useTranslation();
     const prettyName = formatToolName(toolCall.name);
-    const label =
-        toolCall.status === 'pending'
-            ? t('assistant.tool_running', { name: prettyName })
-            : prettyName;
 
     return (
         <div
@@ -32,15 +26,15 @@ export function ToolCallChip({ toolCall }: ToolCallChipProps) {
             )}
             title={toolCall.summary || undefined}
         >
-            {toolCall.status === 'pending' ? (
-                <LoaderIcon className="size-3 animate-spin" />
-            ) : toolCall.status === 'error' ? (
-                <XIcon className="size-3" />
-            ) : (
-                <CheckIcon className="size-3" />
-            )}
             <WrenchIcon className="size-3 opacity-60" />
-            <span className="font-mono">{label}</span>
+            <span className="font-mono">{prettyName}</span>
+            {toolCall.status === 'pending' ? (
+                <LoaderIcon className="size-3 animate-spin opacity-70" />
+            ) : toolCall.status === 'error' ? (
+                <XIcon className="text-destructive size-3" />
+            ) : (
+                <CheckIcon className="size-3 text-emerald-500/70" />
+            )}
         </div>
     );
 }

@@ -16,6 +16,7 @@ function MessageBubbleImpl({ message }: MessageBubbleProps) {
     // accumulating text every token is O(n²) and mid-stream markdown is half
     // broken (unterminated **, partial tables) anyway.
     const renderPlain = isUser || message.streaming;
+    const hasText = message.text.length > 0;
 
     return (
         <div
@@ -24,15 +25,7 @@ function MessageBubbleImpl({ message }: MessageBubbleProps) {
                 isUser ? 'items-end' : 'items-start'
             )}
         >
-            {message.toolCalls.length > 0 && (
-                <div className="flex flex-wrap gap-1.5">
-                    {message.toolCalls.map((call) => (
-                        <ToolCallChip key={call.id} toolCall={call} />
-                    ))}
-                </div>
-            )}
-
-            {(message.text || message.streaming) && (
+            {hasText && (
                 <div
                     className={cn(
                         'rounded-2xl px-3 py-2 text-sm',
@@ -48,9 +41,17 @@ function MessageBubbleImpl({ message }: MessageBubbleProps) {
                     ) : (
                         <AssistantMarkdown text={message.text} />
                     )}
-                    {message.streaming && (
+                    {message.streaming && hasText && (
                         <span className="bg-foreground/60 ml-0.5 inline-block h-3.5 w-1.5 animate-pulse align-middle" />
                     )}
+                </div>
+            )}
+
+            {message.toolCalls.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                    {message.toolCalls.map((call) => (
+                        <ToolCallChip key={call.id} toolCall={call} />
+                    ))}
                 </div>
             )}
 

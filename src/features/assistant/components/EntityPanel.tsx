@@ -33,7 +33,7 @@ export function EntityPanel() {
                     {entities.map((entity, index) => (
                         <div
                             key={entity.id}
-                            className="animate-in fade-in slide-in-from-right-4 border-border/40 bg-card/40 rounded-lg border"
+                            className="animate-in fade-in slide-in-from-right-4 border-border/40 bg-card/40 w-72 max-w-full overflow-hidden rounded-lg border"
                             style={{ animationDelay: `${index * 60}ms` }}
                         >
                             {entity.kind === 'world' ? (
