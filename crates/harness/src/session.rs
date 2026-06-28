@@ -462,6 +462,29 @@ mod tests {
     }
 
     #[test]
+    fn empty_surfaced_entities_clear_prior_references() {
+        let db = test_db();
+        let session_id = {
+            let store = SessionStore::with_db(db.clone());
+            let session = store.create_session();
+            store.set_surfaced_entities(
+                &session.id,
+                &[Entity {
+                    kind: "user".into(),
+                    id: "usr_1".into(),
+                    display_name: "Alice".into(),
+                }],
+            );
+            store.set_surfaced_entities(&session.id, &[]);
+            assert!(store.get(&session.id).unwrap().surfaced_entities.is_empty());
+            session.id
+        };
+
+        let reopened = SessionStore::with_db(db).get(&session_id).unwrap();
+        assert!(reopened.surfaced_entities.is_empty());
+    }
+
+    #[test]
     fn manual_panel_toggle_persists() {
         let db = test_db();
         let session_id = {
