@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
@@ -15,6 +15,7 @@ import { cloneDashboardRows } from './dashboardConfig';
 type DashboardEditorStateProps = {
     consumeEditingDashboardId: (dashboardId: string) => boolean;
     dashboard: Dashboard | null;
+    editingDashboardId: string | null;
     loaded: boolean;
     saveDashboard: (
         dashboardId: string,
@@ -25,6 +26,7 @@ type DashboardEditorStateProps = {
 export function useDashboardEditorState({
     consumeEditingDashboardId,
     dashboard,
+    editingDashboardId,
     loaded,
     saveDashboard
 }: DashboardEditorStateProps) {
@@ -33,6 +35,7 @@ export function useDashboardEditorState({
     const [editName, setEditName] = useState('');
     const [editRows, setEditRows] = useState<DashboardRow[]>([]);
     const [isSaving, setIsSaving] = useState(false);
+    const previousDashboardIdRef = useRef<string | null>(null);
 
     function resetEditDraft() {
         setEditName(dashboard?.name || '');
@@ -55,13 +58,20 @@ export function useDashboardEditorState({
             return;
         }
 
-        if (consumeEditingDashboardId(dashboard.id)) {
-            setIsEditing(true);
-            return;
+        if (previousDashboardIdRef.current !== dashboard.id) {
+            previousDashboardIdRef.current = dashboard.id;
+            if (editingDashboardId !== dashboard.id) {
+                setIsEditing(false);
+            }
         }
 
-        setIsEditing(false);
-    }, [consumeEditingDashboardId, dashboard?.id, loaded]);
+        if (
+            editingDashboardId === dashboard.id &&
+            consumeEditingDashboardId(dashboard.id)
+        ) {
+            setIsEditing(true);
+        }
+    }, [consumeEditingDashboardId, dashboard?.id, editingDashboardId, loaded]);
 
     const handleAddRow = (
         panelCount: number,

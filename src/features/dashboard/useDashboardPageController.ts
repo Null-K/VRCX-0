@@ -15,6 +15,7 @@ export function useDashboardPageController() {
     const editor = useDashboardEditorState({
         consumeEditingDashboardId: store.consumeEditingDashboardId,
         dashboard: store.dashboard,
+        editingDashboardId: store.editingDashboardId,
         loaded: store.loaded,
         saveDashboard: actions.saveDashboard
     });

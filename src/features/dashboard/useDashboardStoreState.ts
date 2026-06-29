@@ -9,6 +9,9 @@ export function useDashboardStoreState() {
     const loaded = useDashboardStore((state) => state.loaded);
     const loadStatus = useDashboardStore((state) => state.loadStatus);
     const detail = useDashboardStore((state) => state.detail);
+    const editingDashboardId = useDashboardStore(
+        (state) => state.editingDashboardId
+    );
     const ensureLoaded = useDashboardStore((state) => state.ensureLoaded);
     const consumeEditingDashboardId = useDashboardStore(
         (state) => state.consumeEditingDashboardId
@@ -24,6 +27,7 @@ export function useDashboardStoreState() {
         dashboard,
         dashboards,
         detail,
+        editingDashboardId,
         id,
         loaded,
         loadStatus
