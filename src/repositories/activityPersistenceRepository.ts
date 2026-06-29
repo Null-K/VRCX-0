@@ -2,24 +2,24 @@ import { commands } from '@/platform/tauri/bindings';
 import type {
     ActivityBucketCacheInput as IpcActivityBucketCacheInput,
     ActivityBucketCacheQueryInput as IpcActivityBucketCacheQueryInput,
-    ActivityFriendPresenceAfterInput,
-    ActivityFriendPresenceSliceInput,
-    ActivityPresenceOutput as IpcActivityPresenceOutput,
+    ActivitySelfSourceBoundsOutput as IpcActivitySelfSourceBoundsOutput,
     ActivitySelfSessionsRefreshInput as IpcActivitySelfSessionsRefreshInput,
     ActivitySessionOutput as IpcActivitySessionOutput,
-    ActivitySourceLocationOutput as IpcActivitySourceLocationOutput,
     ActivitySyncStateInput as IpcActivitySyncStateInput,
     ActivitySyncStateOutput as IpcActivitySyncStateOutput
 } from '@/platform/tauri/bindings';
-import { DAY_MS } from '@/shared/constants/time';
-import type { ActivitySession } from '@/shared/utils/activityEngine';
 
 export type ActivityViewKind =
     (typeof ACTIVITY_VIEW_KIND)[keyof typeof ACTIVITY_VIEW_KIND];
 type ActivitySyncStateRow = IpcActivitySyncStateOutput;
 type ActivitySessionRow = IpcActivitySessionOutput;
-type ActivityLocationRow = IpcActivitySourceLocationOutput;
-type PresenceRow = IpcActivityPresenceOutput;
+
+type ActivitySessionInputLike = {
+    start: number;
+    end: number;
+    isOpenTail?: boolean;
+    sourceRevision?: string;
+};
 
 interface ActivitySyncStateEntry {
     userId?: unknown;
@@ -32,7 +32,7 @@ interface ActivitySyncStateEntry {
 
 interface AppendActivitySessionsInput {
     userId?: unknown;
-    sessions?: ActivitySession[];
+    sessions?: ActivitySessionInputLike[];
     replaceFromStartAt?: number | null;
 }
 
@@ -59,51 +59,6 @@ interface ActivitySelfSessionsRefreshRequest {
     rangeDays?: string | number;
     nowMs?: number;
 }
-
-interface ActivitySourceSliceInput {
-    fromDays: number;
-    toDays?: number;
-}
-
-interface ActivitySelfSourceAfterInput {
-    afterCreatedAt: string;
-    inclusive?: boolean;
-}
-
-interface FriendPresenceSliceInput {
-    userId: unknown;
-    ownerUserId: unknown;
-    fromDateIso: string;
-    toDateIso?: string;
-}
-
-interface FriendPresenceAfterInput {
-    userId: unknown;
-    ownerUserId: unknown;
-    afterCreatedAt: string;
-}
-
-interface ActivitySourceQuery extends ActivitySourceSliceInput {
-    userId?: unknown;
-    ownerUserId?: unknown;
-    isSelf?: boolean;
-}
-
-interface ActivitySourceAfterQuery extends ActivitySelfSourceAfterInput {
-    userId?: unknown;
-    ownerUserId?: unknown;
-    isSelf?: boolean;
-}
-
-export type ActivitySourceEvent = {
-    created_at: string;
-    time: number;
-};
-
-export type ActivityPresenceEvent = {
-    created_at: string;
-    type: string;
-};
 
 export type ActivityPersistedSession = {
     start: number;
@@ -278,168 +233,10 @@ function normalizeActivitySessionRow(
     };
 }
 
-function normalizeLocationRow(
-    row: ActivityLocationRow | null
-): ActivitySourceEvent | null {
-    if (!row || typeof row !== 'object') {
-        return null;
-    }
-
-    return {
-        created_at: normalizeText(row.created_at),
-        time: normalizeInteger(row.time)
-    };
-}
-
-function normalizePresenceRow(
-    row: PresenceRow | null
-): ActivityPresenceEvent | null {
-    if (!row || typeof row !== 'object') {
-        return null;
-    }
-    return {
-        created_at: normalizeText(row.created_at),
-        type: normalizeText(row.type)
-    };
-}
-
-function hasCreatedAt<T extends { created_at: unknown }>(
-    row: T | null
-): row is T {
-    return typeof row?.created_at === 'string' && Boolean(row.created_at);
-}
-
-async function getSelfActivitySourceSlice({
-    fromDays,
-    toDays = 0
-}: ActivitySourceSliceInput) {
-    const fromDateIso = new Date(Date.now() - fromDays * DAY_MS).toISOString();
-    const toDateIso =
-        toDays > 0 ? new Date(Date.now() - toDays * DAY_MS).toISOString() : '';
-
-    const rows = await commands.appActivitySelfSourceSlice({
-        fromDateIso,
-        toDateIso
-    });
-
-    if (!Array.isArray(rows)) {
-        return [];
-    }
-
-    return rows.map(normalizeLocationRow).filter(hasCreatedAt);
-}
-
-async function getSelfActivitySourceAfter({
-    afterCreatedAt,
-    inclusive = false
-}: ActivitySelfSourceAfterInput) {
-    const rows = await commands.appActivitySelfSourceAfter({
-        afterCreatedAt,
-        inclusive
-    });
-
-    if (!Array.isArray(rows)) {
-        return [];
-    }
-
-    return rows.map(normalizeLocationRow).filter(hasCreatedAt);
-}
-
-async function getSelfActivitySourceBounds(): Promise<ActivitySourceBounds> {
-    const row = await commands.appActivitySelfSourceBounds();
-    return {
-        firstCreatedAt: String(row.firstCreatedAt ?? ''),
-        lastCreatedAt: String(row.lastCreatedAt ?? ''),
-        count: normalizeInteger(row.count)
-    };
-}
-
-async function getFriendPresenceSlice({
-    userId,
-    fromDateIso,
-    toDateIso = '',
-    ownerUserId
-}: FriendPresenceSliceInput) {
-    const input: ActivityFriendPresenceSliceInput = {
-        ownerUserId: String(ownerUserId ?? ''),
-        userId: String(userId ?? ''),
-        fromDateIso: String(fromDateIso ?? ''),
-        toDateIso: String(toDateIso ?? '')
-    };
-    const rows = await commands.appActivityFriendPresenceSlice(input);
-
-    const output = Array.isArray(rows)
-        ? rows.map(normalizePresenceRow).filter(hasCreatedAt)
-        : [];
-
-    return output.sort((left, right) =>
-        String(left.created_at || '').localeCompare(
-            String(right.created_at || '')
-        )
-    );
-}
-
-async function getFriendPresenceAfter({
-    userId,
-    afterCreatedAt,
-    ownerUserId
-}: FriendPresenceAfterInput) {
-    const input: ActivityFriendPresenceAfterInput = {
-        ownerUserId: String(ownerUserId ?? ''),
-        userId: String(userId ?? ''),
-        afterCreatedAt: String(afterCreatedAt ?? '')
-    };
-    const rows = await commands.appActivityFriendPresenceAfter(input);
-    return Array.isArray(rows)
-        ? rows.map(normalizePresenceRow).filter(hasCreatedAt)
-        : [];
-}
-
-async function getActivitySourceSlice({
-    userId,
-    ownerUserId = '',
-    isSelf,
-    fromDays,
-    toDays = 0
-}: ActivitySourceQuery) {
-    if (isSelf) {
-        return getSelfActivitySourceSlice({ fromDays, toDays });
-    }
-
-    const fromDateIso = new Date(Date.now() - fromDays * DAY_MS).toISOString();
-    const toDateIso =
-        toDays > 0 ? new Date(Date.now() - toDays * DAY_MS).toISOString() : '';
-    return getFriendPresenceSlice({
-        userId,
-        fromDateIso,
-        toDateIso,
-        ownerUserId
-    });
-}
-
-async function getActivitySourceAfter({
-    userId,
-    ownerUserId = '',
-    isSelf,
-    afterCreatedAt,
-    inclusive = false
-}: ActivitySourceAfterQuery) {
-    return isSelf
-        ? getSelfActivitySourceAfter({ afterCreatedAt, inclusive })
-        : getFriendPresenceAfter({
-              userId,
-              afterCreatedAt,
-              ownerUserId
-          });
-}
-
 async function getActivitySyncState(
     userId: unknown
 ): Promise<ActivitySyncState | null> {
-    const normalizedUserId =
-        typeof userId === 'string'
-            ? userId.trim()
-            : String(userId ?? '').trim();
+    const normalizedUserId = normalizeText(userId);
     if (!normalizedUserId) {
         return null;
     }
@@ -454,10 +251,7 @@ async function getActivitySyncState(
 }
 
 async function upsertActivitySyncState(entry: ActivitySyncStateEntry) {
-    const normalizedUserId =
-        typeof entry?.userId === 'string'
-            ? entry.userId.trim()
-            : String(entry?.userId ?? '').trim();
+    const normalizedUserId = normalizeText(entry?.userId);
     if (!normalizedUserId) {
         throw new Error(
             'ActivityRepository.upsertActivitySyncState requires a user id.'
@@ -483,10 +277,7 @@ async function refreshSelfActivitySessions({
     rangeDays = 0,
     nowMs
 }: ActivitySelfSessionsRefreshRequest): Promise<ActivityRefreshResult> {
-    const normalizedUserId =
-        typeof userId === 'string'
-            ? userId.trim()
-            : String(userId ?? '').trim();
+    const normalizedUserId = normalizeText(userId);
     if (!normalizedUserId) {
         throw new Error(
             'ActivityRepository.refreshSelfActivitySessions requires a user id.'
@@ -514,15 +305,14 @@ async function refreshSelfActivitySessions({
         : [];
 
     return {
-        sync: sync ||
-            normalizeActivitySyncStateRow(null, normalizedUserId) || {
-                userId: normalizedUserId,
-                updatedAt: '',
-                isSelf: true,
-                sourceLastCreatedAt: '',
-                pendingSessionStartAt: null,
-                cachedRangeDays: 0
-            },
+        sync: sync || {
+            userId: normalizedUserId,
+            updatedAt: '',
+            isSelf: true,
+            sourceLastCreatedAt: '',
+            pendingSessionStartAt: null,
+            cachedRangeDays: 0
+        },
         sessions,
         sourceCount: normalizeInteger(result?.sourceCount)
     };
@@ -531,10 +321,7 @@ async function refreshSelfActivitySessions({
 async function getActivitySessions(
     userId: unknown
 ): Promise<ActivityPersistedSession[]> {
-    const normalizedUserId =
-        typeof userId === 'string'
-            ? userId.trim()
-            : String(userId ?? '').trim();
+    const normalizedUserId = normalizeText(userId);
     if (!normalizedUserId) {
         return [];
     }
@@ -553,14 +340,21 @@ async function getActivitySessions(
         );
 }
 
+async function getSelfActivitySourceBounds(): Promise<ActivitySourceBounds> {
+    const row: IpcActivitySelfSourceBoundsOutput =
+        await commands.appActivitySelfSourceBounds();
+    return {
+        firstCreatedAt: normalizeText(row.firstCreatedAt),
+        lastCreatedAt: normalizeText(row.lastCreatedAt),
+        count: normalizeInteger(row.count)
+    };
+}
+
 async function replaceActivitySessions(
     userId: unknown,
-    sessions: ActivitySession[] = []
+    sessions: ActivitySessionInputLike[] = []
 ) {
-    const normalizedUserId =
-        typeof userId === 'string'
-            ? userId.trim()
-            : String(userId ?? '').trim();
+    const normalizedUserId = normalizeText(userId);
 
     await commands.appActivitySessionsReplace(
         normalizedUserId,
@@ -573,10 +367,7 @@ async function appendActivitySessions({
     sessions = [],
     replaceFromStartAt = null
 }: AppendActivitySessionsInput) {
-    const normalizedUserId =
-        typeof userId === 'string'
-            ? userId.trim()
-            : String(userId ?? '').trim();
+    const normalizedUserId = normalizeText(userId);
 
     await commands.appActivitySessionsAppend(
         normalizedUserId,
@@ -641,11 +432,7 @@ async function upsertActivityBucketCache(entry: ActivityBucketCacheEntry) {
 const activityPersistenceRepository = Object.freeze({
     ACTIVITY_VIEW_KIND,
     getActivityBucketCache,
-    getSelfActivitySourceSlice,
-    getSelfActivitySourceAfter,
     getSelfActivitySourceBounds,
-    getActivitySourceSlice,
-    getActivitySourceAfter,
     getActivitySyncState,
     upsertActivitySyncState,
     refreshSelfActivitySessions,
@@ -658,10 +445,6 @@ const activityPersistenceRepository = Object.freeze({
 export {
     ACTIVITY_VIEW_KIND,
     getActivityBucketCache,
-    getActivitySourceAfter,
-    getActivitySourceSlice,
-    getSelfActivitySourceSlice,
-    getSelfActivitySourceAfter,
     getSelfActivitySourceBounds,
     getActivitySyncState,
     upsertActivitySyncState,

@@ -34,13 +34,13 @@ fn activity_now_ms(input: Option<i64>) -> i64 {
     input.unwrap_or_else(|| Utc::now().timestamp_millis())
 }
 
-fn activity_iso_from_ms(ms: i64) -> String {
+pub(super) fn activity_iso_from_ms(ms: i64) -> String {
     DateTime::<Utc>::from_timestamp_millis(ms)
         .unwrap_or_else(Utc::now)
         .to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
-fn parse_activity_time_ms(value: &str) -> Option<i64> {
+pub(super) fn parse_activity_time_ms(value: &str) -> Option<i64> {
     DateTime::parse_from_rfc3339(value)
         .map(|value| value.timestamp_millis())
         .ok()
@@ -365,112 +365,6 @@ fn activity_refresh_output(
     }
 }
 
-pub fn activity_self_source_slice(
-    db: &DatabaseService,
-    query: ActivitySelfSourceSliceInput,
-) -> Result<Vec<ActivitySourceLocationOutput>, Error> {
-    ensure_game_log_tables(db)?;
-    let from_date = normalize_text(query.from_date_iso);
-    let to_date = normalize_text(query.to_date_iso);
-    let to_filter = if to_date.is_empty() {
-        ""
-    } else {
-        "AND created_at < @to_date_iso"
-    };
-    let to_tail = if to_date.is_empty() {
-        String::new()
-    } else {
-        "UNION ALL
-         SELECT created_at, time, 2 AS sort_group
-         FROM (
-             SELECT created_at, time
-             FROM gamelog_location
-             WHERE created_at >= @to_date_iso
-             ORDER BY created_at
-             LIMIT 1
-         )"
-        .to_string()
-    };
-    let mut db_params = HashMap::new();
-    db_params.insert("@from_date_iso".into(), Value::String(from_date));
-    db_params.insert("@to_date_iso".into(), Value::String(to_date));
-    Ok(db
-        .execute(
-            &format!(
-                "SELECT created_at, time
-                 FROM (
-                     SELECT created_at, time, 0 AS sort_group
-                     FROM (
-                         SELECT created_at, time
-                         FROM gamelog_location
-                         WHERE created_at < @from_date_iso
-                         ORDER BY created_at DESC
-                         LIMIT 1
-                     )
-                     UNION ALL
-                     SELECT created_at, time, 1 AS sort_group
-                     FROM gamelog_location
-                     WHERE created_at >= @from_date_iso
-                       {to_filter}
-                     {to_tail}
-                 )
-                 ORDER BY created_at ASC, sort_group ASC"
-            ),
-            &db_params,
-        )?
-        .into_iter()
-        .map(|row| activity_location_from_row(&row))
-        .collect())
-}
-
-pub fn activity_self_source_after(
-    db: &DatabaseService,
-    query: ActivitySelfSourceAfterInput,
-) -> Result<Vec<ActivitySourceLocationOutput>, Error> {
-    ensure_game_log_tables(db)?;
-    let op = if query.inclusive { ">=" } else { ">" };
-    Ok(db
-        .execute(
-            &format!(
-                "SELECT created_at, time
-                 FROM gamelog_location
-                 WHERE created_at {op} @after_created_at
-                 ORDER BY created_at"
-            ),
-            &ParamsBuilder::new()
-                .set("after_created_at", normalize_text(query.after_created_at))
-                .build(),
-        )?
-        .into_iter()
-        .map(|row| activity_location_from_row(&row))
-        .collect())
-}
-
-pub fn activity_self_source_bounds(
-    db: &DatabaseService,
-) -> Result<ActivitySelfSourceBoundsOutput, Error> {
-    ensure_game_log_tables(db)?;
-    let row = db
-        .execute(
-            "SELECT MIN(created_at), MAX(created_at), COUNT(*) FROM gamelog_location",
-            &Default::default(),
-        )?
-        .into_iter()
-        .next();
-    Ok(match row {
-        Some(row) => ActivitySelfSourceBoundsOutput {
-            first_created_at: row_string(&row, 0),
-            last_created_at: row_string(&row, 1),
-            count: row_i64(&row, 2),
-        },
-        None => ActivitySelfSourceBoundsOutput {
-            first_created_at: String::new(),
-            last_created_at: String::new(),
-            count: 0,
-        },
-    })
-}
-
 pub fn activity_friend_presence_slice(
     db: &DatabaseService,
     query: ActivityFriendPresenceSliceInput,
@@ -548,35 +442,29 @@ pub fn activity_friend_presence_slice(
     Ok(rows)
 }
 
-pub fn activity_friend_presence_after(
+pub fn activity_self_source_bounds(
     db: &DatabaseService,
-    query: ActivityFriendPresenceAfterInput,
-) -> Result<Vec<ActivityPresenceOutput>, Error> {
-    let owner_user_id = normalize_text(query.owner_user_id);
-    let user_id = normalize_text(query.user_id);
-    if owner_user_id.is_empty() || user_id.is_empty() {
-        return Ok(Vec::new());
-    }
-    let user_prefix = normalize_user_table_prefix(&owner_user_id)?;
-    ensure_user_store_tables(db, &user_prefix)?;
-    Ok(db
+) -> Result<ActivitySelfSourceBoundsOutput, Error> {
+    ensure_game_log_tables(db)?;
+    let row = db
         .execute(
-            &format!(
-                "SELECT created_at, type
-                 FROM {user_prefix}_feed_online_offline
-                 WHERE user_id = @user_id
-                   AND (type = 'Online' OR type = 'Offline')
-                   AND created_at > @after_created_at
-                 ORDER BY created_at"
-            ),
-            &ParamsBuilder::new()
-                .set("user_id", user_id)
-                .set("after_created_at", normalize_text(query.after_created_at))
-                .build(),
+            "SELECT MIN(created_at), MAX(created_at), COUNT(*) FROM gamelog_location",
+            &Default::default(),
         )?
         .into_iter()
-        .map(|row| activity_presence_from_row(&row))
-        .collect())
+        .next();
+    Ok(match row {
+        Some(row) => ActivitySelfSourceBoundsOutput {
+            first_created_at: row_string(&row, 0),
+            last_created_at: row_string(&row, 1),
+            count: row_i64(&row, 2),
+        },
+        None => ActivitySelfSourceBoundsOutput {
+            first_created_at: String::new(),
+            last_created_at: String::new(),
+            count: 0,
+        },
+    })
 }
 
 pub fn activity_self_sessions_refresh(
@@ -902,12 +790,6 @@ pub(crate) const ACTIVITY_DAY_MS: i64 = 86_400_000;
 pub(crate) const ACTIVITY_MAX_INFERRED_SESSION_MS: i64 = 24 * 60 * 60 * 1000;
 
 // Activity row projection helpers.
-fn activity_location_from_row(row: &[Value]) -> ActivitySourceLocationOutput {
-    ActivitySourceLocationOutput {
-        created_at: row_string(row, 0),
-        time: row_i64(row, 1),
-    }
-}
 fn activity_presence_from_row(row: &[Value]) -> ActivityPresenceOutput {
     ActivityPresenceOutput {
         created_at: row_string(row, 0),

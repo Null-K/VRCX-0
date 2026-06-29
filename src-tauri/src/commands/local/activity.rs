@@ -7,11 +7,10 @@ use crate::state::AppState;
 
 use vrcx_0_persistence::activity::{
     ActivityBucketCacheInput, ActivityBucketCacheOutput, ActivityBucketCacheQueryInput,
-    ActivityFriendPresenceAfterInput, ActivityFriendPresenceSliceInput, ActivityPresenceOutput,
-    ActivitySelfSessionsRefreshInput, ActivitySelfSessionsRefreshOutput,
-    ActivitySelfSourceAfterInput, ActivitySelfSourceBoundsOutput, ActivitySelfSourceSliceInput,
-    ActivitySessionInput, ActivitySessionOutput, ActivitySourceLocationOutput,
-    ActivitySyncStateInput, ActivitySyncStateOutput,
+    ActivityOverlapViewBuildInput, ActivityOverlapViewOutput, ActivitySelfSessionsRefreshInput,
+    ActivitySelfSessionsRefreshOutput, ActivitySelfSourceBoundsOutput, ActivitySessionInput,
+    ActivitySessionOutput, ActivitySyncStateInput, ActivitySyncStateOutput, ActivityViewBuildInput,
+    ActivityViewOutput,
 };
 
 #[tauri::command]
@@ -36,41 +35,21 @@ pub fn app__activity_bucket_cache_upsert(
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__activity_friend_presence_after(
+pub fn app__activity_overlap_view(
     state: State<'_, AppState>,
-    query: ActivityFriendPresenceAfterInput,
-) -> Result<Vec<ActivityPresenceOutput>, AppError> {
-    vrcx_0_persistence::activity::activity_friend_presence_after(state.db.as_ref(), query)
+    input: ActivityOverlapViewBuildInput,
+) -> Result<ActivityOverlapViewOutput, AppError> {
+    vrcx_0_persistence::activity::activity_overlap_view_build(state.db.as_ref(), input)
         .map_err(AppError::from)
 }
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__activity_friend_presence_slice(
+pub fn app__activity_view(
     state: State<'_, AppState>,
-    query: ActivityFriendPresenceSliceInput,
-) -> Result<Vec<ActivityPresenceOutput>, AppError> {
-    vrcx_0_persistence::activity::activity_friend_presence_slice(state.db.as_ref(), query)
-        .map_err(AppError::from)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__activity_self_sessions_refresh(
-    state: State<'_, AppState>,
-    input: ActivitySelfSessionsRefreshInput,
-) -> Result<ActivitySelfSessionsRefreshOutput, AppError> {
-    vrcx_0_persistence::activity::activity_self_sessions_refresh(state.db.as_ref(), input)
-        .map_err(AppError::from)
-}
-
-#[tauri::command]
-#[specta::specta]
-pub fn app__activity_self_source_after(
-    state: State<'_, AppState>,
-    query: ActivitySelfSourceAfterInput,
-) -> Result<Vec<ActivitySourceLocationOutput>, AppError> {
-    vrcx_0_persistence::activity::activity_self_source_after(state.db.as_ref(), query)
+    input: ActivityViewBuildInput,
+) -> Result<ActivityViewOutput, AppError> {
+    vrcx_0_persistence::activity::activity_view_build(state.db.as_ref(), input)
         .map_err(AppError::from)
 }
 
@@ -85,11 +64,11 @@ pub fn app__activity_self_source_bounds(
 
 #[tauri::command]
 #[specta::specta]
-pub fn app__activity_self_source_slice(
+pub fn app__activity_self_sessions_refresh(
     state: State<'_, AppState>,
-    query: ActivitySelfSourceSliceInput,
-) -> Result<Vec<ActivitySourceLocationOutput>, AppError> {
-    vrcx_0_persistence::activity::activity_self_source_slice(state.db.as_ref(), query)
+    input: ActivitySelfSessionsRefreshInput,
+) -> Result<ActivitySelfSessionsRefreshOutput, AppError> {
+    vrcx_0_persistence::activity::activity_self_sessions_refresh(state.db.as_ref(), input)
         .map_err(AppError::from)
 }
 

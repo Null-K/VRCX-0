@@ -1,83 +1,134 @@
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-    pickActivityNormalizeConfig,
-    pickOverlapNormalizeConfig
-} from './userActivityViewService';
+import { commands } from '@/platform/tauri/bindings';
 
-describe('userActivityViewService normalize config helpers', () => {
-    it('selects activity normalize configs for supported ranges', () => {
-        expect(pickActivityNormalizeConfig(true, 7)).toEqual({
-            floorPercentile: 10,
-            capPercentile: 80,
-            rankWeight: 0.15,
-            targetCoverage: 0.12,
-            targetVolume: 40
+import { userActivityViewService } from './userActivityViewService';
+
+vi.mock('@/platform/tauri/bindings', () => ({
+    commands: {
+        appActivityView: vi.fn(),
+        appActivityOverlapView: vi.fn()
+    }
+}));
+
+const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+describe('userActivityViewService Rust activity views', () => {
+    beforeEach(() => {
+        vi.mocked(commands.appActivityView).mockReset();
+        vi.mocked(commands.appActivityOverlapView).mockReset();
+    });
+
+    it('loads activity view from Rust and formats peak labels', async () => {
+        vi.mocked(commands.appActivityView).mockResolvedValue({
+            rawBuckets: [60],
+            normalizedBuckets: [0.5],
+            peakDayIndex: 0,
+            peakHourStart: 1,
+            peakHourEnd: 3,
+            filteredEventCount: 1,
+            hasAnyData: true,
+            builtFromCursor: 'cursor',
+            builtAt: '2025-01-06T00:00:00.000Z'
         });
-        expect(pickActivityNormalizeConfig(true, 30)).toEqual({
-            floorPercentile: 15,
-            capPercentile: 85,
-            rankWeight: 0.2,
-            targetCoverage: 0.25,
-            targetVolume: 60
+
+        const result = await userActivityViewService.loadActivityView({
+            userId: 'usr_target',
+            ownerUserId: 'usr_owner',
+            isSelf: false,
+            rangeDays: 7,
+            dayLabels,
+            forceRefresh: true
         });
-        expect(pickActivityNormalizeConfig(false, 90)).toEqual({
-            floorPercentile: 15,
-            capPercentile: 85,
-            rankWeight: 0.2,
-            targetCoverage: 0.3,
-            targetVolume: 50
+
+        expect(commands.appActivityView).toHaveBeenCalledWith({
+            ownerUserId: 'usr_owner',
+            targetUserId: 'usr_target',
+            isSelf: false,
+            rangeDays: 7,
+            utcOffsetMinutes: -new Date().getTimezoneOffset(),
+            nowMs: expect.any(Number),
+            forceRefresh: true
+        });
+        expect(result).toMatchObject({
+            rawBuckets: [60],
+            normalizedBuckets: [0.5],
+            filteredEventCount: 1,
+            hasAnyData: true,
+            peakDay: 'Sun',
+            peakTime: '01:00-03:00'
         });
     });
 
-    it('falls back activity normalize configs by viewed user ownership', () => {
-        expect(pickActivityNormalizeConfig(true, 365)).toEqual({
-            floorPercentile: 15,
-            capPercentile: 85,
-            rankWeight: 0.2,
-            targetCoverage: 0.25,
-            targetVolume: 60
+    it('formats single-hour activity peaks without a range suffix', async () => {
+        vi.mocked(commands.appActivityView).mockResolvedValue({
+            rawBuckets: [60],
+            normalizedBuckets: [1],
+            peakDayIndex: 2,
+            peakHourStart: 9,
+            peakHourEnd: 10,
+            filteredEventCount: 1,
+            hasAnyData: true,
+            builtFromCursor: 'cursor',
+            builtAt: '2025-01-06T00:00:00.000Z'
         });
-        expect(pickActivityNormalizeConfig(false, 365)).toEqual({
-            floorPercentile: 15,
-            capPercentile: 85,
-            rankWeight: 0.2,
-            targetCoverage: 0.2,
-            targetVolume: 35
+
+        const result = await userActivityViewService.loadActivityView({
+            userId: 'usr_self',
+            ownerUserId: '',
+            isSelf: true,
+            rangeDays: 30,
+            dayLabels
         });
+
+        expect(result.peakDay).toBe('Tue');
+        expect(result.peakTime).toBe('09:00');
     });
 
-    it('selects overlap normalize configs for supported ranges', () => {
-        expect(pickOverlapNormalizeConfig(7)).toEqual({
-            floorPercentile: 10,
-            capPercentile: 80,
-            rankWeight: 0.15,
-            targetCoverage: 0.08,
-            targetVolume: 15
+    it('loads overlap view from Rust and formats best overlap labels', async () => {
+        vi.mocked(commands.appActivityOverlapView).mockResolvedValue({
+            rawBuckets: [0, 0, 60, 60],
+            normalizedBuckets: [0, 0, 0.8, 0.8],
+            overlapPercent: 100,
+            bestDayIndex: 0,
+            bestHourStart: 2,
+            bestHourEnd: 4,
+            hasOverlapData: true,
+            builtFromCursor: 'self|target',
+            builtAt: '2025-01-06T00:00:00.000Z'
         });
-        expect(pickOverlapNormalizeConfig(30)).toEqual({
-            floorPercentile: 15,
-            capPercentile: 85,
-            rankWeight: 0.2,
-            targetCoverage: 0.15,
-            targetVolume: 25
-        });
-        expect(pickOverlapNormalizeConfig(90)).toEqual({
-            floorPercentile: 15,
-            capPercentile: 85,
-            rankWeight: 0.2,
-            targetCoverage: 0.18,
-            targetVolume: 20
-        });
-    });
 
-    it('falls back overlap normalize configs for unsupported ranges', () => {
-        expect(pickOverlapNormalizeConfig(365)).toEqual({
-            floorPercentile: 15,
-            capPercentile: 85,
-            rankWeight: 0.2,
-            targetCoverage: 0.15,
-            targetVolume: 25
+        const result = await userActivityViewService.loadOverlapView({
+            currentUserId: 'usr_owner',
+            targetUserId: 'usr_target',
+            ownerUserId: 'usr_owner',
+            rangeDays: 7,
+            dayLabels,
+            forceRefresh: false,
+            excludeHours: {
+                enabled: true,
+                startHour: 22,
+                endHour: 2
+            }
+        });
+
+        expect(commands.appActivityOverlapView).toHaveBeenCalledWith({
+            ownerUserId: 'usr_owner',
+            currentUserId: 'usr_owner',
+            targetUserId: 'usr_target',
+            rangeDays: 7,
+            utcOffsetMinutes: -new Date().getTimezoneOffset(),
+            nowMs: expect.any(Number),
+            forceRefresh: false,
+            excludeStartHour: 22,
+            excludeEndHour: 2
+        });
+        expect(result).toMatchObject({
+            rawBuckets: [0, 0, 60, 60],
+            normalizedBuckets: [0, 0, 0.8, 0.8],
+            overlapPercent: 100,
+            hasOverlapData: true,
+            bestOverlapTime: 'Sun, 02:00-04:00'
         });
     });
 });

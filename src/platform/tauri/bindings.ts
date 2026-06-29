@@ -645,32 +645,8 @@ export const commands = {
     ): Promise<Partial<{ [key in string]: WorldSummaryOutput }>> {
         return await TAURI_INVOKE('app__world_summaries_get', { worldIds });
     },
-    async appActivitySelfSourceSlice(
-        query: ActivitySelfSourceSliceInput
-    ): Promise<ActivitySourceLocationOutput[]> {
-        return await TAURI_INVOKE('app__activity_self_source_slice', { query });
-    },
     async appActivitySelfSourceBounds(): Promise<ActivitySelfSourceBoundsOutput> {
         return await TAURI_INVOKE('app__activity_self_source_bounds');
-    },
-    async appActivitySelfSourceAfter(
-        query: ActivitySelfSourceAfterInput
-    ): Promise<ActivitySourceLocationOutput[]> {
-        return await TAURI_INVOKE('app__activity_self_source_after', { query });
-    },
-    async appActivityFriendPresenceSlice(
-        query: ActivityFriendPresenceSliceInput
-    ): Promise<ActivityPresenceOutput[]> {
-        return await TAURI_INVOKE('app__activity_friend_presence_slice', {
-            query
-        });
-    },
-    async appActivityFriendPresenceAfter(
-        query: ActivityFriendPresenceAfterInput
-    ): Promise<ActivityPresenceOutput[]> {
-        return await TAURI_INVOKE('app__activity_friend_presence_after', {
-            query
-        });
     },
     async appActivitySelfSessionsRefresh(
         input: ActivitySelfSessionsRefreshInput
@@ -725,6 +701,16 @@ export const commands = {
         return await TAURI_INVOKE('app__activity_bucket_cache_upsert', {
             entry
         });
+    },
+    async appActivityView(
+        input: ActivityViewBuildInput
+    ): Promise<ActivityViewOutput> {
+        return await TAURI_INVOKE('app__activity_view', { input });
+    },
+    async appActivityOverlapView(
+        input: ActivityOverlapViewBuildInput
+    ): Promise<ActivityOverlapViewOutput> {
+        return await TAURI_INVOKE('app__activity_overlap_view', { input });
     },
     async appMutualGraphTablesEnsure(
         userId: string
@@ -2685,18 +2671,28 @@ export type ActivityBucketCacheQueryInput = {
     viewKind: string;
     excludeKey?: string;
 };
-export type ActivityFriendPresenceAfterInput = {
+export type ActivityOverlapViewBuildInput = {
     ownerUserId: string;
-    userId: string;
-    afterCreatedAt: string;
+    currentUserId: string;
+    targetUserId: string;
+    rangeDays: number;
+    utcOffsetMinutes: number;
+    nowMs: number;
+    forceRefresh: boolean;
+    excludeStartHour?: number | null;
+    excludeEndHour?: number | null;
 };
-export type ActivityFriendPresenceSliceInput = {
-    ownerUserId: string;
-    userId: string;
-    fromDateIso: string;
-    toDateIso?: string;
+export type ActivityOverlapViewOutput = {
+    rawBuckets: number[];
+    normalizedBuckets: number[];
+    overlapPercent: number;
+    bestDayIndex: number;
+    bestHourStart: number;
+    bestHourEnd: number;
+    hasOverlapData: boolean;
+    builtFromCursor: string;
+    builtAt: string;
 };
-export type ActivityPresenceOutput = { created_at: string; type: string };
 export type ActivitySelfSessionsRefreshInput = {
     userId: string;
     mode: string;
@@ -2708,18 +2704,10 @@ export type ActivitySelfSessionsRefreshOutput = {
     sessions: ActivitySessionOutput[];
     sourceCount: number;
 };
-export type ActivitySelfSourceAfterInput = {
-    afterCreatedAt: string;
-    inclusive?: boolean;
-};
 export type ActivitySelfSourceBoundsOutput = {
     firstCreatedAt: string;
     lastCreatedAt: string;
     count: number;
-};
-export type ActivitySelfSourceSliceInput = {
-    fromDateIso: string;
-    toDateIso?: string;
 };
 export type ActivitySessionInput = {
     start?: JsonValue;
@@ -2733,7 +2721,6 @@ export type ActivitySessionOutput = {
     isOpenTail: boolean;
     sourceRevision: string;
 };
-export type ActivitySourceLocationOutput = { created_at: string; time: number };
 export type ActivitySyncStateInput = {
     userId?: string;
     updatedAt?: string;
@@ -2749,6 +2736,26 @@ export type ActivitySyncStateOutput = {
     sourceLastCreatedAt: string;
     pendingSessionStartAt: JsonValue;
     cachedRangeDays: number;
+};
+export type ActivityViewBuildInput = {
+    ownerUserId: string;
+    targetUserId: string;
+    isSelf: boolean;
+    rangeDays: number;
+    utcOffsetMinutes: number;
+    nowMs: number;
+    forceRefresh: boolean;
+};
+export type ActivityViewOutput = {
+    rawBuckets: number[];
+    normalizedBuckets: number[];
+    peakDayIndex: number;
+    peakHourStart: number;
+    peakHourEnd: number;
+    filteredEventCount: number;
+    hasAnyData: boolean;
+    builtFromCursor: string;
+    builtAt: string;
 };
 export type AppDataDirSource = 'cli' | 'persisted' | 'default';
 export type AppDataDirState = {
