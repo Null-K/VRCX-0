@@ -124,17 +124,10 @@ fn online_friends_summary(rows: &[OnlineFriendRow]) -> String {
     if rows.is_empty() {
         return "No friends are online right now.".to_string();
     }
-    const SHOWN: usize = 8;
     let names = rows
         .iter()
-        .take(SHOWN)
         .map(|row| row.display_name.as_str())
         .collect::<Vec<_>>()
         .join(", ");
-    let extra = rows.len().saturating_sub(SHOWN);
-    if extra > 0 {
-        format!("{} friends online now: {names}, +{extra} more.", rows.len())
-    } else {
-        format!("{} friends online now: {names}.", rows.len())
-    }
+    format!("{} friends online now: {names}.", rows.len())
 }
