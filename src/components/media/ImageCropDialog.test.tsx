@@ -8,7 +8,10 @@ vi.mock('react-easy-crop', async () => {
     const R = await import('react');
     return {
         default: (props: any) =>
-            R.createElement('div', { 'data-testid': 'easy-crop', 'data-image': props.image })
+            R.createElement('div', {
+                'data-testid': 'easy-crop',
+                'data-image': props.image
+            })
     };
 });
 
