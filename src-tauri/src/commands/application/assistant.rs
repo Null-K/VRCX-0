@@ -115,18 +115,10 @@ pub async fn app__assistant_set_config(
     model: String,
     allowWrites: bool,
     playbookMode: PlaybookMode,
-    disableThinking: bool,
 ) -> Result<AssistantConfigStatus, AppError> {
     state
         .assistant()
         .await?
-        .set_config(
-            baseUrl,
-            apiKey,
-            model,
-            allowWrites,
-            playbookMode,
-            disableThinking,
-        )
+        .set_config(baseUrl, apiKey, model, allowWrites, playbookMode)
         .map_err(AppError::from)
 }

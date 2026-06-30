@@ -45,8 +45,6 @@
             "playbook_mode_auto": "自动（按接口）",
             "playbook_mode_guided": "引导（本地 / 弱模型）",
             "playbook_mode_open": "开放（强模型）",
-            "disable_thinking": "关闭思考",
-            "disable_thinking_description": "跳过模型的隐藏推理链（如 Qwen 的 /no_think）。建议工具驱动的本地模型开启——快得多，且在此场景几乎不损失质量。",
             "privacy_title": "隐私",
             "privacy_local": "请求将发送到本地接口，你的社交数据不会离开你的计算机。",
             "privacy_remote": "使用在线 AI 服务可能会泄露你的数据，请谨慎操作。"

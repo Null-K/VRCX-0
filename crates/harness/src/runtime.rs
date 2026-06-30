@@ -13,8 +13,7 @@ use vrcx_0_runtime_host::RuntimeHostState;
 use crate::agent::{run_turn, TurnContext};
 use crate::config::{
     obfuscate_api_key, AssistantConfig, PlaybookMode, ASSISTANT_ALLOW_WRITES_CONFIG_KEY,
-    ASSISTANT_API_KEY_CONFIG_KEY, ASSISTANT_BASE_URL_CONFIG_KEY,
-    ASSISTANT_DISABLE_THINKING_CONFIG_KEY, ASSISTANT_MODEL_CONFIG_KEY,
+    ASSISTANT_API_KEY_CONFIG_KEY, ASSISTANT_BASE_URL_CONFIG_KEY, ASSISTANT_MODEL_CONFIG_KEY,
     ASSISTANT_PLAYBOOK_MODE_CONFIG_KEY,
 };
 
@@ -48,7 +47,6 @@ pub struct AssistantConfigStatus {
     pub is_local: bool,
     pub allow_writes: bool,
     pub playbook_mode: PlaybookMode,
-    pub disable_thinking: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Type)]
@@ -85,7 +83,6 @@ impl AssistantController {
             is_local: config.is_local(),
             allow_writes: config.allow_writes,
             playbook_mode: config.playbook_mode,
-            disable_thinking: config.disable_thinking,
         })
     }
 
@@ -96,12 +93,9 @@ impl AssistantController {
         model: String,
         allow_writes: bool,
         playbook_mode: PlaybookMode,
-        disable_thinking: bool,
     ) -> Result<AssistantConfigStatus, HarnessError> {
         self.config
             .set_bool(ASSISTANT_ALLOW_WRITES_CONFIG_KEY, allow_writes)?;
-        self.config
-            .set_bool(ASSISTANT_DISABLE_THINKING_CONFIG_KEY, disable_thinking)?;
         self.config.set_string(
             ASSISTANT_PLAYBOOK_MODE_CONFIG_KEY,
             playbook_mode.as_config_str(),
@@ -237,7 +231,6 @@ impl AssistantController {
             turn_id: turn_id.clone(),
             locale,
             cancel,
-            disable_thinking: assistant_config.disable_thinking,
             apply_playbook: assistant_config.should_apply_playbook(),
         };
 

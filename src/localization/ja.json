@@ -45,8 +45,6 @@
             "playbook_mode_auto": "自動（エンドポイント基準）",
             "playbook_mode_guided": "ガイド（ローカル / 非力なモデル）",
             "playbook_mode_open": "オープン（強力なモデル）",
-            "disable_thinking": "思考を無効化",
-            "disable_thinking_description": "モデルの隠れた推論チェーンをスキップします（例：Qwen の /no_think）。ツール駆動のローカルモデルに推奨——大幅に高速化し、この用途では品質低下はほぼありません。",
             "privacy_title": "プライバシー",
             "privacy_local": "リクエストはこの PC 上のローカルエンドポイントに送信され、交流データは外部に出ません。",
             "privacy_remote": "オンラインの AI サービスを使うとデータが漏れる可能性があります。慎重に操作してください。"

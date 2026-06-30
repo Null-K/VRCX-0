@@ -33,7 +33,6 @@ export function AssistantSettingsGroup() {
     const [detecting, setDetecting] = useState(false);
     const [allowWrites, setAllowWrites] = useState(false);
     const [playbookMode, setPlaybookMode] = useState<PlaybookMode>('auto');
-    const [disableThinking, setDisableThinking] = useState(true);
 
     useEffect(() => {
         let active = true;
@@ -48,7 +47,6 @@ export function AssistantSettingsGroup() {
                 setModel(next.model);
                 setAllowWrites(next.allowWrites);
                 setPlaybookMode(next.playbookMode);
-                setDisableThinking(next.disableThinking);
             })
             .catch(() => {});
         return () => {
@@ -89,8 +87,7 @@ export function AssistantSettingsGroup() {
                 hasNewApiKey ? apiKey : null,
                 model,
                 allowWrites,
-                playbookMode,
-                disableThinking
+                playbookMode
             );
             if (hasNewApiKey) {
                 recordAssistantApiKeyConfigured();
@@ -211,17 +208,6 @@ export function AssistantSettingsGroup() {
                         </SelectGroup>
                     </SelectContent>
                 </Select>
-            </Field>
-            <Field
-                label={t('assistant.settings.disable_thinking')}
-                description={t(
-                    'assistant.settings.disable_thinking_description'
-                )}
-            >
-                <Switch
-                    checked={disableThinking}
-                    onCheckedChange={setDisableThinking}
-                />
             </Field>
             <Field
                 label={t('assistant.settings.privacy_title')}

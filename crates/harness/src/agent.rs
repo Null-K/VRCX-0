@@ -78,7 +78,6 @@ pub(crate) struct TurnContext {
     pub turn_id: String,
     pub locale: Option<String>,
     pub cancel: CancellationToken,
-    pub disable_thinking: bool,
     pub apply_playbook: bool,
 }
 
@@ -261,9 +260,6 @@ fn build_context(ctx: &TurnContext, route: Option<playbook::Playbook>) -> Vec<Ch
     ];
     if let Some(pb) = route {
         working.push(ChatMessage::system(pb.constraint_prompt()));
-    }
-    if ctx.disable_thinking {
-        working.push(ChatMessage::system("/no_think"));
     }
     if let Some(locale) = ctx
         .locale

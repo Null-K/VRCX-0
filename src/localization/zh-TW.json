@@ -45,8 +45,6 @@
             "playbook_mode_auto": "自動（依端點）",
             "playbook_mode_guided": "引導（本機 / 較弱模型）",
             "playbook_mode_open": "開放（強模型）",
-            "disable_thinking": "關閉思考",
-            "disable_thinking_description": "略過模型的隱藏推理鏈（如 Qwen 的 /no_think）。建議工具驅動的本機模型開啟——快得多，且在此情境幾乎不損失品質。",
             "privacy_title": "隱私權",
             "privacy_local": "請求會傳送至這台電腦上的本機端點。你的社交資料不會離開你的電腦。",
             "privacy_remote": "使用線上人工智慧服務可能會導致你的資料外洩。請謹慎行事。"

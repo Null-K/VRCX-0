@@ -45,8 +45,6 @@
             "playbook_mode_auto": "Auto (selon l'endpoint)",
             "playbook_mode_guided": "Guidé (modèles locaux / faibles)",
             "playbook_mode_open": "Ouvert (modèles puissants)",
-            "disable_thinking": "Désactiver la réflexion",
-            "disable_thinking_description": "Ignore la chaîne de raisonnement cachée du modèle (par ex. /no_think de Qwen). Recommandé pour les modèles locaux pilotés par outils — bien plus rapide, avec peu de perte de qualité ici.",
             "privacy_title": "Confidentialité",
             "privacy_local": "Les requêtes sont envoyées à un endpoint local sur cette machine. Vos données sociales ne quittent pas votre ordinateur.",
             "privacy_remote": "L'utilisation d'un service d'IA en ligne peut exposer vos données. Procédez avec prudence."

@@ -45,8 +45,6 @@
             "playbook_mode_auto": "Auto (según el endpoint)",
             "playbook_mode_guided": "Guiado (modelos locales / débiles)",
             "playbook_mode_open": "Abierto (modelos potentes)",
-            "disable_thinking": "Desactivar el razonamiento",
-            "disable_thinking_description": "Omite la cadena de razonamiento oculta del modelo (p. ej. /no_think de Qwen). Recomendado para modelos locales basados en herramientas: mucho más rápido y con poca pérdida de calidad aquí.",
             "privacy_title": "Privacidad",
             "privacy_local": "Las solicitudes van a un endpoint local en este equipo. Tus datos sociales no salen de tu computadora.",
             "privacy_remote": "Usar un servicio de IA en línea puede exponer tus datos. Procede con precaución."
