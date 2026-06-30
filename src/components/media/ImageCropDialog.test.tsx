@@ -70,11 +70,17 @@ vi.mock('@/ui/shadcn/checkbox', async () => {
     };
 });
 
-vi.mock('@/ui/shadcn/slider', async () => {
+// lucide-react icons
+vi.mock('lucide-react', async () => {
     const React = await import('react');
+    const Icon = (props: any) => React.createElement('span', props);
 
     return {
-        Slider: (props: any) => React.createElement('input', props)
+        FlipHorizontal2: Icon,
+        FlipVertical2: Icon,
+        RefreshCcw: Icon,
+        ZoomIn: Icon,
+        ZoomOut: Icon
     };
 });
 
