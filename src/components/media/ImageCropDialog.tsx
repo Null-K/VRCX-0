@@ -225,7 +225,6 @@ export function ImageCropDialog({
     } | null>(null);
 
     const [imgReady, setImgReady] = useState(false);
-    const [imageUrl, setImageUrl] = useState<string | null>(null);
     const [view, setViewState] = useState<View>(DEFAULT_VIEW);
     const [note, setNote] = useState('');
     const [cropWhiteBorder, setCropWhiteBorder] = useState(true);
@@ -255,12 +254,10 @@ export function ImageCropDialog({
         setImgReady(false);
         imgRef.current = null;
         if (!open || !file || !validateImageUploadFile(file).ok) {
-            setImageUrl(null);
             setView(() => DEFAULT_VIEW);
             return undefined;
         }
         const url = URL.createObjectURL(file);
-        setImageUrl(url);
         setView(() => DEFAULT_VIEW);
 
         const img = new Image();
