@@ -2,6 +2,16 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
+vi.mock('react-easy-crop/react-easy-crop.css', () => ({}));
+
+vi.mock('react-easy-crop', async () => {
+    const R = await import('react');
+    return {
+        default: (props: any) =>
+            R.createElement('div', { 'data-testid': 'easy-crop', 'data-image': props.image })
+    };
+});
+
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({
         t: (key: string) => key
@@ -78,7 +88,11 @@ vi.mock('lucide-react', async () => {
     return {
         FlipHorizontal2: Icon,
         FlipVertical2: Icon,
+        Maximize2: Icon,
+        Minimize2: Icon,
         RefreshCcw: Icon,
+        RotateCcw: Icon,
+        RotateCw: Icon,
         ZoomIn: Icon,
         ZoomOut: Icon
     };

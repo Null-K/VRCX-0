@@ -1,11 +1,17 @@
+import 'react-easy-crop/react-easy-crop.css';
 import {
     FlipHorizontal2,
     FlipVertical2,
+    Maximize2,
+    Minimize2,
     RefreshCcw,
+    RotateCcw,
+    RotateCw,
     ZoomIn,
     ZoomOut
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import Cropper, { type Area } from 'react-easy-crop';
 import { useTranslation } from 'react-i18next';
 
 import { validateImageUploadFile } from '@/shared/utils/imageUpload';
@@ -23,175 +29,71 @@ import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
 import { Spinner } from '@/ui/shadcn/spinner';
 
-const SCALE_MIN = 1;
-const SCALE_MAX = 8;
-const SCALE_BTN = 1.25;
-const CANVAS_H = 440;
-const OVERLAY = 'rgba(0,0,0,0.45)';
-const S_BORDER = 'rgba(255,255,255,0.9)';
-const S_GRID = 'rgba(255,255,255,0.30)';
-const HANDLE = 16;
+// constants
 
-interface View {
-    offsetX: number;
-    offsetY: number;
-    scale: number;
-    flipH: boolean;
-    flipV: boolean;
-}
-const DEFAULT_VIEW: View = {
-    offsetX: 0,
-    offsetY: 0,
-    scale: 1,
-    flipH: false,
-    flipV: false
-};
+const MAX_PREVIEW_SIZE = 800;
+const ZOOM_MIN = 1;
+const ZOOM_MAX = 8;
+const ZOOM_STEP = 0.2;
 
-// geometry
+function applyTransforms(
+    img: HTMLImageElement | HTMLCanvasElement,
+    angleDeg: number,
+    flipH: boolean,
+    flipV: boolean
+): HTMLCanvasElement {
+    const angleRad = (angleDeg * Math.PI) / 180;
+    const absCos = Math.abs(Math.cos(angleRad));
+    const absSin = Math.abs(Math.sin(angleRad));
+    const rotW = Math.round(img.width * absCos + img.height * absSin);
+    const rotH = Math.round(img.width * absSin + img.height * absCos);
 
-function stencilRect(cw: number, ch: number, aspect: number) {
-    const pad = 32;
-    let w = cw - pad * 2;
-    let h = w / aspect;
-    if (h > ch - pad * 2) {
-        h = ch - pad * 2;
-        w = h * aspect;
-    }
-    return { x: (cw - w) / 2, y: (ch - h) / 2, w, h };
+    const cvs = document.createElement('canvas');
+    cvs.width = rotW;
+    cvs.height = rotH;
+    const ctx = cvs.getContext('2d')!;
+    ctx.translate(rotW / 2, rotH / 2);
+    ctx.rotate(angleRad);
+    if (flipH) ctx.scale(-1, 1);
+    if (flipV) ctx.scale(1, -1);
+    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+    return cvs;
 }
 
-function coverScale(nw: number, nh: number, sw: number, sh: number) {
-    return Math.max(sw / nw, sh / nh);
-}
-
-function clampOffset(
-    ox: number,
-    oy: number,
-    rw: number,
-    rh: number,
-    s: { x: number; y: number; w: number; h: number },
-    cw: number,
-    ch: number
-) {
-    const sl = s.x - cw / 2,
-        sr = s.x + s.w - cw / 2;
-    const st = s.y - ch / 2,
-        sb = s.y + s.h - ch / 2;
-    return {
-        offsetX: Math.min(sl + rw / 2, Math.max(sr - rw / 2, ox)),
-        offsetY: Math.min(st + rh / 2, Math.max(sb - rh / 2, oy))
-    };
-}
-
-// drawing
-
-function drawFrame(
-    ctx: CanvasRenderingContext2D,
-    img: HTMLImageElement,
-    view: View,
-    aspect: number,
-    cw: number,
-    ch: number
-) {
-    ctx.clearRect(0, 0, cw, ch);
-    const s = stencilRect(cw, ch, aspect);
-    const base = coverScale(img.naturalWidth, img.naturalHeight, s.w, s.h);
-    const rw = img.naturalWidth * base * view.scale;
-    const rh = img.naturalHeight * base * view.scale;
-    const cx = cw / 2 + view.offsetX;
-    const cy = ch / 2 + view.offsetY;
-
-    // image
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(view.flipH ? -1 : 1, view.flipV ? -1 : 1);
-    ctx.drawImage(img, -rw / 2, -rh / 2, rw, rh);
-    ctx.restore();
-
-    // overlay
-    ctx.fillStyle = OVERLAY;
-    ctx.fillRect(0, 0, cw, s.y);
-    ctx.fillRect(0, s.y + s.h, cw, ch - s.y - s.h);
-    ctx.fillRect(0, s.y, s.x, s.h);
-    ctx.fillRect(s.x + s.w, s.y, cw - s.x - s.w, s.h);
-
-    // thirds grid
-    ctx.strokeStyle = S_GRID;
-    ctx.lineWidth = 0.75;
-    ctx.beginPath();
-    for (let i = 1; i < 3; i++) {
-        const gx = s.x + (s.w * i) / 3;
-        ctx.moveTo(gx, s.y);
-        ctx.lineTo(gx, s.y + s.h);
-        const gy = s.y + (s.h * i) / 3;
-        ctx.moveTo(s.x, gy);
-        ctx.lineTo(s.x + s.w, gy);
-    }
-    ctx.stroke();
-
-    // border
-    ctx.strokeStyle = S_BORDER;
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(s.x, s.y, s.w, s.h);
-
-    // corner handles
-    ctx.strokeStyle = S_BORDER;
-    ctx.lineWidth = 3;
-    const corners = [
-        [s.x, s.y, 1, 1],
-        [s.x + s.w, s.y, -1, 1],
-        [s.x, s.y + s.h, 1, -1],
-        [s.x + s.w, s.y + s.h, -1, -1]
-    ] as const;
-    for (const [hx, hy, dx, dy] of corners) {
-        ctx.beginPath();
-        ctx.moveTo(hx + dx * HANDLE, hy);
-        ctx.lineTo(hx, hy);
-        ctx.lineTo(hx, hy + dy * HANDLE);
-        ctx.stroke();
-    }
-}
-
-// export
-
-async function renderCroppedBlob(
-    img: HTMLImageElement,
-    view: View,
-    aspect: number,
-    cw: number,
-    ch: number
+async function cropImage(
+    originalImg: HTMLImageElement,
+    previewScale: number,
+    croppedAreaPixels: Area,
+    rotation: number,
+    flipH: boolean,
+    flipV: boolean,
+    originalFile: File
 ): Promise<Blob> {
-    const s = stencilRect(cw, ch, aspect);
-    const base = coverScale(img.naturalWidth, img.naturalHeight, s.w, s.h);
-    const outW = Math.round(s.w / (base * view.scale));
-    const outH = Math.round(s.h / (base * view.scale));
-    const imgCx = cw / 2 + view.offsetX;
-    const imgCy = ch / 2 + view.offsetY;
-    const natOx = (s.x + s.w / 2 - imgCx) / (base * view.scale);
-    const natOy = (s.y + s.h / 2 - imgCy) / (base * view.scale);
-    const srcX = Math.round(img.naturalWidth / 2 + natOx - outW / 2);
-    const srcY = Math.round(img.naturalHeight / 2 + natOy - outH / 2);
+    const hasTransform = rotation !== 0 || flipH || flipV;
+
+    const cropX = Math.round(croppedAreaPixels.x / previewScale);
+    const cropY = Math.round(croppedAreaPixels.y / previewScale);
+    const cropW = Math.round(croppedAreaPixels.width / previewScale);
+    const cropH = Math.round(croppedAreaPixels.height / previewScale);
+
+    if (!hasTransform) {
+        const noCrop =
+            cropX <= 1 &&
+            cropY <= 1 &&
+            Math.abs(cropW - originalImg.width) <= 1 &&
+            Math.abs(cropH - originalImg.height) <= 1;
+        if (noCrop) return originalFile;
+    }
+
+    const source: HTMLImageElement | HTMLCanvasElement = hasTransform
+        ? applyTransforms(originalImg, rotation, flipH, flipV)
+        : originalImg;
 
     const out = document.createElement('canvas');
-    out.width = outW;
-    out.height = outH;
-    const ctx = out.getContext('2d');
-    if (!ctx) throw new Error('Failed to prepare export canvas.');
-    ctx.save();
-    ctx.translate(outW / 2, outH / 2);
-    ctx.scale(view.flipH ? -1 : 1, view.flipV ? -1 : 1);
-    ctx.drawImage(
-        img,
-        srcX,
-        srcY,
-        outW,
-        outH,
-        -outW / 2,
-        -outH / 2,
-        outW,
-        outH
-    );
-    ctx.restore();
+    out.width = cropW;
+    out.height = cropH;
+    const ctx = out.getContext('2d')!;
+    ctx.drawImage(source, -cropX, -cropY);
 
     return new Promise<Blob>((resolve, reject) => {
         out.toBlob(
@@ -200,6 +102,52 @@ async function renderCroppedBlob(
         );
     });
 }
+
+async function prepareImage(file: File): Promise<{
+    img: HTMLImageElement;
+    previewSrc: string;
+    previewScale: number;
+}> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('Failed to read file.'));
+        reader.onload = () => {
+            const dataUrl = reader.result as string;
+            const img = new Image();
+            img.onerror = () => reject(new Error('Failed to decode image.'));
+            img.onload = () => {
+                const { width, height } = img;
+                if (width > MAX_PREVIEW_SIZE || height > MAX_PREVIEW_SIZE) {
+                    const scale = Math.min(
+                        MAX_PREVIEW_SIZE / width,
+                        MAX_PREVIEW_SIZE / height
+                    );
+                    const cvs = document.createElement('canvas');
+                    cvs.width = Math.round(width * scale);
+                    cvs.height = Math.round(height * scale);
+                    cvs.getContext('2d')!.drawImage(
+                        img,
+                        0,
+                        0,
+                        cvs.width,
+                        cvs.height
+                    );
+                    resolve({
+                        img,
+                        previewSrc: cvs.toDataURL('image/jpeg', 0.9),
+                        previewScale: scale
+                    });
+                } else {
+                    resolve({ img, previewSrc: dataUrl, previewScale: 1 });
+                }
+            };
+            img.src = dataUrl;
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+// component
 
 export function ImageCropDialog({
     open,
@@ -214,18 +162,20 @@ export function ImageCropDialog({
 }: any) {
     const { t } = useTranslation();
 
-    const canvasRef = useRef<HTMLCanvasElement | null>(null);
-    const imgRef = useRef<HTMLImageElement | null>(null);
-    const viewRef = useRef<View>(DEFAULT_VIEW);
-    const dragRef = useRef<{
-        sx: number;
-        sy: number;
-        ox: number;
-        oy: number;
-    } | null>(null);
+    const originalImgRef = useRef<HTMLImageElement | null>(null);
+    const previewScaleRef = useRef<number>(1);
 
-    const [imgReady, setImgReady] = useState(false);
-    const [view, setViewState] = useState<View>(DEFAULT_VIEW);
+    const [previewSrc, setPreviewSrc] = useState<string>('');
+    const [crop, setCrop] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(ZOOM_MIN);
+    const [rotation, setRotation] = useState(0);
+    const [flipH, setFlipH] = useState(false);
+    const [flipV, setFlipV] = useState(false);
+    const [objectFit, setObjectFit] = useState<'contain' | 'cover'>('cover');
+    const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(
+        null
+    );
+
     const [note, setNote] = useState('');
     const [cropWhiteBorder, setCropWhiteBorder] = useState(true);
     const [isConfirming, setIsConfirming] = useState(false);
@@ -240,37 +190,42 @@ export function ImageCropDialog({
         cropWhiteBorderField?.defaultChecked !== false;
     const aspect = Number(aspectRatio) || 1;
 
-    const setView = useCallback((updater: (prev: View) => View) => {
-        setViewState((prev) => {
-            const next = updater(prev);
-            viewRef.current = next;
-            return next;
-        });
-    }, []);
-
-    // image load
-
     useEffect(() => {
-        setImgReady(false);
-        imgRef.current = null;
         if (!open || !file || !validateImageUploadFile(file).ok) {
-            setView(() => DEFAULT_VIEW);
-            return undefined;
+            setPreviewSrc('');
+            originalImgRef.current = null;
+            previewScaleRef.current = 1;
+            setCrop({ x: 0, y: 0 });
+            setZoom(ZOOM_MIN);
+            setRotation(0);
+            setFlipH(false);
+            setFlipV(false);
+            setCroppedAreaPixels(null);
+            return;
         }
-        const url = URL.createObjectURL(file);
-        setView(() => DEFAULT_VIEW);
 
-        const img = new Image();
-        img.onload = () => {
-            imgRef.current = img;
-            setImgReady(true);
-        };
-        img.src = url;
+        let cancelled = false;
+        prepareImage(file)
+            .then(({ img, previewSrc: src, previewScale }) => {
+                if (cancelled) return;
+                originalImgRef.current = img;
+                previewScaleRef.current = previewScale;
+                setPreviewSrc(src);
+                setCrop({ x: 0, y: 0 });
+                setZoom(ZOOM_MIN);
+                setRotation(0);
+                setFlipH(false);
+                setFlipV(false);
+                setCroppedAreaPixels(null);
+            })
+            .catch(() => {
+                if (!cancelled) setPreviewSrc('');
+            });
+
         return () => {
-            URL.revokeObjectURL(url);
-            imgRef.current = null;
+            cancelled = true;
         };
-    }, [file, open, setView]);
+    }, [file, open]);
 
     useEffect(() => {
         setNote('');
@@ -283,197 +238,71 @@ export function ImageCropDialog({
         open
     ]);
 
-    // canvas draw
-
-    useEffect(() => {
-        const canvas = canvasRef.current;
-        const img = imgRef.current;
-        if (!canvas || !img || !imgReady) return;
-
-        const dpr = window.devicePixelRatio || 1;
-
-        const cw = canvas.offsetWidth || canvas.clientWidth;
-        const ch = canvas.offsetHeight || canvas.clientHeight;
-        if (cw === 0 || ch === 0) return;
-
-        const wantW = Math.round(cw * dpr);
-        const wantH = Math.round(ch * dpr);
-        if (canvas.width !== wantW || canvas.height !== wantH) {
-            canvas.width = wantW;
-            canvas.height = wantH;
-        }
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-        ctx.save();
-        ctx.scale(dpr, dpr);
-        drawFrame(ctx, img, view, aspect, cw, ch);
-        ctx.restore();
-    }, [view, imgReady, aspect]);
-
-    // pointer drag
-
-    const onPointerDown = useCallback(
-        (e: React.PointerEvent<HTMLCanvasElement>) => {
-            if (!imgRef.current) return;
-            e.currentTarget.setPointerCapture(e.pointerId);
-            dragRef.current = {
-                sx: e.clientX,
-                sy: e.clientY,
-                ox: viewRef.current.offsetX,
-                oy: viewRef.current.offsetY
-            };
-        },
-        []
-    );
-
-    const onPointerMove = useCallback(
-        (e: React.PointerEvent<HTMLCanvasElement>) => {
-            if (!dragRef.current || !imgRef.current) return;
-            const img = imgRef.current;
-            const canvas = e.currentTarget;
-            const cw = canvas.offsetWidth,
-                ch = canvas.offsetHeight;
-            const s = stencilRect(cw, ch, aspect);
-            const base = coverScale(
-                img.naturalWidth,
-                img.naturalHeight,
-                s.w,
-                s.h
-            );
-            const v = viewRef.current;
-            const rw = img.naturalWidth * base * v.scale;
-            const rh = img.naturalHeight * base * v.scale;
-            const clamped = clampOffset(
-                dragRef.current.ox + (e.clientX - dragRef.current.sx),
-                dragRef.current.oy + (e.clientY - dragRef.current.sy),
-                rw,
-                rh,
-                s,
-                cw,
-                ch
-            );
-            setView((prev) => ({ ...prev, ...clamped }));
-        },
-        [aspect, setView]
-    );
-
-    const onPointerUp = useCallback(() => {
-        dragRef.current = null;
+    const onCropComplete = useCallback((_croppedArea: Area, pixels: Area) => {
+        setCroppedAreaPixels(pixels);
     }, []);
-
-    // wheel zoom
-
-    const onWheel = useCallback(
-        (e: React.WheelEvent<HTMLCanvasElement>) => {
-            e.preventDefault();
-            if (!imgRef.current) return;
-            const img = imgRef.current;
-            const canvas = e.currentTarget;
-            const cw = canvas.offsetWidth,
-                ch = canvas.offsetHeight;
-            const s = stencilRect(cw, ch, aspect);
-            const base = coverScale(
-                img.naturalWidth,
-                img.naturalHeight,
-                s.w,
-                s.h
-            );
-            const factor = e.deltaY < 0 ? SCALE_BTN : 1 / SCALE_BTN;
-            setView((prev) => {
-                const nextScale = Math.min(
-                    SCALE_MAX,
-                    Math.max(SCALE_MIN, prev.scale * factor)
-                );
-                const ratio = nextScale / prev.scale;
-                const mx = e.nativeEvent.offsetX - cw / 2;
-                const my = e.nativeEvent.offsetY - ch / 2;
-                const rawOx = mx + (prev.offsetX - mx) * ratio;
-                const rawOy = my + (prev.offsetY - my) * ratio;
-                const rw = img.naturalWidth * base * nextScale;
-                const rh = img.naturalHeight * base * nextScale;
-                return {
-                    ...prev,
-                    scale: nextScale,
-                    ...clampOffset(rawOx, rawOy, rw, rh, s, cw, ch)
-                };
-            });
-        },
-        [aspect, setView]
-    );
 
     // toolbar
 
-    const applyZoom = useCallback(
-        (factor: number) => {
-            const img = imgRef.current;
-            const canvas = canvasRef.current;
-            if (!img || !canvas) return;
-            const cw = canvas.offsetWidth,
-                ch = canvas.offsetHeight;
-            const s = stencilRect(cw, ch, aspect);
-            const base = coverScale(
-                img.naturalWidth,
-                img.naturalHeight,
-                s.w,
-                s.h
-            );
-            setView((prev) => {
-                const nextScale = Math.min(
-                    SCALE_MAX,
-                    Math.max(SCALE_MIN, prev.scale * factor)
-                );
-                const rw = img.naturalWidth * base * nextScale;
-                const rh = img.naturalHeight * base * nextScale;
-                return {
-                    ...prev,
-                    scale: nextScale,
-                    ...clampOffset(
-                        prev.offsetX,
-                        prev.offsetY,
-                        rw,
-                        rh,
-                        s,
-                        cw,
-                        ch
-                    )
-                };
-            });
-        },
-        [aspect, setView]
+    const rotateLeft = useCallback(
+        () => setRotation((r) => (((r - 90) % 360) + 360) % 360),
+        []
     );
-
-    const flipHorizontal = useCallback(
-        () => setView((p) => ({ ...p, flipH: !p.flipH })),
-        [setView]
+    const rotateRight = useCallback(
+        () => setRotation((r) => (r + 90) % 360),
+        []
     );
-    const flipVertical = useCallback(
-        () => setView((p) => ({ ...p, flipV: !p.flipV })),
-        [setView]
+    const doFlipH = useCallback(() => setFlipH((v) => !v), []);
+    const doFlipV = useCallback(() => setFlipV((v) => !v), []);
+    const zoomIn = useCallback(
+        () => setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(3))),
+        []
     );
-    const zoomIn = useCallback(() => applyZoom(SCALE_BTN), [applyZoom]);
-    const zoomOut = useCallback(() => applyZoom(1 / SCALE_BTN), [applyZoom]);
-    const reset = useCallback(() => setView(() => DEFAULT_VIEW), [setView]);
+    const zoomOut = useCallback(
+        () => setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(3))),
+        []
+    );
+    const toggleFit = useCallback(
+        () => setObjectFit((f) => (f === 'contain' ? 'cover' : 'contain')),
+        []
+    );
+    const reset = useCallback(() => {
+        setCrop({ x: 0, y: 0 });
+        setZoom(ZOOM_MIN);
+        setRotation(0);
+        setFlipH(false);
+        setFlipV(false);
+    }, []);
 
     // confirm
 
     async function confirmCrop() {
-        if (!file || !validateImageUploadFile(file).ok || !imgRef.current)
-            return;
-        const canvas = canvasRef.current;
-        if (!canvas) return;
+        const img = originalImgRef.current;
+        if (!file || !validateImageUploadFile(file).ok || !img) return;
+
+        const pixels: Area = croppedAreaPixels ?? {
+            x: 0,
+            y: 0,
+            width: img.width * previewScaleRef.current,
+            height: img.height * previewScaleRef.current
+        };
+
         setIsConfirming(true);
         try {
-            const blob = await renderCroppedBlob(
-                imgRef.current,
-                viewRef.current,
-                aspect,
-                canvas.offsetWidth,
-                canvas.offsetHeight
+            const blob = await cropImage(
+                img,
+                previewScaleRef.current,
+                pixels,
+                rotation,
+                flipH,
+                flipV,
+                file
             );
+
             const opts: Record<string, unknown> = {};
             if (noteEnabled) opts.note = note.slice(0, noteMaxLength);
             if (cropWhiteBorderEnabled) opts.cropWhiteBorder = cropWhiteBorder;
+
             await onConfirm?.(
                 blob,
                 Object.keys(opts).length > 0 ? opts : undefined
@@ -482,6 +311,13 @@ export function ImageCropDialog({
             setIsConfirming(false);
         }
     }
+
+    const mediaTransform =
+        [flipH ? 'scaleX(-1)' : '', flipV ? 'scaleY(-1)' : '']
+            .filter(Boolean)
+            .join(' ') || undefined;
+
+    // render
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
@@ -492,28 +328,35 @@ export function ImageCropDialog({
                 </DialogHeader>
 
                 <div className="flex flex-col gap-4">
-                    <div className="bg-muted overflow-hidden rounded-lg border">
-                        <canvas
-                            ref={canvasRef}
-                            role="img"
-                            aria-label={t(
-                                'message.image.success.selected_upload_preview'
-                            )}
-                            onPointerDown={onPointerDown}
-                            onPointerMove={onPointerMove}
-                            onPointerUp={onPointerUp}
-                            onPointerCancel={onPointerUp}
-                            onWheel={onWheel}
-                            style={{
-                                width: '100%',
-                                height: `${CANVAS_H}px`,
-                                display: 'block',
-                                cursor: imgReady ? 'grab' : 'default',
-                                touchAction: 'none'
-                            }}
-                        />
+                    {/* react-easy-crop requires a positioned parent with explicit height */}
+                    <div
+                        className="bg-muted overflow-hidden rounded-lg border"
+                        style={{ position: 'relative', height: '55vh' }}
+                    >
+                        {previewSrc ? (
+                            <Cropper
+                                image={previewSrc}
+                                crop={crop}
+                                zoom={zoom}
+                                rotation={rotation}
+                                aspect={aspect}
+                                minZoom={ZOOM_MIN}
+                                maxZoom={ZOOM_MAX}
+                                objectFit={objectFit}
+                                showGrid
+                                zoomWithScroll
+                                onCropChange={setCrop}
+                                onZoomChange={setZoom}
+                                onCropComplete={onCropComplete}
+                                transform={mediaTransform}
+                                style={{
+                                    containerStyle: { borderRadius: '0.5rem' }
+                                }}
+                            />
+                        ) : null}
                     </div>
 
+                    {/* toolbar */}
                     <FieldGroup>
                         <div
                             className="flex flex-wrap items-center justify-center gap-1"
@@ -525,8 +368,28 @@ export function ImageCropDialog({
                             <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={flipHorizontal}
-                                disabled={!imgReady}
+                                onClick={rotateLeft}
+                                disabled={!previewSrc}
+                                title={t('dialog.image_crop.rotate_left')}
+                                aria-label={t('dialog.image_crop.rotate_left')}
+                            >
+                                <RotateCcw className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={rotateRight}
+                                disabled={!previewSrc}
+                                title={t('dialog.image_crop.rotate_right')}
+                                aria-label={t('dialog.image_crop.rotate_right')}
+                            >
+                                <RotateCw className="h-4 w-4" />
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={doFlipH}
+                                disabled={!previewSrc}
                                 title={t('dialog.image_crop.flip_h')}
                                 aria-label={t('dialog.image_crop.flip_h')}
                             >
@@ -535,8 +398,8 @@ export function ImageCropDialog({
                             <Button
                                 variant="outline"
                                 size="icon"
-                                onClick={flipVertical}
-                                disabled={!imgReady}
+                                onClick={doFlipV}
+                                disabled={!previewSrc}
                                 title={t('dialog.image_crop.flip_v')}
                                 aria-label={t('dialog.image_crop.flip_v')}
                             >
@@ -546,7 +409,7 @@ export function ImageCropDialog({
                                 variant="outline"
                                 size="icon"
                                 onClick={zoomIn}
-                                disabled={!imgReady}
+                                disabled={!previewSrc}
                                 title={t('dialog.image_crop.zoom_in')}
                                 aria-label={t('dialog.image_crop.zoom_in')}
                             >
@@ -556,7 +419,7 @@ export function ImageCropDialog({
                                 variant="outline"
                                 size="icon"
                                 onClick={zoomOut}
-                                disabled={!imgReady}
+                                disabled={!previewSrc}
                                 title={t('dialog.image_crop.zoom_out')}
                                 aria-label={t('dialog.image_crop.zoom_out')}
                             >
@@ -565,8 +428,30 @@ export function ImageCropDialog({
                             <Button
                                 variant="outline"
                                 size="icon"
+                                onClick={toggleFit}
+                                disabled={!previewSrc}
+                                title={
+                                    objectFit === 'cover'
+                                        ? t('dialog.image_crop.mode_fit')
+                                        : t('dialog.image_crop.mode_free')
+                                }
+                                aria-label={
+                                    objectFit === 'cover'
+                                        ? t('dialog.image_crop.mode_fit')
+                                        : t('dialog.image_crop.mode_free')
+                                }
+                            >
+                                {objectFit === 'cover' ? (
+                                    <Maximize2 className="h-4 w-4" />
+                                ) : (
+                                    <Minimize2 className="h-4 w-4" />
+                                )}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="icon"
                                 onClick={reset}
-                                disabled={!imgReady}
+                                disabled={!previewSrc}
                                 title={t('dialog.image_crop.reset')}
                                 aria-label={t('dialog.image_crop.reset')}
                             >
@@ -575,6 +460,7 @@ export function ImageCropDialog({
                         </div>
                     </FieldGroup>
 
+                    {/* optional fields */}
                     {noteEnabled ? (
                         <Field>
                             <FieldLabel htmlFor="image-crop-upload-note">
