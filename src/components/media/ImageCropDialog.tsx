@@ -10,7 +10,7 @@ import {
     ZoomIn,
     ZoomOut
 } from 'lucide-react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Cropper, { type Area } from 'react-easy-crop';
 import { useTranslation } from 'react-i18next';
 
@@ -29,125 +29,14 @@ import { Field, FieldGroup, FieldLabel } from '@/ui/shadcn/field';
 import { Input } from '@/ui/shadcn/input';
 import { Spinner } from '@/ui/shadcn/spinner';
 
-// constants
+import { cropImage, prepareImage } from './imageCropUtils';
 
-const MAX_PREVIEW_SIZE = 800;
 const ZOOM_MIN = 1;
 const ZOOM_MAX = 8;
 const ZOOM_STEP = 0.2;
-
-function applyTransforms(
-    img: HTMLImageElement | HTMLCanvasElement,
-    angleDeg: number,
-    flipH: boolean,
-    flipV: boolean
-): HTMLCanvasElement {
-    const angleRad = (angleDeg * Math.PI) / 180;
-    const absCos = Math.abs(Math.cos(angleRad));
-    const absSin = Math.abs(Math.sin(angleRad));
-    const rotW = Math.round(img.width * absCos + img.height * absSin);
-    const rotH = Math.round(img.width * absSin + img.height * absCos);
-
-    const cvs = document.createElement('canvas');
-    cvs.width = rotW;
-    cvs.height = rotH;
-    const ctx = cvs.getContext('2d')!;
-    ctx.translate(rotW / 2, rotH / 2);
-    ctx.rotate(angleRad);
-    if (flipH) ctx.scale(-1, 1);
-    if (flipV) ctx.scale(1, -1);
-    ctx.drawImage(img, -img.width / 2, -img.height / 2);
-    return cvs;
-}
-
-async function cropImage(
-    originalImg: HTMLImageElement,
-    previewScale: number,
-    croppedAreaPixels: Area,
-    rotation: number,
-    flipH: boolean,
-    flipV: boolean,
-    originalFile: File
-): Promise<Blob> {
-    const hasTransform = rotation !== 0 || flipH || flipV;
-
-    const cropX = Math.round(croppedAreaPixels.x / previewScale);
-    const cropY = Math.round(croppedAreaPixels.y / previewScale);
-    const cropW = Math.round(croppedAreaPixels.width / previewScale);
-    const cropH = Math.round(croppedAreaPixels.height / previewScale);
-
-    if (!hasTransform) {
-        const noCrop =
-            cropX <= 1 &&
-            cropY <= 1 &&
-            Math.abs(cropW - originalImg.width) <= 1 &&
-            Math.abs(cropH - originalImg.height) <= 1;
-        if (noCrop) return originalFile;
-    }
-
-    const source: HTMLImageElement | HTMLCanvasElement = hasTransform
-        ? applyTransforms(originalImg, rotation, flipH, flipV)
-        : originalImg;
-
-    const out = document.createElement('canvas');
-    out.width = cropW;
-    out.height = cropH;
-    const ctx = out.getContext('2d')!;
-    ctx.drawImage(source, -cropX, -cropY);
-
-    return new Promise<Blob>((resolve, reject) => {
-        out.toBlob(
-            (b) => (b ? resolve(b) : reject(new Error('Export failed.'))),
-            'image/png'
-        );
-    });
-}
-
-async function prepareImage(file: File): Promise<{
-    img: HTMLImageElement;
-    previewSrc: string;
-    previewScale: number;
-}> {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onerror = () => reject(new Error('Failed to read file.'));
-        reader.onload = () => {
-            const dataUrl = reader.result as string;
-            const img = new Image();
-            img.onerror = () => reject(new Error('Failed to decode image.'));
-            img.onload = () => {
-                const { width, height } = img;
-                if (width > MAX_PREVIEW_SIZE || height > MAX_PREVIEW_SIZE) {
-                    const scale = Math.min(
-                        MAX_PREVIEW_SIZE / width,
-                        MAX_PREVIEW_SIZE / height
-                    );
-                    const cvs = document.createElement('canvas');
-                    cvs.width = Math.round(width * scale);
-                    cvs.height = Math.round(height * scale);
-                    cvs.getContext('2d')!.drawImage(
-                        img,
-                        0,
-                        0,
-                        cvs.width,
-                        cvs.height
-                    );
-                    resolve({
-                        img,
-                        previewSrc: cvs.toDataURL('image/jpeg', 0.9),
-                        previewScale: scale
-                    });
-                } else {
-                    resolve({ img, previewSrc: dataUrl, previewScale: 1 });
-                }
-            };
-            img.src = dataUrl;
-        };
-        reader.readAsDataURL(file);
-    });
-}
-
-// component
+const CONTAINER_STYLE = {
+    containerStyle: { borderRadius: '0.5rem' }
+} as const;
 
 export function ImageCropDialog({
     open,
@@ -164,14 +53,16 @@ export function ImageCropDialog({
 
     const originalImgRef = useRef<HTMLImageElement | null>(null);
     const previewScaleRef = useRef<number>(1);
+    const cropWrapperRef = useRef<HTMLDivElement | null>(null);
 
     const [previewSrc, setPreviewSrc] = useState<string>('');
+    const [cropperReady, setCropperReady] = useState(false);
     const [crop, setCrop] = useState({ x: 0, y: 0 });
     const [zoom, setZoom] = useState(ZOOM_MIN);
     const [rotation, setRotation] = useState(0);
     const [flipH, setFlipH] = useState(false);
     const [flipV, setFlipV] = useState(false);
-    const [objectFit, setObjectFit] = useState<'contain' | 'cover'>('cover');
+    const [fitWhole, setFitWhole] = useState(false);
     const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(
         null
     );
@@ -190,17 +81,22 @@ export function ImageCropDialog({
         cropWhiteBorderField?.defaultChecked !== false;
     const aspect = Number(aspectRatio) || 1;
 
+    const resetTransforms = useCallback(() => {
+        setCrop({ x: 0, y: 0 });
+        setZoom(ZOOM_MIN);
+        setRotation(0);
+        setFlipH(false);
+        setFlipV(false);
+        setFitWhole(false);
+    }, []);
+
     useEffect(() => {
+        resetTransforms();
+        setCroppedAreaPixels(null);
         if (!open || !file || !validateImageUploadFile(file).ok) {
             setPreviewSrc('');
             originalImgRef.current = null;
             previewScaleRef.current = 1;
-            setCrop({ x: 0, y: 0 });
-            setZoom(ZOOM_MIN);
-            setRotation(0);
-            setFlipH(false);
-            setFlipV(false);
-            setCroppedAreaPixels(null);
             return;
         }
 
@@ -211,12 +107,6 @@ export function ImageCropDialog({
                 originalImgRef.current = img;
                 previewScaleRef.current = previewScale;
                 setPreviewSrc(src);
-                setCrop({ x: 0, y: 0 });
-                setZoom(ZOOM_MIN);
-                setRotation(0);
-                setFlipH(false);
-                setFlipV(false);
-                setCroppedAreaPixels(null);
             })
             .catch(() => {
                 if (!cancelled) setPreviewSrc('');
@@ -225,7 +115,7 @@ export function ImageCropDialog({
         return () => {
             cancelled = true;
         };
-    }, [file, open]);
+    }, [file, open, resetTransforms]);
 
     useEffect(() => {
         setNote('');
@@ -238,20 +128,48 @@ export function ImageCropDialog({
         open
     ]);
 
+    // Mount the cropper only after the dialog open animation settles: it measures
+    // its container via getBoundingClientRect, which is wrong mid transform-scale.
+    useEffect(() => {
+        if (!open || !previewSrc) {
+            setCropperReady(false);
+            return undefined;
+        }
+        let raf = 0;
+        let lastWidth = -1;
+        let stableFrames = 0;
+        const tick = () => {
+            const width =
+                cropWrapperRef.current?.getBoundingClientRect().width ?? 0;
+            if (width > 0 && Math.abs(width - lastWidth) < 0.5) {
+                stableFrames += 1;
+                if (stableFrames >= 3) {
+                    setCropperReady(true);
+                    return;
+                }
+            } else {
+                stableFrames = 0;
+                lastWidth = width;
+            }
+            raf = requestAnimationFrame(tick);
+        };
+        raf = requestAnimationFrame(tick);
+        return () => cancelAnimationFrame(raf);
+    }, [open, previewSrc]);
+
     const onCropComplete = useCallback((_croppedArea: Area, pixels: Area) => {
         setCroppedAreaPixels(pixels);
     }, []);
 
     // toolbar
 
-    const rotateLeft = useCallback(
-        () => setRotation((r) => (((r - 90) % 360) + 360) % 360),
+    const rotateBy = useCallback(
+        (delta: number) =>
+            setRotation((r) => (((r + delta) % 360) + 360) % 360),
         []
     );
-    const rotateRight = useCallback(
-        () => setRotation((r) => (r + 90) % 360),
-        []
-    );
+    const rotateLeft = useCallback(() => rotateBy(-90), [rotateBy]);
+    const rotateRight = useCallback(() => rotateBy(90), [rotateBy]);
     const doFlipH = useCallback(() => setFlipH((v) => !v), []);
     const doFlipV = useCallback(() => setFlipV((v) => !v), []);
     const zoomIn = useCallback(
@@ -262,17 +180,12 @@ export function ImageCropDialog({
         () => setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(3))),
         []
     );
-    const toggleFit = useCallback(
-        () => setObjectFit((f) => (f === 'contain' ? 'cover' : 'contain')),
-        []
-    );
-    const reset = useCallback(() => {
-        setCrop({ x: 0, y: 0 });
+    const toggleFit = useCallback(() => {
+        setFitWhole((f) => !f);
         setZoom(ZOOM_MIN);
-        setRotation(0);
-        setFlipH(false);
-        setFlipV(false);
+        setCrop({ x: 0, y: 0 });
     }, []);
+    const reset = resetTransforms;
 
     // confirm
 
@@ -312,10 +225,76 @@ export function ImageCropDialog({
         }
     }
 
-    const mediaTransform =
-        [flipH ? 'scaleX(-1)' : '', flipV ? 'scaleY(-1)' : '']
-            .filter(Boolean)
-            .join(' ') || undefined;
+    const mediaTransform = useMemo(
+        () =>
+            [
+                `translate(${crop.x}px, ${crop.y}px)`,
+                `rotateZ(${rotation}deg)`,
+                `rotateY(${flipH ? 180 : 0}deg)`,
+                `rotateX(${flipV ? 180 : 0}deg)`,
+                `scale(${zoom})`
+            ].join(' '),
+        [crop.x, crop.y, rotation, flipH, flipV, zoom]
+    );
+
+    const fitLabel = t(
+        fitWhole ? 'dialog.image_crop.mode_free' : 'dialog.image_crop.mode_fit'
+    );
+
+    const tools = [
+        {
+            key: 'rotate_left',
+            onClick: rotateLeft,
+            label: t('dialog.image_crop.rotate_left'),
+            icon: <RotateCcw className="h-4 w-4" />
+        },
+        {
+            key: 'rotate_right',
+            onClick: rotateRight,
+            label: t('dialog.image_crop.rotate_right'),
+            icon: <RotateCw className="h-4 w-4" />
+        },
+        {
+            key: 'flip_h',
+            onClick: doFlipH,
+            label: t('dialog.image_crop.flip_h'),
+            icon: <FlipHorizontal2 className="h-4 w-4" />
+        },
+        {
+            key: 'flip_v',
+            onClick: doFlipV,
+            label: t('dialog.image_crop.flip_v'),
+            icon: <FlipVertical2 className="h-4 w-4" />
+        },
+        {
+            key: 'zoom_in',
+            onClick: zoomIn,
+            label: t('dialog.image_crop.zoom_in'),
+            icon: <ZoomIn className="h-4 w-4" />
+        },
+        {
+            key: 'zoom_out',
+            onClick: zoomOut,
+            label: t('dialog.image_crop.zoom_out'),
+            icon: <ZoomOut className="h-4 w-4" />
+        },
+        {
+            key: 'fit',
+            onClick: toggleFit,
+            label: fitLabel,
+            icon: fitWhole ? (
+                <Minimize2 className="h-4 w-4" />
+            ) : (
+                <Maximize2 className="h-4 w-4" />
+            )
+        },
+        {
+            key: 'reset',
+            onClick: reset,
+            label: t('dialog.image_crop.reset'),
+            icon: <RefreshCcw className="h-4 w-4" />
+        }
+    ];
 
     // render
 
@@ -328,31 +307,39 @@ export function ImageCropDialog({
                 </DialogHeader>
 
                 <div className="flex flex-col gap-4">
-                    {/* react-easy-crop requires a positioned parent with explicit height */}
+                    {/* Crop box == container so fit mode letterboxes to the crop aspect */}
                     <div
-                        className="bg-muted overflow-hidden rounded-lg border"
-                        style={{ position: 'relative', height: '55vh' }}
+                        ref={cropWrapperRef}
+                        className="bg-muted flex justify-center overflow-hidden rounded-lg border"
+                        style={{ minHeight: '30vh' }}
                     >
-                        {previewSrc ? (
-                            <Cropper
-                                image={previewSrc}
-                                crop={crop}
-                                zoom={zoom}
-                                rotation={rotation}
-                                aspect={aspect}
-                                minZoom={ZOOM_MIN}
-                                maxZoom={ZOOM_MAX}
-                                objectFit={objectFit}
-                                showGrid
-                                zoomWithScroll
-                                onCropChange={setCrop}
-                                onZoomChange={setZoom}
-                                onCropComplete={onCropComplete}
-                                transform={mediaTransform}
+                        {previewSrc && cropperReady ? (
+                            <div
                                 style={{
-                                    containerStyle: { borderRadius: '0.5rem' }
+                                    position: 'relative',
+                                    aspectRatio: String(aspect),
+                                    width: `min(100%, calc(50vh * ${aspect}))`
                                 }}
-                            />
+                            >
+                                <Cropper
+                                    image={previewSrc}
+                                    crop={crop}
+                                    zoom={zoom}
+                                    rotation={rotation}
+                                    aspect={aspect}
+                                    minZoom={ZOOM_MIN}
+                                    maxZoom={ZOOM_MAX}
+                                    objectFit={fitWhole ? 'contain' : 'cover'}
+                                    restrictPosition={!fitWhole}
+                                    showGrid
+                                    zoomWithScroll
+                                    onCropChange={setCrop}
+                                    onZoomChange={setZoom}
+                                    onCropComplete={onCropComplete}
+                                    transform={mediaTransform}
+                                    style={CONTAINER_STYLE}
+                                />
+                            </div>
                         ) : null}
                     </div>
 
@@ -365,98 +352,19 @@ export function ImageCropDialog({
                                 defaultValue: 'Image crop toolbar'
                             })}
                         >
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={rotateLeft}
-                                disabled={!previewSrc}
-                                title={t('dialog.image_crop.rotate_left')}
-                                aria-label={t('dialog.image_crop.rotate_left')}
-                            >
-                                <RotateCcw className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={rotateRight}
-                                disabled={!previewSrc}
-                                title={t('dialog.image_crop.rotate_right')}
-                                aria-label={t('dialog.image_crop.rotate_right')}
-                            >
-                                <RotateCw className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={doFlipH}
-                                disabled={!previewSrc}
-                                title={t('dialog.image_crop.flip_h')}
-                                aria-label={t('dialog.image_crop.flip_h')}
-                            >
-                                <FlipHorizontal2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={doFlipV}
-                                disabled={!previewSrc}
-                                title={t('dialog.image_crop.flip_v')}
-                                aria-label={t('dialog.image_crop.flip_v')}
-                            >
-                                <FlipVertical2 className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={zoomIn}
-                                disabled={!previewSrc}
-                                title={t('dialog.image_crop.zoom_in')}
-                                aria-label={t('dialog.image_crop.zoom_in')}
-                            >
-                                <ZoomIn className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={zoomOut}
-                                disabled={!previewSrc}
-                                title={t('dialog.image_crop.zoom_out')}
-                                aria-label={t('dialog.image_crop.zoom_out')}
-                            >
-                                <ZoomOut className="h-4 w-4" />
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={toggleFit}
-                                disabled={!previewSrc}
-                                title={
-                                    objectFit === 'cover'
-                                        ? t('dialog.image_crop.mode_fit')
-                                        : t('dialog.image_crop.mode_free')
-                                }
-                                aria-label={
-                                    objectFit === 'cover'
-                                        ? t('dialog.image_crop.mode_fit')
-                                        : t('dialog.image_crop.mode_free')
-                                }
-                            >
-                                {objectFit === 'cover' ? (
-                                    <Maximize2 className="h-4 w-4" />
-                                ) : (
-                                    <Minimize2 className="h-4 w-4" />
-                                )}
-                            </Button>
-                            <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={reset}
-                                disabled={!previewSrc}
-                                title={t('dialog.image_crop.reset')}
-                                aria-label={t('dialog.image_crop.reset')}
-                            >
-                                <RefreshCcw className="h-4 w-4" />
-                            </Button>
+                            {tools.map((tool) => (
+                                <Button
+                                    key={tool.key}
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={tool.onClick}
+                                    disabled={!previewSrc}
+                                    title={tool.label}
+                                    aria-label={tool.label}
+                                >
+                                    {tool.icon}
+                                </Button>
+                            ))}
                         </div>
                     </FieldGroup>
 
